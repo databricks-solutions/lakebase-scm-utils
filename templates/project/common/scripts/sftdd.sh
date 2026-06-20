@@ -2,19 +2,19 @@
 # Convenient launcher for the TDD workflow.
 #
 # Opens a Claude Code session in the project. The orchestrator is the
-# deterministic driver (lakebase-tdd-drive), invoked by the slash commands, not
+# deterministic driver (lakebase-sftdd-drive), invoked by the slash commands, not
 # an LLM agent; the session just runs those commands, which spawn the role
 # agents and pause at gates. Optionally seeds the first turn with a command so
 # you land straight in it.
 #
 # Run from the project root:
-#   ./scripts/tdd.sh                  open a session (then type /sprint, /plan, etc.)
-#   ./scripts/tdd.sh sprint [name]    run the whole sprint (plan -> per feature design/build/deploy)
-#   ./scripts/tdd.sh plan             sprint planning only (to the plan gate)
-#   ./scripts/tdd.sh design <id>      design a feature
-#   ./scripts/tdd.sh build  <id>      build it through the TDD cycles
-#   ./scripts/tdd.sh deploy <id>      deploy + the working-software gate
-#   ./scripts/tdd.sh spike  <slug>    throwaway exploration (outside the loop)
+#   ./scripts/sftdd.sh                  open a session (then type /sprint, /plan, etc.)
+#   ./scripts/sftdd.sh sprint [name]    run the whole sprint (plan -> per feature design/build/deploy)
+#   ./scripts/sftdd.sh plan             sprint planning only (to the plan gate)
+#   ./scripts/sftdd.sh design <id>      design a feature
+#   ./scripts/sftdd.sh build  <id>      build it through the TDD cycles
+#   ./scripts/sftdd.sh deploy <id>      deploy + the working-software gate
+#   ./scripts/sftdd.sh spike  <slug>    throwaway exploration (outside the loop)
 #
 # The role agents must be discoverable under .claude/agents/ (lakebase-create-project
 # scaffolds them; the driver spawns them). Requires the `claude` CLI on PATH.
