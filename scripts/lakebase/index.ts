@@ -1,12 +1,11 @@
 // Barrel: Lakebase workflow scripts.
 //
-// `create-project.ts` re-exports writeEnvFile / verifyHooks / verifyWorkflows /
-// verifyProject from env-file.ts and project-verify.ts. To avoid duplicate
-// re-export ambiguity, we only pull `createProject` from it and let the
-// canonical owner files (env-file.ts, project-verify.ts) export those names.
+// The SFTDD-coupled project scaffolders (create-project, adopt-lakebase-project,
+// adopt-sftdd) and the SFTDD command updater (update-commands) live in the
+// SFTDD kit (lakebase-app-dev-kit), not this package, so they are not
+// re-exported here. The canonical owner files (env-file.ts, project-verify.ts)
+// still export writeEnvFile / verifyHooks / verifyWorkflows / verifyProject.
 
-export * from "./adopt-lakebase-project.js";
-export * from "./adopt-sftdd.js";
 export * from "./branch-create.js";
 export * from "./branch-delete.js";
 export * from "./convention-branches.js";
@@ -26,7 +25,6 @@ export * from "./branch-endpoint.js";
 export * from "./branch-schema.js";
 export * from "./paired-branch.js";
 export * from "./branch-utils.js";
-export { createProject } from "./create-project.js";
 export * from "./create-preflight.js";
 export * from "./env-file.js";
 export * from "./enable-e2e.js";
@@ -50,7 +48,6 @@ export * from "./scaffold-language.js";
 export * from "./scaffold.js";
 export * from "./schema-diff.js";
 export * from "./secret-auth.js";
-export * from "./update-commands.js";
 export * from "./workflow-drift.js";
 export * from "./spring-initializr.js";
 export * from "./uc-resources.js";

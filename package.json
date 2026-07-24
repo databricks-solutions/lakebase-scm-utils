@@ -1,0 +1,142 @@
+{
+  "name": "@databricks-solutions/lakebase-scm-utils",
+  "version": "0.1.0-beta.1",
+  "description": "Lakebase SCM + substrate engine: database branching, paired-branch SCM workflows, connection/credential minting, schema migration, project scaffold + deploy primitives, and the git/github utility layer. Extracted from lakebase-app-dev-kit for portable, standalone consumption by lakebase-scm-extension and the SFTDD orchestration.",
+  "type": "module",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "skills",
+    "templates",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/databricks-solutions/lakebase-scm-utils"
+  },
+  "main": "./dist/scripts/index.cjs",
+  "module": "./dist/scripts/index.js",
+  "types": "./dist/scripts/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/scripts/index.d.ts",
+        "default": "./dist/scripts/index.js"
+      },
+      "require": {
+        "types": "./dist/scripts/index.d.cts",
+        "default": "./dist/scripts/index.cjs"
+      }
+    },
+    "./github": {
+      "import": {
+        "types": "./dist/scripts/github/index.d.ts",
+        "default": "./dist/scripts/github/index.js"
+      },
+      "require": {
+        "types": "./dist/scripts/github/index.d.cts",
+        "default": "./dist/scripts/github/index.cjs"
+      }
+    },
+    "./lakebase": {
+      "import": {
+        "types": "./dist/scripts/lakebase/index.d.ts",
+        "default": "./dist/scripts/lakebase/index.js"
+      },
+      "require": {
+        "types": "./dist/scripts/lakebase/index.d.cts",
+        "default": "./dist/scripts/lakebase/index.cjs"
+      }
+    },
+    "./git": {
+      "import": {
+        "types": "./dist/scripts/git/index.d.ts",
+        "default": "./dist/scripts/git/index.js"
+      },
+      "require": {
+        "types": "./dist/scripts/git/index.d.cts",
+        "default": "./dist/scripts/git/index.cjs"
+      }
+    },
+    "./util": {
+      "import": {
+        "types": "./dist/scripts/util/index.d.ts",
+        "default": "./dist/scripts/util/index.js"
+      },
+      "require": {
+        "types": "./dist/scripts/util/index.d.cts",
+        "default": "./dist/scripts/util/index.cjs"
+      }
+    }
+  },
+  "bin": {
+    "lakebase-branch": "./dist/scripts/lakebase/branch.cli.js",
+    "lakebase-ci-app-endpoint": "./dist/scripts/lakebase/ci-app-endpoint.cli.js",
+    "lakebase-ci-resolve-branch": "./dist/scripts/lakebase/ci-resolve-branch.cli.js",
+    "lakebase-collapse-heads": "./dist/scripts/lakebase/collapse-heads.cli.js",
+    "lakebase-cut-backup": "./dist/scripts/lakebase/cut-backup.cli.js",
+    "lakebase-detect-language": "./dist/scripts/lakebase/detect-language.cli.js",
+    "lakebase-doctor": "./dist/scripts/lakebase/doctor.cli.js",
+    "lakebase-get-connection": "./dist/scripts/lakebase/get-connection.cli.js",
+    "lakebase-github-token": "./dist/scripts/github/auth.cli.js",
+    "lakebase-infra-runner": "./dist/scripts/lakebase/infra-runner.cli.js",
+    "lakebase-new-migration": "./dist/scripts/lakebase/new-migration.cli.js",
+    "lakebase-pr": "./dist/scripts/github/pr.cli.js",
+    "lakebase-reconcile-tier": "./dist/scripts/lakebase/scm-reconcile-tier.cli.js",
+    "lakebase-resolve-profile": "./dist/scripts/lakebase/resolve-profile.cli.js",
+    "lakebase-schema-diff": "./dist/scripts/lakebase/schema-diff.cli.js",
+    "lakebase-schema-migrate": "./dist/scripts/lakebase/schema-migrate.cli.js",
+    "lakebase-scm-abandon-feature": "./dist/scripts/lakebase/scm-abandon-feature.cli.js",
+    "lakebase-scm-adopt-state": "./dist/scripts/lakebase/scm-adopt-state.cli.js",
+    "lakebase-scm-claim-feature-branch": "./dist/scripts/lakebase/scm-claim-feature.cli.js",
+    "lakebase-scm-doctor": "./dist/scripts/lakebase/scm-doctor.cli.js",
+    "lakebase-scm-feature-branch": "./dist/scripts/lakebase/scm-feature-branch.cli.js",
+    "lakebase-scm-merge": "./dist/scripts/lakebase/scm-merge.cli.js",
+    "lakebase-scm-prepare-pr": "./dist/scripts/lakebase/scm-prepare-pr.cli.js",
+    "lakebase-scm-recover-orphans": "./dist/scripts/lakebase/scm-recover-orphans.cli.js",
+    "lakebase-scm-state": "./dist/scripts/lakebase/scm-state.cli.js",
+    "lakebase-scm-wait-ci": "./dist/scripts/lakebase/scm-wait-ci.cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepare": "node scripts/prepare.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@databricks/appkit": "^0.38.1",
+    "@databricks/lakebase": "^0.4.0",
+    "adm-zip": "^0.5.16",
+    "find-java-home": "^2.0.0",
+    "octokit": "^4.0.0",
+    "pg": "^8.20.0",
+    "tar": "^7.4.3",
+    "tree-kill": "^1.2.2",
+    "tweetsodium": "^0.0.5"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.20.0",
+    "@types/tar": "^6.1.13",
+    "husky": "^9.1.7",
+    "js-yaml": "^4.1.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

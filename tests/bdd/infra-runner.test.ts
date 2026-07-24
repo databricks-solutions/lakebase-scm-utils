@@ -222,28 +222,11 @@ describe("enableInfraForProject orchestrator", () => {
   });
 });
 
-describe("SKILL.md tag-to-runner table includes the Infra row", () => {
-  it("documents `npm run test:infra` and the substrate runner bin", () => {
-    const skill = fs.readFileSync(
-      path.join(REPO_ROOT, "skills", "lakebase-sftdd-workflows", "SKILL.md"),
-      "utf8"
-    );
-    expect(skill).toMatch(/\| `Infra` \| `infra` \|/);
-    expect(skill).toMatch(/lakebase-infra-runner/);
-    expect(skill).toMatch(/npm run test:infra/);
-  });
-
-  it("spec-format.md defines the [Infra] semantics and the three v1 checks", () => {
-    const ref = fs.readFileSync(
-      path.join(REPO_ROOT, "skills", "lakebase-sftdd-workflows", "references", "spec-format.md"),
-      "utf8"
-    );
-    expect(ref).toMatch(/AC layer semantics/);
-    expect(ref).toMatch(/migrations-clean/);
-    expect(ref).toMatch(/schema-diff-computable/);
-    expect(ref).toMatch(/connection-reachable/);
-  });
-});
+// NOTE: the SKILL.md/spec-format.md tag-to-runner doc-conformance checks for
+// the Infra row live with the SFTDD skill (lakebase-sftdd-workflows), which
+// stays in lakebase-app-dev-kit. This package owns only the infra-runner
+// substrate behavior, exercised above; the SFTDD skill docs are asserted in
+// the kit's own copy of this test.
 
 // Live suite gate. The runner shells out to the databricks CLI and
 // queries real Lakebase metadata, so it requires both the CLI and a

@@ -13,11 +13,11 @@ import {
   type FixFindingResult,
   type FixableFindingId,
 } from "./scm-doctor.js";
-// SFTDD stale-branch finder, injected into runDoctor so scm-doctor.ts (SCM core)
-// carries no sftdd import. This CLI is the composition point; at the
-// lakebase-scm-utils split it relocates to the kit side (which owns SFTDD).
-import { resolveSftddDir } from "../sftdd/sftdd-paths.js";
-import { findStaleBranches } from "../sftdd/stale-branches.js";
+// The standalone lakebase-scm-utils doctor carries no SFTDD dependency, so it
+// does not inject the SFTDD stale-experiment/spike finder. runDoctor's
+// findStaleBranches dep is optional (defaults to no stale-branch findings).
+// The SFTDD kit (lakebase-app-dev-kit) re-adds that finding by injecting its
+// own finder where it composes this substrate.
 
 interface ParsedArgs {
   projectDir?: string;
@@ -207,10 +207,7 @@ export async function runScmDoctorCli(argv: string[]): Promise<number> {
     }
   }
 
-  const report = await runDoctor(
-    { projectDir, instance },
-    { findStaleBranches: () => findStaleBranches(resolveSftddDir(projectDir)) },
-  );
+  const report = await runDoctor({ projectDir, instance });
   if (args.json) {
     const indent = args.pretty ? 2 : 0;
     process.stdout.write(`${JSON.stringify(report, null, indent)}\n`);

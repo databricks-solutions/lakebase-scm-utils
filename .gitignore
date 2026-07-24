@@ -1,0 +1,16 @@
+node_modules
+node_modules/
+*.log
+npm-debug.log*
+
+# Build output. Force-added (`git add -f dist`) on tagged releases so consumer
+# installs (github ref) get a pre-built dist/ without rebuilding.
+dist/
+
+# Local env / secrets
+.env
+.env.local
+*.local
+
+# OS / editor
+.DS_Store
