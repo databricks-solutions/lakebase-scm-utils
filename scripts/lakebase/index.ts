@@ -43,6 +43,14 @@ export * from "./scm-wait-ci.js";
 export * from "./scm-merge.js";
 export * from "./scm-recover-orphans.js";
 export * from "./scm-doctor.js";
+// The health-check doctor (doctor.ts) and the SCM doctor (scm-doctor.ts) both
+// export a `runDoctor`. scm-doctor's is the barrel's plain `runDoctor`; expose
+// the health-check one under an unambiguous alias for library consumers (the
+// MCP server's lakebase_doctor tool).
+export {
+  runDoctor as runHealthDoctor,
+  type DoctorReport as HealthDoctorReport,
+} from "./doctor.js";
 export * from "./runner-setup.js";
 export * from "./scaffold-language.js";
 export * from "./scaffold.js";

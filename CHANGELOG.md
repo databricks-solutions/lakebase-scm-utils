@@ -2,6 +2,14 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0-beta.2
+
+- Export the health-check doctor (`doctor.ts`) from the `lakebase` barrel under
+  the unambiguous alias `runHealthDoctor` (+ `HealthDoctorReport`). The plain
+  `runDoctor` in the barrel is the SCM doctor; library consumers that need the
+  health-check doctor (e.g. the MCP `lakebase_doctor` tool in
+  lakebase-app-dev-kit) use the alias. Fills a gap surfaced re-pointing the kit.
+
 ## 0.1.0-beta.1
 
 Initial extraction from `lakebase-app-dev-kit`. History for the moved paths is preserved
