@@ -307,8 +307,13 @@ jobs:
           echo "  instance:    $LAKEBASE_PROJECT_ID"
           echo "  branch:      $LAKEBASE_BRANCH_NAME"
           echo "  git ref:     $GITHUB_REF_NAME"
+          # apply-tier (not plain apply): this step migrates the PARENT TIER
+          # (staging / main / dev), which `apply` refuses on purpose. apply-tier
+          # is the promotion opt-in (allowTier) + verifies the tier reached head,
+          # so a partial promotion fails the job instead of leaving git ahead of
+          # the Lakebase schema. Single-tier (default branch) also goes through it.
           npx --yes --package=github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}" \
-            lakebase-schema-migrate apply \
+            lakebase-schema-migrate apply-tier \
             --instance "$LAKEBASE_PROJECT_ID" \
             --branch "$LAKEBASE_BRANCH_NAME" \
             --pretty

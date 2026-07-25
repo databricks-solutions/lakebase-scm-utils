@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// CLI for the kit's schema-migrate primitives. Four subcommands:
-//   lakebase-schema-migrate apply    --instance <id> --branch <name> [...]
-//   lakebase-schema-migrate rollback --instance <id> --branch <name> --target <rev> [...]
-//   lakebase-schema-migrate status   --instance <id> --branch <name> [...]
-//   lakebase-schema-migrate list     [--project-dir <dir>] [--language <lang>]
+// CLI for the kit's schema-migrate primitives. Five subcommands:
+//   lakebase-schema-migrate apply      --instance <id> --branch <name> [...]
+//   lakebase-schema-migrate apply-tier --instance <id> --branch <tier> [...]
+//   lakebase-schema-migrate rollback   --instance <id> --branch <name> --target <rev> [...]
+//   lakebase-schema-migrate status     --instance <id> --branch <name> [...]
+//   lakebase-schema-migrate list       [--project-dir <dir>] [--language <lang>]
 //
 // Prints JSON on stdout, progress on stderr.
 //
@@ -14,6 +15,7 @@
 
 import {
   applySchemaMigrations,
+  applyAndVerifyTierMigration,
   listSchemaMigrations,
   schemaMigrationStatus,
   rollbackSchemaMigration,
@@ -80,9 +82,12 @@ function helpFor(binName: string): string {
   return `${binName} (schema migration adapter)
 
 Subcommands:
-  apply     Apply pending forward migrations against a branch
-  rollback  Roll back applied migrations down to a target version
-  status    Show current applied version and pending migrations
+  apply       Apply pending forward migrations against a branch (a feature's
+              own paired branch; REFUSES a protected tier)
+  apply-tier  Promote path: apply + verify migrations against a PARENT TIER
+              (staging / main / dev); opts into the tier guard
+  rollback    Roll back applied migrations down to a target version
+  status      Show current applied version and pending migrations
   list      Enumerate migration files on disk (no DB connection)
 
 Common flags (for apply, rollback, status):
@@ -152,6 +157,31 @@ async function main(): Promise<number> {
           endpointName: args.endpointName,
         });
         printJson(result, args.pretty ?? false);
+        return 0;
+      }
+      case "apply-tier": {
+        // The PROMOTE path: migrate a long-living PARENT TIER (staging / main /
+        // dev). Plain `apply` refuses a protected tier on purpose (a feature
+        // build/experiment must migrate only its own paired branch); merge.yml's
+        // migrate-target is the sanctioned promotion, so it opts in here via
+        // applyAndVerifyTierMigration (allowTier + a post-apply verify that the
+        // tier reached head). Exits 3 when the tier is not confirmed at head so a
+        // partial promotion (git ahead of the Lakebase schema) fails loud.
+        if (!args.instance || !args.branch) {
+          process.stderr.write("apply-tier: --instance and --branch are required.\n");
+          return 2;
+        }
+        const result = await applyAndVerifyTierMigration({
+          instance: args.instance,
+          branch: args.branch,
+          projectDir: args.projectDir,
+          language: args.language,
+        });
+        printJson(result, args.pretty ?? false);
+        if (!result.ok) {
+          process.stderr.write(`apply-tier: ${result.detail ?? "tier migration not confirmed at head"}\n`);
+          return 3;
+        }
         return 0;
       }
       case "rollback": {

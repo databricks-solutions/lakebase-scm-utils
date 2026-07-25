@@ -283,8 +283,11 @@ describe("deployWorkflows: {{LAKEBASE_SCM_UTILS_VERSION}} substitution", () => {
     expect(mergeYml).not.toMatch(/lakebase-scm-utils#v\d/);
 
     // Substrate routing for migrations (replaces the language-branched
-    // mvnw/uv-run/npx-knex block).
-    expect(mergeYml).toMatch(/lakebase-schema-migrate apply/);
+    // mvnw/uv-run/npx-knex block). merge.yml migrates the PARENT TIER, so it must
+    // use `apply-tier` (the promotion opt-in), NOT plain `apply` (which refuses a
+    // protected tier -> 2-tier/3-tier merges would fail).
+    expect(mergeYml).toMatch(/lakebase-schema-migrate apply-tier/);
+    expect(mergeYml).not.toMatch(/lakebase-schema-migrate apply\s+\\/);
     expect(mergeYml).not.toMatch(/\.\/mvnw -q flyway:migrate/);
     expect(mergeYml).not.toMatch(/uv run alembic upgrade head/);
     expect(mergeYml).not.toMatch(/npx knex migrate:latest/);

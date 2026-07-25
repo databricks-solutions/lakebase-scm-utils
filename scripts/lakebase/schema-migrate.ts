@@ -498,7 +498,7 @@ export interface ApplyVerifyDeps {
  * printing a false "in sync".
  */
 export async function applyAndVerifyTierMigration(
-  args: { instance: string; branch: string; projectDir: string; language?: SchemaMigrationLanguage },
+  args: { instance: string; branch: string; projectDir?: string; language?: SchemaMigrationLanguage },
   deps: ApplyVerifyDeps = {},
 ): Promise<ApplyVerifyResult> {
   const apply = deps.apply ?? applySchemaMigrations;
