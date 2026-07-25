@@ -26,6 +26,17 @@ export * from "./branch-schema.js";
 export * from "./paired-branch.js";
 export * from "./branch-utils.js";
 export * from "./create-preflight.js";
+// Base project scaffolders (SFTDD-decoupled; the SFTDD kit injects sftddHooks).
+// Named export for create-project to avoid re-export ambiguity with env-file /
+// project-verify (which it re-exports for its own callers).
+export {
+  createProject,
+  type CreateProjectArgs,
+  type CreateProjectResult,
+  type ProgressCallback,
+  type SftddSetupHooks,
+} from "./create-project.js";
+export * from "./adopt-lakebase-project.js";
 export * from "./env-file.js";
 export * from "./enable-e2e.js";
 export * from "./enable-infra.js";

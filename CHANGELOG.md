@@ -2,6 +2,16 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0-beta.3
+
+- Add the SFTDD-decoupled base project scaffolders `createProject` and
+  `adoptLakebaseProject` (+ `assertAdoptionPreflight`, `_testMakeBrownfieldFixture`)
+  to the `lakebase` barrel. The base scaffolders no longer depend on the SFTDD
+  orchestration or its templates: the `.sftdd/` lay-down and sftdd-config seeding
+  are supplied by injected hooks (`SftddSetupHooks` / `adoptSftddHook`), which the
+  SFTDD kit provides. Omitting the hooks creates a plain SCM project. This lets
+  the VS Code extension consume project creation from this package directly.
+
 ## 0.1.0-beta.2
 
 - Export the health-check doctor (`doctor.ts`) from the `lakebase` barrel under
