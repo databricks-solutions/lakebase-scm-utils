@@ -24,7 +24,7 @@ import {
   kitWarmWarning,
   withLakebaseRollback,
 } from "./create-preflight.js";
-import { scaffoldAll } from "./scaffold.js";
+import { scaffoldAll, substrateVersion } from "./scaffold.js";
 import type { ClientFramework } from "./scaffold-language.js";
 import { createLongRunningBranch } from "./long-running-branch.js";
 import { enableE2eForProject } from "./enable-e2e.js";
@@ -471,6 +471,29 @@ export async function createProject(
       warnings.push(
         `SFTDD config seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. The role defaults still apply.`,
       );
+    }
+  }
+
+  // ── Step 7d-bis: pin the substrate ref ────────────────────────
+  // The scaffolded scripts/lk AND the CI workflows both resolve the substrate
+  // (@databricks-solutions/lakebase-scm-utils) from .lakebase/scm-utils-ref. Pin
+  // it to the version that scaffolded this project so runtime lk resolves the
+  // SAME substrate the CI fallback (v{{LAKEBASE_SCM_UTILS_VERSION}}) pins, rather
+  // than chasing a moving `main`. An explicit LAKEBASE_SCM_UTILS_REF wins (a
+  // capture pins a working ref). Applies to EVERY project (SCM-only or SFTDD):
+  // the substrate is always in play, so this is not gated on enableSftdd.
+  {
+    const envRef = process.env.LAKEBASE_SCM_UTILS_REF?.trim();
+    const ver = substrateVersion();
+    const scmRef = envRef || (ver !== "unknown" ? `v${ver}` : "");
+    if (scmRef) {
+      try {
+        const dir = path.join(projectDir, ".lakebase");
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, "scm-utils-ref"), `${scmRef}\n`, "utf8");
+      } catch (err) {
+        warnings.push(`Substrate ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
+      }
     }
   }
 

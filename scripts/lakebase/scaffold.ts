@@ -301,7 +301,7 @@ export async function deployWorkflows(targetDir: string, opts?: ScaffoldOptions)
  * package.json still completes (its YAML will pin to the literal "unknown"
  * tag, which is fine for hermetic tests).
  */
-function substrateVersion(opts?: ScaffoldOptions): string {
+export function substrateVersion(opts?: ScaffoldOptions): string {
   try {
     const pkgRoot = path.dirname(path.dirname(templatesRoot(opts)));
     const raw = fs.readFileSync(path.join(pkgRoot, "package.json"), "utf-8");
