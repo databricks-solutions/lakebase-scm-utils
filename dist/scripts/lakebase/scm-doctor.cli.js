@@ -3153,12 +3153,12 @@ async function runDoctor(args, deps = {}) {
       const p = path12.join(projectDir, ".github", "workflows", wf);
       if (!fs12.existsSync(p)) continue;
       const body = fs12.readFileSync(p, "utf8");
-      if (/lakebase-app-dev-kit#v\d/.test(body)) {
+      if (/lakebase-scm-utils#v\d/.test(body)) {
         findings.push({
-          id: "ci-workflow-kit-pin",
+          id: "ci-workflow-substrate-pin",
           severity: "warn",
-          message: `.github/workflows/${wf} hardcodes a kit version pin (github:databricks-solutions/lakebase-app-dev-kit#v<ver>) instead of resolving .lakebase/kit-ref at runtime, so bumping .lakebase/kit-ref does NOT change the kit CI actually runs (FEIP-8050, Finding 24).`,
-          suggestion: "Re-emit the workflows from the current kit templates so they resolve KIT_REF from .lakebase/kit-ref at CI time (updateWorkflows in scripts/lakebase/workflow-drift.ts; lakebase-doctor reports this as workflow-drift). Until then a kit-ref bump will not reach CI."
+          message: `.github/workflows/${wf} hardcodes a substrate version pin (github:databricks-solutions/lakebase-scm-utils#v<ver>) instead of resolving .lakebase/scm-utils-ref at runtime, so bumping .lakebase/scm-utils-ref does NOT change the substrate CI actually runs.`,
+          suggestion: "Re-emit the workflows from the current substrate templates so they resolve SCM_UTILS_REF from .lakebase/scm-utils-ref at CI time (updateWorkflows in scripts/lakebase/workflow-drift.ts; lakebase-doctor reports this as workflow-drift). Until then a scm-utils-ref bump will not reach CI."
         });
       }
     } catch {

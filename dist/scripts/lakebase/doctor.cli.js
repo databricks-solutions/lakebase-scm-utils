@@ -1590,7 +1590,7 @@ function readKitVersion(kitWorkflowsDir) {
   }
 }
 function applyPlaceholders(content, version) {
-  return content.replace(/\{\{LAKEBASE_KIT_VERSION\}\}/g, version);
+  return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
 }
 
 // scripts/lakebase/doctor.ts

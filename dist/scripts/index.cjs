@@ -879,7 +879,7 @@ function writeEnvFile(args) {
   const host = args.databricksHost.replace(/\/+$/, "");
   const envContent = [
     "# Lakebase project configuration",
-    "# Created by @databricks-solutions/lakebase-app-dev-kit",
+    "# Created by @databricks-solutions/lakebase-scm-utils",
     "",
     `DATABRICKS_HOST=${host}`,
     `LAKEBASE_PROJECT_ID=${args.lakebaseProjectId}`,
@@ -2880,7 +2880,7 @@ async function deleteAppEndpoint(args) {
   return { appDeleted, workspaceDeleted, found };
 }
 async function ensureAppEndpoint(args) {
-  const description = args.description ?? "Deployed by lakebase-app-dev-kit";
+  const description = args.description ?? "Deployed by lakebase-scm-utils";
   const createTimeoutMs = args.createTimeoutMs ?? 12e5;
   const deployTimeoutMs = args.deployTimeoutMs ?? 6e5;
   const lookup = await getAppEndpoint({ appName: args.appName, profile: args.profile });
@@ -4215,7 +4215,7 @@ async function deployClaudeCommands(targetDir, opts) {
   }
   const destDir = path9.join(targetDir, ".claude", "commands");
   fs11.mkdirSync(destDir, { recursive: true });
-  const version = kitVersion(opts);
+  const version = substrateVersion(opts);
   const written = [];
   const skipped = [];
   for (const entry of fs11.readdirSync(src)) {
@@ -4297,10 +4297,10 @@ async function deployWorkflows(targetDir, opts) {
   );
   return written;
 }
-function kitVersion(opts) {
+function substrateVersion(opts) {
   try {
-    const kitRoot = path9.dirname(path9.dirname(templatesRoot(opts)));
-    const raw = fs11.readFileSync(path9.join(kitRoot, "package.json"), "utf-8");
+    const pkgRoot = path9.dirname(path9.dirname(templatesRoot(opts)));
+    const raw = fs11.readFileSync(path9.join(pkgRoot, "package.json"), "utf-8");
     const pkg = JSON.parse(raw);
     return typeof pkg.version === "string" ? pkg.version : "unknown";
   } catch {
@@ -4309,12 +4309,12 @@ function kitVersion(opts) {
 }
 function substituteWorkflowPlaceholders(workflowDir, opts) {
   if (!fs11.existsSync(workflowDir)) return;
-  const version = kitVersion(opts);
+  const version = substrateVersion(opts);
   for (const entry of fs11.readdirSync(workflowDir)) {
     if (!entry.endsWith(".yml") && !entry.endsWith(".yaml")) continue;
     const filePath = path9.join(workflowDir, entry);
     const before = fs11.readFileSync(filePath, "utf-8");
-    const after = before.replace(/\{\{LAKEBASE_KIT_VERSION\}\}/g, version);
+    const after = before.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
     if (after !== before) fs11.writeFileSync(filePath, after);
   }
 }
@@ -8533,12 +8533,12 @@ async function runDoctor(args, deps = {}) {
       const p = path27.join(projectDir, ".github", "workflows", wf);
       if (!fs28.existsSync(p)) continue;
       const body = fs28.readFileSync(p, "utf8");
-      if (/lakebase-app-dev-kit#v\d/.test(body)) {
+      if (/lakebase-scm-utils#v\d/.test(body)) {
         findings.push({
-          id: "ci-workflow-kit-pin",
+          id: "ci-workflow-substrate-pin",
           severity: "warn",
-          message: `.github/workflows/${wf} hardcodes a kit version pin (github:databricks-solutions/lakebase-app-dev-kit#v<ver>) instead of resolving .lakebase/kit-ref at runtime, so bumping .lakebase/kit-ref does NOT change the kit CI actually runs (FEIP-8050, Finding 24).`,
-          suggestion: "Re-emit the workflows from the current kit templates so they resolve KIT_REF from .lakebase/kit-ref at CI time (updateWorkflows in scripts/lakebase/workflow-drift.ts; lakebase-doctor reports this as workflow-drift). Until then a kit-ref bump will not reach CI."
+          message: `.github/workflows/${wf} hardcodes a substrate version pin (github:databricks-solutions/lakebase-scm-utils#v<ver>) instead of resolving .lakebase/scm-utils-ref at runtime, so bumping .lakebase/scm-utils-ref does NOT change the substrate CI actually runs.`,
+          suggestion: "Re-emit the workflows from the current substrate templates so they resolve SCM_UTILS_REF from .lakebase/scm-utils-ref at CI time (updateWorkflows in scripts/lakebase/workflow-drift.ts; lakebase-doctor reports this as workflow-drift). Until then a scm-utils-ref bump will not reach CI."
         });
       }
     } catch {
@@ -8960,7 +8960,7 @@ function readKitVersion(kitWorkflowsDir) {
   }
 }
 function applyPlaceholders(content, version) {
-  return content.replace(/\{\{LAKEBASE_KIT_VERSION\}\}/g, version);
+  return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
 }
 function applyCommandPlaceholders(content, version) {
   return content.replace(/\$\{KIT_VERSION_AT_SCAFFOLD\}/g, version);
@@ -8994,7 +8994,7 @@ function detectCommandDrift(args) {
   const projectCommandsDir = path28.join(args.projectDir, ".claude", "commands");
   const here = path28.dirname(new URL(importMetaUrl).pathname);
   const kitCommandsDir = args.kitDir ? path28.join(args.kitDir, "templates", "project", "common", ".claude", "commands") : findKitCommandsDir(here);
-  const kitVersion2 = readKitVersionFromCommandsDir(kitCommandsDir);
+  const kitVersion = readKitVersionFromCommandsDir(kitCommandsDir);
   const templateFiles = fs29.existsSync(kitCommandsDir) ? fs29.readdirSync(kitCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
   const projectFiles = fs29.existsSync(projectCommandsDir) ? fs29.readdirSync(projectCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
   const seen = /* @__PURE__ */ new Set();
@@ -9005,33 +9005,33 @@ function detectCommandDrift(args) {
     const templatePath = path28.join(kitCommandsDir, name);
     const templateRaw = fs29.readFileSync(templatePath, "utf8");
     if (!fs29.existsSync(projectPath2)) {
-      files.push({ name, status: "missing", kit_version: kitVersion2 });
+      files.push({ name, status: "missing", kit_version: kitVersion });
       continue;
     }
     const projectContent = fs29.readFileSync(projectPath2, "utf8");
     const pinned = parsePinnedVersion(projectContent);
-    const versionForCompare = pinned ?? kitVersion2;
+    const versionForCompare = pinned ?? kitVersion;
     const templateContent = applyCommandPlaceholders(templateRaw, versionForCompare);
     if (projectContent === templateContent) {
       files.push({
         name,
         status: "unchanged",
         pinned_version: pinned,
-        kit_version: kitVersion2
+        kit_version: kitVersion
       });
     } else {
       files.push({
         name,
         status: "drifted",
         pinned_version: pinned,
-        kit_version: kitVersion2,
+        kit_version: kitVersion,
         diff: unifiedDiff(name, projectContent, templateContent)
       });
     }
   }
   for (const name of projectFiles) {
     if (seen.has(name)) continue;
-    files.push({ name, status: "extra", kit_version: kitVersion2 });
+    files.push({ name, status: "extra", kit_version: kitVersion });
   }
   const order = {
     drifted: 0,
@@ -9544,7 +9544,7 @@ function isAlreadyExistsError(msg) {
 }
 
 // scripts/lakebase/uc-resources.ts
-var DEFAULT_CREATE_COMMENT = "Created by lakebase-app-dev-kit";
+var DEFAULT_CREATE_COMMENT = "Created by lakebase-scm-utils";
 async function catalogExists(args) {
   const timeoutMs = args.timeoutMs ?? KIT_TIMEOUTS.cliDefault;
   try {

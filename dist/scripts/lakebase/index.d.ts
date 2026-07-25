@@ -867,7 +867,7 @@ interface EnsureAppEndpointArgs {
      *  digits / hyphens). */
     appName: string;
     /** Description set on initial `apps create`. Ignored if the app already
-     *  exists. Default: "Deployed by lakebase-app-dev-kit". */
+     *  exists. Default: "Deployed by lakebase-scm-utils". */
     description?: string;
     /** Override the `apps create` step timeout. The CLI blocks until the
      *  app reaches ACTIVE state; cold-start can take 5+ minutes. Default:
@@ -2258,7 +2258,7 @@ interface InstallPlaywrightResult {
  * End-to-end bootstrap: drop templates, install the npm package, install
  * chromium, verify. The scaffolder (phase 2) calls this once
  * when --enable-e2e is set; the human-facing path is `npx
- * @databricks-solutions/lakebase-app-dev-kit install-playwright`.
+ * @databricks-solutions/lakebase-scm-utils install-playwright`.
  */
 declare function installPlaywright(args: InstallPlaywrightArgs): Promise<InstallPlaywrightResult>;
 
@@ -3590,7 +3590,7 @@ interface UpdateWorkflowsArgs {
      */
     dryRun?: boolean;
     /**
-     * When true, substitute `{{LAKEBASE_KIT_VERSION}}` with the kit's
+     * When true, substitute `{{LAKEBASE_SCM_UTILS_VERSION}}` with the kit's
      * current version (read from its package.json) before writing.
      * Default: true – matches the scaffolder's behavior.
      */
@@ -3687,7 +3687,7 @@ declare function detectScaffoldedDrift(args: DetectScaffoldedDriftArgs): Scaffol
  *
  * Defaults to:
  *   - WRITES the kit's template content into the project, overwriting
- *     any drifted copies. `{{LAKEBASE_KIT_VERSION}}` is substituted with
+ *     any drifted copies. `{{LAKEBASE_SCM_UTILS_VERSION}}` is substituted with
  *     the kit's current version (read from its package.json).
  *   - LEAVES extra project workflow files in place (the project might
  *     have added its own .yml alongside the kit's set). Pass
