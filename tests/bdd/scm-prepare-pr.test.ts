@@ -47,6 +47,12 @@ vi.mock("../../scripts/util/exec.js", () => ({
   exec: (...args: unknown[]) => mockExec(...args),
   shq: (s: string) => `'${s}'`,
 }));
+// The git-base resolver is exercised end-to-end in scm-git-base.test.ts. Here the
+// fixtures use parent_branch "staging" (a real git branch), so the resolver is a
+// pass-through; this keeps prepare-pr's logic isolated from real git calls.
+vi.mock("../../scripts/lakebase/scm-git-base.js", () => ({
+  resolveGitBase: (parent: string) => Promise.resolve(parent),
+}));
 
 const prep = await import("../../scripts/lakebase/scm-prepare-pr.js");
 const state = await import("../../scripts/lakebase/scm-workflow-state.js");

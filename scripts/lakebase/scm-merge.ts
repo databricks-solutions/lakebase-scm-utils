@@ -20,6 +20,7 @@ import { getOwnerRepo } from "../git/remote.js";
 import { pollUntil } from "../util/poll-until.js";
 import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
+import { resolveGitBase } from "./scm-git-base.js";
 import {
   readWorkflowState,
   writeWorkflowState,
@@ -51,7 +52,8 @@ export interface MergeArgs {
   method?: "merge" | "squash" | "rebase";
   /** Override instance from workflow state. */
   instance?: string;
-  /** Switch HEAD to this branch after merge. Default: workflow.parent_branch. */
+  /** Switch HEAD to this branch after merge. Default: the resolved git base
+   *  (workflow.parent_branch when it is a git branch, else the git trunk). */
   switchTo?: string;
   /** Skip the local branch + HEAD switch (useful for CI-only merges). */
   skipLocalCleanup?: boolean;
@@ -235,6 +237,13 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
 
   const instance = args.instance ?? current.project_id;
 
+  // The git base for post-merge checkout + the downstream-migrate CI wait. For
+  // tier-1 the recorded parent_branch is the Lakebase default name (e.g.
+  // "production"), which is not a git branch; the PR was opened against the git
+  // trunk and merge.yml runs on the push to THAT branch, so we match/checkout the
+  // resolved git base (e.g. "main"), not the Lakebase name.
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
+
   // ─── Interim mitigation (FEIP-8020): migrate-auth precondition ───
   // The downstream migrate applies the parent's migrations with a Databricks
   // credential; when that credential is unusable the migrate fails and git
@@ -278,7 +287,7 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
   let localBranchDeleted = false;
   let headAfter = current.branch;
   if (!args.skipLocalCleanup) {
-    const switchTo = args.switchTo ?? current.parent_branch;
+    const switchTo = args.switchTo ?? gitBase;
     const head = await getCurrentBranch({ cwd: args.projectDir });
     if (head === current.branch) {
       try {
@@ -387,7 +396,7 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
         probe: async () => {
           const runs = await fetchRuns(ownerRepo, 20);
           const candidates = runs
-            .filter((r) => r.branch === current.parent_branch)
+            .filter((r) => r.branch === gitBase)
             .filter((r) => predicate(r, mergedAt));
           if (candidates.length === 0) {
             return { done: false };
@@ -478,7 +487,7 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
         );
         if (!applied) {
           throw new ScmMergeError(
-            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${current.parent_branch}". Last seen status: ${lastStatus}.`,
+            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${gitBase}". Last seen status: ${lastStatus}.`,
             "migrate-timeout",
           );
         }
@@ -489,8 +498,8 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
         // `done` instead of failing 30 minutes in on a slow/absent migrate run.
         migrate = { waited: true, polls, timedOut: true, authVerified };
         warnings.push(
-          `Downstream migrate workflow on "${current.parent_branch}" was not confirmed within ${budgetSec}s ` +
-            `(last seen status: ${lastStatus}). The PR merged and your local ${current.parent_branch} is synced; ` +
+          `Downstream migrate workflow on "${gitBase}" was not confirmed within ${budgetSec}s ` +
+            `(last seen status: ${lastStatus}). The PR merged and your local ${gitBase} is synced; ` +
             `the migrate run may still be pending or running. Confirm it later via the Actions tab or re-run with --wait-migrate.`,
         );
       }

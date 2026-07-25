@@ -9,6 +9,7 @@ import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
 import { getAheadBehind, isDirty } from "../git/status.js";
 import { getOwnerRepo } from "../git/remote.js";
+import { resolveGitBase } from "./scm-git-base.js";
 import { createPullRequest, getPullRequest } from "../github/pr.js";
 import { RUNTIME_ARTIFACT_IGNORE } from "./constants.js";
 import {
@@ -109,15 +110,21 @@ export async function preparePr(
       );
     }
   }
+  // The git base is the parent as a real git branch. For tier-1 the recorded
+  // parent_branch is the Lakebase default name (e.g. "production"), which is not
+  // a git branch; resolveGitBase falls back to the git trunk (e.g. "main") so the
+  // commits-ahead check + the PR base target a branch that actually exists.
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
+
   if (!args.allowNoCommits) {
     const ahead = await ensureAheadOfParent(
       args.projectDir,
       current.branch,
-      current.parent_branch,
+      gitBase,
     );
     if (ahead === 0) {
       throw new ScmPreparePrError(
-        `Branch "${current.branch}" has 0 commits ahead of "${current.parent_branch}". Make at least one commit (or pass --allow-no-commits).`,
+        `Branch "${current.branch}" has 0 commits ahead of "${gitBase}". Make at least one commit (or pass --allow-no-commits).`,
         "no-commits-ahead",
       );
     }
@@ -160,11 +167,11 @@ export async function preparePr(
         prUrl = await createPullRequest({
           ownerRepo,
           headBranch: current.branch,
-          baseBranch: current.parent_branch,
+          baseBranch: gitBase,
           title: args.title ?? `feat: ${current.feature_id}`,
           body:
             args.body ??
-            defaultBody(current.feature_id, current.parent_branch),
+            defaultBody(current.feature_id, gitBase),
         });
         prCreated = true;
       } catch (err) {
@@ -248,11 +255,11 @@ export function pushFailureHint(rawMessage: string): string {
   ].join("\n");
 }
 
-function defaultBody(featureId: string, parentBranch: string): string {
+function defaultBody(featureId: string, baseBranch: string): string {
   return [
     `Feature: \`${featureId}\``,
     "",
-    `Forks from \`${parentBranch}\`.`,
+    `Forks from \`${baseBranch}\`.`,
     "",
     "PR opened by `lakebase-scm-prepare-pr` (phase B+).",
   ].join("\n");
