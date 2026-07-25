@@ -37,7 +37,7 @@ export interface EnsureAppEndpointArgs {
    *  digits / hyphens). */
   appName: string;
   /** Description set on initial `apps create`. Ignored if the app already
-   *  exists. Default: "Deployed by lakebase-app-dev-kit". */
+   *  exists. Default: "Deployed by lakebase-scm-utils". */
   description?: string;
   /** Override the `apps create` step timeout. The CLI blocks until the
    *  app reaches ACTIVE state; cold-start can take 5+ minutes. Default:
@@ -246,7 +246,7 @@ export async function deleteAppEndpoint(args: DeleteAppEndpointArgs): Promise<De
  * to `ok: false` so callers compose with `.ok` rather than try/catch.
  */
 export async function ensureAppEndpoint(args: EnsureAppEndpointArgs): Promise<EnsureAppEndpointResult> {
-  const description = args.description ?? "Deployed by lakebase-app-dev-kit";
+  const description = args.description ?? "Deployed by lakebase-scm-utils";
   const createTimeoutMs = args.createTimeoutMs ?? 1_200_000;
   const deployTimeoutMs = args.deployTimeoutMs ?? 600_000;
 

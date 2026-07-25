@@ -9,7 +9,7 @@
 // the calling shell can capture the value and only export it when
 // non-empty.
 //
-// GitHub Actions usage (pinned at scaffold time via {{LAKEBASE_KIT_VERSION}}):
+// GitHub Actions usage (pinned at scaffold time via {{LAKEBASE_SCM_UTILS_VERSION}}):
 //
 //   - name: Resolve CI app endpoint
 //     env:
@@ -18,7 +18,7 @@
 //       DATABRICKS_AUTH_TYPE: pat
 //     run: |
 //       URL="$(npx --yes \
-//         --package=github:databricks-solutions/lakebase-app-dev-kit#v<pin> \
+//         --package=github:databricks-solutions/lakebase-scm-utils#v<pin> \
 //         lakebase-ci-app-endpoint \
 //         --instance "$LAKEBASE_PROJECT_ID" \
 //         --branch "ci-pr-${{ github.event.pull_request.number }}")"

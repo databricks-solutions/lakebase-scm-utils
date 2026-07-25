@@ -112,7 +112,7 @@ describe.skipIf(!RUN_SUITE)(
         ownerRepo,
         "--private",
         "--description",
-        "Throwaway repo for lakebase-app-dev-kit BDD (auto-delete after test)",
+        "Throwaway repo for lakebase-scm-utils BDD (auto-delete after test)",
         "--confirm",
       ]);
       if (create.status !== 0) {

@@ -67,7 +67,7 @@ fi
 # Resolve the schema-diff bin.
 BIN="$WORK_TREE/node_modules/.bin/lakebase-schema-diff"
 if [ ! -x "$BIN" ]; then
-  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/schema-diff.cli.js"
+  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/schema-diff.cli.js"
   if [ -f "$ALT" ]; then
     BIN="node $ALT"
   elif [ -x "$WORK_TREE/scripts/lk" ]; then
@@ -76,7 +76,7 @@ if [ ! -x "$BIN" ]; then
     # npm-install the kit, so this is the path that fires there.
     BIN="$WORK_TREE/scripts/lk lakebase-schema-diff"
   else
-    echo "prepare-schema-diff: lakebase-app-dev-kit not resolvable (no node_modules, dist, or scripts/lk shim)." >&2
+    echo "prepare-schema-diff: lakebase-scm-utils not resolvable (no node_modules, dist, or scripts/lk shim)." >&2
     exit 1
   fi
 fi

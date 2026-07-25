@@ -13,7 +13,7 @@
 import { runDatabricks } from "./databricks-cli.js";
 import { KIT_TIMEOUTS } from "./kit-config.js";
 
-const DEFAULT_CREATE_COMMENT = "Created by lakebase-app-dev-kit";
+const DEFAULT_CREATE_COMMENT = "Created by lakebase-scm-utils";
 
 export interface CatalogExistsArgs {
   profile: string;

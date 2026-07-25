@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/databricks-solutions/lakebase-app-dev-kit/scripts/lakebase/scm-workflow-state.schema.json",
+  "$id": "https://github.com/databricks-solutions/lakebase-scm-utils/scripts/lakebase/scm-workflow-state.schema.json",
   "title": "SCM Workflow State",
   "description": "Gate surface for the lakebase-scm-workflows state machine. Lives at .lakebase/workflow-state.json in a paired project. One file per project root (single feature in flight at a time, v1).",
   "type": "object",

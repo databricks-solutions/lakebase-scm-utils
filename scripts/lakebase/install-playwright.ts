@@ -184,7 +184,7 @@ export interface InstallPlaywrightResult {
  * End-to-end bootstrap: drop templates, install the npm package, install
  * chromium, verify. The scaffolder (phase 2) calls this once
  * when --enable-e2e is set; the human-facing path is `npx
- * @databricks-solutions/lakebase-app-dev-kit install-playwright`.
+ * @databricks-solutions/lakebase-scm-utils install-playwright`.
  */
 export async function installPlaywright(
   args: InstallPlaywrightArgs

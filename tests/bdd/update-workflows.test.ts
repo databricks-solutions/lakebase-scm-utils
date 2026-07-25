@@ -76,10 +76,10 @@ describe("updateWorkflows – synthetic kit fixture", () => {
     expect(fs.readFileSync(path.join(project, ".github", "workflows", "pr.yml"), "utf-8")).toBe("name: pr\n");
   });
 
-  it("substitutes {{LAKEBASE_KIT_VERSION}} with the kit's package.json version", () => {
+  it("substitutes {{LAKEBASE_SCM_UTILS_VERSION}} with the kit's package.json version", () => {
     const project = mkProject();
     const kit = mkSyntheticKit("1.2.3", {
-      "pr.yml": "version: {{LAKEBASE_KIT_VERSION}}\n",
+      "pr.yml": "version: {{LAKEBASE_SCM_UTILS_VERSION}}\n",
     });
     updateWorkflows({ projectDir: project, kitDir: kit });
     const written = fs.readFileSync(
@@ -92,14 +92,14 @@ describe("updateWorkflows – synthetic kit fixture", () => {
   it("skips substitution when substitute=false", () => {
     const project = mkProject();
     const kit = mkSyntheticKit("1.2.3", {
-      "pr.yml": "version: {{LAKEBASE_KIT_VERSION}}\n",
+      "pr.yml": "version: {{LAKEBASE_SCM_UTILS_VERSION}}\n",
     });
     updateWorkflows({ projectDir: project, kitDir: kit, substitute: false });
     const written = fs.readFileSync(
       path.join(project, ".github", "workflows", "pr.yml"),
       "utf-8"
     );
-    expect(written).toBe("version: {{LAKEBASE_KIT_VERSION}}\n");
+    expect(written).toBe("version: {{LAKEBASE_SCM_UTILS_VERSION}}\n");
   });
 
   it("returns outcome=unchanged for files that already match the kit", () => {
@@ -188,7 +188,7 @@ describe("updateWorkflows – synthetic kit fixture", () => {
     const project = mkProject();
     // Build a kit fixture but DELETE its package.json
     const kit = mkSyntheticKit("ignored", {
-      "pr.yml": "version: {{LAKEBASE_KIT_VERSION}}\n",
+      "pr.yml": "version: {{LAKEBASE_SCM_UTILS_VERSION}}\n",
     });
     fs.unlinkSync(path.join(kit, "package.json"));
     updateWorkflows({ projectDir: project, kitDir: kit });
@@ -202,7 +202,7 @@ describe("updateWorkflows – synthetic kit fixture", () => {
 
 describe("updateWorkflows + detectWorkflowDrift integration", () => {
   it("after a real refresh (substitution on) the project reads back as overall=ok against the same kit", () => {
-    // Round-trip: updateWorkflows substitutes {{LAKEBASE_KIT_VERSION}} as it
+    // Round-trip: updateWorkflows substitutes {{LAKEBASE_SCM_UTILS_VERSION}} as it
     // writes (the real default), and detectWorkflowDrift substitutes the same
     // placeholder before comparing. So a freshly-refreshed project reads back
     // as unchanged. (Previously the detector compared against the RAW template

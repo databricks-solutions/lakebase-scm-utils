@@ -8,7 +8,7 @@ import * as path from "node:path";
 import { detectWorkflowDrift } from "../../scripts/lakebase/workflow-drift.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-// A real scaffold substitutes {{LAKEBASE_KIT_VERSION}} with the kit's version;
+// A real scaffold substitutes {{LAKEBASE_SCM_UTILS_VERSION}} with the kit's version;
 // the fixture must do the same so "unchanged" reflects a correctly-scaffolded
 // project (not a raw template copy the placeholder never resolved in).
 const KIT_VERSION = JSON.parse(
@@ -47,12 +47,12 @@ function copyTemplate(projectDir: string, name: string): void {
     name
   );
   const dst = path.join(projectDir, ".github", "workflows", name);
-  // A real scaffold resolves {{LAKEBASE_KIT_VERSION}} to the kit's version as it
+  // A real scaffold resolves {{LAKEBASE_SCM_UTILS_VERSION}} to the kit's version as it
   // writes the file; copy the substituted content so the fixture matches what a
   // correctly-scaffolded project actually holds (not the raw template).
   const content = fs
     .readFileSync(src, "utf8")
-    .replace(/\{\{LAKEBASE_KIT_VERSION\}\}/g, KIT_VERSION);
+    .replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, KIT_VERSION);
   fs.writeFileSync(dst, content);
 }
 
@@ -70,7 +70,7 @@ describe("detectWorkflowDrift", () => {
     expect(byName("cleanup-orphans.yml").status).toBe("unchanged");
   });
 
-  it("treats a resolved {{LAKEBASE_KIT_VERSION}} pin as unchanged (not drift)", () => {
+  it("treats a resolved {{LAKEBASE_SCM_UTILS_VERSION}} pin as unchanged (not drift)", () => {
     // Regression: detect must substitute the version placeholder the same way
     // the writer does. A correctly-scaffolded pr.yml carries the resolved
     // version pin (e.g. #v0.3.0-beta.11); comparing it against the RAW template
@@ -85,7 +85,7 @@ describe("detectWorkflowDrift", () => {
       path.join(dir, ".github", "workflows", "pr.yml"),
       "utf8"
     );
-    expect(prContent).not.toMatch(/\{\{LAKEBASE_KIT_VERSION\}\}/);
+    expect(prContent).not.toMatch(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/);
     expect(prContent).toContain(KIT_VERSION);
     const report = detectWorkflowDrift({ projectDir: dir });
     expect(report.overall).toBe("ok");

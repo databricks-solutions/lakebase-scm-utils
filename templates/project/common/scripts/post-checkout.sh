@@ -94,7 +94,7 @@ fi
 if [ -z "${DATABRICKS_CONFIG_PROFILE:-}" ] && [ -n "${DATABRICKS_HOST:-}" ]; then
   RESOLVE_BIN="$WORK_TREE/node_modules/.bin/lakebase-resolve-profile"
   if [ ! -x "$RESOLVE_BIN" ]; then
-    RESOLVE_ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/resolve-profile.cli.js"
+    RESOLVE_ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/resolve-profile.cli.js"
     if [ -f "$RESOLVE_ALT" ]; then RESOLVE_BIN="node $RESOLVE_ALT"; else RESOLVE_BIN=""; fi
   fi
   if [ -n "$RESOLVE_BIN" ]; then
@@ -305,7 +305,7 @@ fi
 # sides (git and Lakebase). No per-tier env alias is needed; if the Lakebase
 # branch exists, this is a tier checkout. Tiers are never auto-created by
 # this hook – the architect bootstraps them deliberately (see
-# createLongRunningBranch in lakebase-app-dev-kit).
+# createLongRunningBranch in lakebase-scm-utils).
 if [ -n "$TIER_BRANCH_NAMES" ] && echo "$TIER_BRANCH_NAMES" | grep -qxF "$BRANCH" \
    && is_protected_tier_name "$BRANCH"; then
   echo "Lakebase: on $BRANCH, connecting to Lakebase tier '$BRANCH'..."

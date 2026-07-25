@@ -20,9 +20,9 @@ cd "$WORK_TREE"
 
 BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
 if [ ! -x "$BIN" ]; then
-  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/branch.cli.js"
+  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
   if [ ! -f "$ALT" ]; then
-    echo "connect-main-branch: lakebase-app-dev-kit not installed. Run 'npm install'." >&2
+    echo "connect-main-branch: lakebase-scm-utils not installed. Run 'npm install'." >&2
     exit 1
   fi
   node "$ALT" sync-env --cwd "$WORK_TREE" --branch main

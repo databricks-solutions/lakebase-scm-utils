@@ -28,9 +28,9 @@ fi
 
 BIN="${WORK_TREE:-$PWD}/node_modules/.bin/lakebase-ci-resolve-branch"
 if [ ! -x "$BIN" ]; then
-  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/ci-resolve-branch.cli.js"
+  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/ci-resolve-branch.cli.js"
   if [ ! -f "$ALT" ]; then
-    echo "set-production-db-secrets: lakebase-app-dev-kit not installed. Run 'npm install'." >&2
+    echo "set-production-db-secrets: lakebase-scm-utils not installed. Run 'npm install'." >&2
     exit 1
   fi
   BIN="node $ALT"

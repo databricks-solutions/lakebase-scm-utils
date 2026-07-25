@@ -27,7 +27,7 @@ BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
 if [ -x "$BIN" ]; then
   exec "$BIN" sanitize-name "$INPUT"
 fi
-ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/branch.cli.js"
+ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
 if [ -f "$ALT" ]; then
   exec node "$ALT" sanitize-name "$INPUT"
 fi

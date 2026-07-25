@@ -49,7 +49,8 @@ import { resolveGitHubToken } from "../../scripts/github/auth.js";
 import { setupRunner, removeRunner } from "../../scripts/lakebase/runner-setup.js";
 
 const E2E = process.env.LAKEBASE_TEST_E2E_GITHUB === "1";
-const KIT_VERSION = "v0.3.0-alpha.20";
+// detect-language is a substrate bin; resolve it from the substrate on main.
+const SCM_UTILS_REF = "main";
 
 function timestamp(): string {
   const d = new Date();
@@ -95,7 +96,7 @@ describe.skipIf(!E2E)(
       console.log("         Recovery if the test is killed mid-run:");
       console.log(`           gh repo delete ${fullRepoName} --yes`);
       console.log(
-        `           node -e 'import("@databricks-solutions/lakebase-app-dev-kit/lakebase").then(m =>` +
+        `           node -e 'import("@databricks-solutions/lakebase-scm-utils/lakebase").then(m =>` +
           ` m.removeRunner({fullRepoName: "${fullRepoName}", projectName: "${projectName}"}))'`,
       );
       console.log("");
@@ -115,7 +116,7 @@ describe.skipIf(!E2E)(
       fs.mkdirSync(path.join(workdir, ".github", "workflows"), { recursive: true });
       fs.writeFileSync(
         path.join(workdir, ".github", "workflows", "verify-detect-lang.yml"),
-        verifyWorkflow(KIT_VERSION),
+        verifyWorkflow(SCM_UTILS_REF),
       );
 
       git(workdir, ["init", "-q", "-b", "main"]);
@@ -174,7 +175,7 @@ describe.skipIf(!E2E)(
         console.log("         To clean up manually:");
         console.log(`           gh repo delete ${fullRepoName} --yes`);
         console.log(
-          `           node -e 'import("@databricks-solutions/lakebase-app-dev-kit/lakebase").then(m =>` +
+          `           node -e 'import("@databricks-solutions/lakebase-scm-utils/lakebase").then(m =>` +
             ` m.removeRunner({fullRepoName: "${fullRepoName}", projectName: "${projectName}"}))'`,
         );
         return;
@@ -235,7 +236,7 @@ async function pollUntilComplete(
   throw new Error(`Workflow run ${runId} did not complete within ${budgetMs / 1000}s`);
 }
 
-function verifyWorkflow(kitVersion: string): string {
+function verifyWorkflow(substrateRef: string): string {
   return `name: Verify substrate detect-language CLI
 
 on:
@@ -258,7 +259,7 @@ jobs:
         id: detect-lang
         run: |
           LANG="$(npx --yes \\
-            --package=github:databricks-solutions/lakebase-app-dev-kit#${kitVersion} \\
+            --package=github:databricks-solutions/lakebase-scm-utils#${substrateRef} \\
             lakebase-detect-language)"
           echo "lang=$LANG" >> $GITHUB_OUTPUT
           echo "Detected language: $LANG"

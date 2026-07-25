@@ -39,7 +39,7 @@ fi
 # command prefix, so "bash <lk> lakebase-branch" composes with "delete ...".
 BIN="${WORK_TREE:-$PWD}/node_modules/.bin/lakebase-branch"
 if [ ! -x "$BIN" ]; then
-  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/branch.cli.js"
+  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
   LK="${WORK_TREE:-$PWD}/scripts/lk"
   if [ -f "$ALT" ]; then
     BIN="node $ALT"

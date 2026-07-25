@@ -1,7 +1,7 @@
 // Root barrel for the substrate. Consumers can either:
-//   import { createBranch } from "@databricks-solutions/lakebase-app-dev-kit";
+//   import { createBranch } from "@databricks-solutions/lakebase-scm-utils";
 // or pull from a sub-barrel:
-//   import { resolveGitHubToken } from "@databricks-solutions/lakebase-app-dev-kit/github";
+//   import { resolveGitHubToken } from "@databricks-solutions/lakebase-scm-utils/github";
 //
 // Sub-paths are mapped via package.json "exports".
 

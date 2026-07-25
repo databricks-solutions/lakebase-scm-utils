@@ -9,13 +9,13 @@
 // Optional flag: --project-dir <path> (defaults to cwd).
 //
 // GitHub Actions usage (matches the migrate + cut-backup CLIs pinned at
-// scaffold time via {{LAKEBASE_KIT_VERSION}}):
+// scaffold time via {{LAKEBASE_SCM_UTILS_VERSION}}):
 //
 //   - name: Detect project language
 //     id: detect-lang
 //     run: |
 //       LANG="$(npx --yes \
-//         --package=github:databricks-solutions/lakebase-app-dev-kit#v<pin> \
+//         --package=github:databricks-solutions/lakebase-scm-utils#v<pin> \
 //         lakebase-detect-language)"
 //       echo "lang=$LANG" >> $GITHUB_OUTPUT
 

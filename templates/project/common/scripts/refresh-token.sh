@@ -24,9 +24,9 @@ cd "$WORK_TREE"
 # (pre-install) and CI runners both work.
 BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
 if [ ! -x "$BIN" ]; then
-  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/branch.cli.js"
+  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
   if [ ! -f "$ALT" ]; then
-    echo "refresh-token: lakebase-app-dev-kit not installed. Run 'npm install'." >&2
+    echo "refresh-token: lakebase-scm-utils not installed. Run 'npm install'." >&2
     exit 1
   fi
   node "$ALT" sync-env --cwd "$WORK_TREE"

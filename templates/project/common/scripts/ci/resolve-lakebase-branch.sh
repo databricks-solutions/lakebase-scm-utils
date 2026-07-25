@@ -25,7 +25,7 @@ BIN="$WORK_TREE/node_modules/.bin/lakebase-ci-resolve-branch"
 if [ -x "$BIN" ]; then
   exec "$BIN" "$@"
 fi
-ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-app-dev-kit/dist/scripts/lakebase/ci-resolve-branch.cli.js"
+ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/ci-resolve-branch.cli.js"
 if [ -f "$ALT" ]; then
   exec node "$ALT" "$@"
 fi
@@ -37,5 +37,5 @@ LK="$WORK_TREE/scripts/lk"
 if [ -x "$LK" ]; then
   exec "$LK" lakebase-ci-resolve-branch "$@"
 fi
-echo "resolve-lakebase-branch: lakebase-app-dev-kit not resolvable (no node_modules/.bin/lakebase-ci-resolve-branch, no on-disk dist, and no scripts/lk shim)." >&2
+echo "resolve-lakebase-branch: lakebase-scm-utils not resolvable (no node_modules/.bin/lakebase-ci-resolve-branch, no on-disk dist, and no scripts/lk shim)." >&2
 exit 1

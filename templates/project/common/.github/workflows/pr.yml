@@ -24,26 +24,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve kit ref
-        # The runtime substrate (scripts/lk) resolves the kit from .lakebase/kit-ref;
-        # CI follows the SAME ref so a kit-ref bump takes effect here without editing
-        # this workflow (FEIP-8050, Finding 24). Falls back to v{{LAKEBASE_KIT_VERSION}},
-        # the version this project was scaffolded from, when .lakebase/kit-ref is absent.
+      - name: Resolve substrate ref
+        # The runtime substrate (scripts/lk) resolves the substrate from .lakebase/scm-utils-ref;
+        # CI follows the SAME ref so a scm-utils-ref bump takes effect here without editing
+        # this workflow (FEIP-8050, Finding 24). Falls back to v{{LAKEBASE_SCM_UTILS_VERSION}},
+        # the version this project was scaffolded from, when .lakebase/scm-utils-ref is absent.
         run: |
-          KIT_REF="$(tr -d '[:space:]' < .lakebase/kit-ref 2>/dev/null || true)"
-          echo "KIT_REF=${KIT_REF:-v{{LAKEBASE_KIT_VERSION}}}" >> "$GITHUB_ENV"
+          SCM_UTILS_REF="$(tr -d '[:space:]' < .lakebase/scm-utils-ref 2>/dev/null || true)"
+          echo "SCM_UTILS_REF=${SCM_UTILS_REF:-v{{LAKEBASE_SCM_UTILS_VERSION}}}" >> "$GITHUB_ENV"
 
       - name: Detect project language
         id: detect-lang
         # Routes through the substrate's lakebase-detect-language CLI so
-        # the kit's marker-file detection (mirrors lakebase-schema-migrate's auto-
+        # the substrate.s marker-file detection (mirrors lakebase-schema-migrate's auto-
         # detect) is the single source of truth across pr.yml + merge.yml +
-        # the substrate's migrate runners. {{LAKEBASE_KIT_VERSION}} is
-        # substituted at scaffold time to the kit version that produced
+        # the substrate's migrate runners. {{LAKEBASE_SCM_UTILS_VERSION}} is
+        # substituted at scaffold time to the substrate version that produced
         # this project.
         run: |
           LANG="$(npx --yes \
-            --package=github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}" \
+            --package=github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}" \
             lakebase-detect-language)"
           echo "lang=$LANG" >> $GITHUB_OUTPUT
           echo "Detected language: $LANG"
@@ -340,10 +340,10 @@ jobs:
             exit 1
           fi
           echo "Routing migrations through the substrate's lakebase-schema-migrate CLI"
-          echo "  kit ref: ${KIT_REF}"
+          echo "  substrate ref: ${SCM_UTILS_REF}"
           echo "  instance:    $LAKEBASE_PROJECT_ID"
           echo "  branch:      $LAKEBASE_BRANCH_NAME"
-          npx --yes --package=github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}" \
+          npx --yes --package=github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}" \
             lakebase-schema-migrate apply \
             --instance "$LAKEBASE_PROJECT_ID" \
             --branch "$LAKEBASE_BRANCH_NAME" \
@@ -441,7 +441,7 @@ jobs:
       # responsible for booting a local server via webServer when BASE_URL
       # is not set.
       #
-      # resolve the deployed CI app URL via the kit's
+      # resolve the deployed CI app URL via the substrate.s
       # lakebase-ci-app-endpoint CLI and export LAKEBASE_APP_ENDPOINT
       # to $GITHUB_ENV when the app exists. The CLI exits 0 with empty
       # stdout when the app does not exist (e.g. no CI-deploy step has
@@ -469,7 +469,7 @@ jobs:
           # `|| URL=""` clause keeps the workflow green and the env var
           # unset so the downstream Playwright step degrades cleanly.
           URL="$(npx --yes \
-            --package=github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}" \
+            --package=github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}" \
             lakebase-ci-app-endpoint \
             --instance "$LAKEBASE_PROJECT_ID" \
             --branch "$CI_BRANCH")" || URL=""
@@ -490,7 +490,7 @@ jobs:
           # Honor a paired-branch app endpoint when an earlier step exported
           # one to $GITHUB_ENV (LAKEBASE_APP_ENDPOINT). Otherwise the
           # project's playwright.config.ts decides (defaults to
-          # http://localhost:3000 in the kit template).
+          # http://localhost:3000 in the substrate template).
           BASE_URL: ${{ env.LAKEBASE_APP_ENDPOINT }}
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
@@ -585,12 +585,12 @@ jobs:
           # Target Lakebase branch = the CI branch ci-pr-N ($BRANCH). LAKEBASE_BRANCH_NAME
           # is intentionally unset above (it was eval'd to the PARENT during parent-
           # credential resolution, then cleared), so gate on $BRANCH and pass it as
-          # --branch. Resolve the kit via the GitHub ref (it is NOT published to npm;
+          # --branch. Resolve the substrate via the GitHub ref (it is NOT published to npm;
           # the @org@version registry form 404s).
           if [ -n "$PRODUCTION_DATASOURCE_URL" ] && [ -n "$BRANCH" ]; then
             echo "### Schema diff: \`${BRANCH}\` vs parent (\`${PR_BASE_REF}\`)" >> "$MD"
             echo "" >> "$MD"
-            if ! npx --yes --package=github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}" \
+            if ! npx --yes --package=github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}" \
                  lakebase-schema-diff \
                  --instance "$LAKEBASE_PROJECT_ID" \
                  --branch "$BRANCH" \

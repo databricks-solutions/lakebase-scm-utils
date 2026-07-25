@@ -68,15 +68,18 @@ describe("deployGitignore", () => {
     expect(content).not.toMatch(/^\.sftdd\/\*/m);
   });
 
-  it("ignores the kit-ref run pin (.lakebase/kit-ref.local) but NOT the committed kit-ref (Finding 28)", async () => {
-    // The gitignored run pin must never be committed, so a branch checkout cannot
-    // revert it and silently run the wrong kit. The committed .lakebase/kit-ref
-    // stays tracked (CI resolves KIT_REF from it), so it must NOT be ignored.
+  it("ignores both run pins (.lakebase/{kit,scm-utils}-ref.local) but NOT the committed refs (Finding 28)", async () => {
+    // The gitignored run pins must never be committed, so a branch checkout cannot
+    // revert one and silently run the wrong kit/substrate. The committed
+    // .lakebase/kit-ref and .lakebase/scm-utils-ref stay tracked (CI resolves
+    // KIT_REF / SCM_UTILS_REF from them), so those must NOT be ignored.
     const dir = mkTmp();
     await deployGitignore(dir, "python");
     const content = fs.readFileSync(path.join(dir, ".gitignore"), "utf-8");
     expect(content).toMatch(/^\.lakebase\/kit-ref\.local$/m);
+    expect(content).toMatch(/^\.lakebase\/scm-utils-ref\.local$/m);
     expect(content).not.toMatch(/^\.lakebase\/kit-ref$/m);
+    expect(content).not.toMatch(/^\.lakebase\/scm-utils-ref$/m);
   });
 
   it("merges python extras when language=python", async () => {
@@ -158,27 +161,27 @@ describe("deployScripts + deployWorkflows", () => {
   });
 });
 
-describe("deployWorkflows: {{LAKEBASE_KIT_VERSION}} substitution", () => {
+describe("deployWorkflows: {{LAKEBASE_SCM_UTILS_VERSION}} substitution", () => {
   // Kit version pinning happens at scaffold-time so the generated YAML
   // resolves the substrate via a stable `github:.../#vX.Y.Z` ref. After
   // copy, no scaffolded file should contain the literal placeholder.
-  it("substitutes {{LAKEBASE_KIT_VERSION}} in scaffolded pr.yml with the kit's package.json version", async () => {
+  it("substitutes {{LAKEBASE_SCM_UTILS_VERSION}} in scaffolded pr.yml with the kit's package.json version", async () => {
     const dir = mkTmp();
     await deployWorkflows(dir);
     const prYml = fs.readFileSync(path.join(dir, ".github", "workflows", "pr.yml"), "utf-8");
-    expect(prYml).not.toContain("{{LAKEBASE_KIT_VERSION}}");
-    // The kit's own package.json version is the FALLBACK the Resolve kit ref step
-    // uses when .lakebase/kit-ref is absent (Finding 24: CI follows kit-ref, so the
-    // call sites resolve #"${KIT_REF}" rather than a baked literal pin).
+    expect(prYml).not.toContain("{{LAKEBASE_SCM_UTILS_VERSION}}");
+    // The kit's own package.json version is the FALLBACK the Resolve substrate ref step
+    // uses when .lakebase/scm-utils-ref is absent (Finding 24: CI follows scm-utils-ref, so the
+    // call sites resolve #"${SCM_UTILS_REF}" rather than a baked literal pin).
     const kitPkg = JSON.parse(
       fs.readFileSync(
         path.join(__dirname, "..", "..", "package.json"),
         "utf-8"
       )
     ) as { version: string };
-    expect(prYml).toContain(`KIT_REF:-v${kitPkg.version}`);
-    expect(prYml).toContain('lakebase-app-dev-kit#"${KIT_REF}"');
-    expect(prYml).not.toMatch(/lakebase-app-dev-kit#v\d/);
+    expect(prYml).toContain(`SCM_UTILS_REF:-v${kitPkg.version}`);
+    expect(prYml).toContain('lakebase-scm-utils#"${SCM_UTILS_REF}"');
+    expect(prYml).not.toMatch(/lakebase-scm-utils#v\d/);
   });
 
   it("scaffolded pr.yml routes migrations through the substrate's lakebase-schema-migrate CLI", async () => {
@@ -187,7 +190,7 @@ describe("deployWorkflows: {{LAKEBASE_KIT_VERSION}} substitution", () => {
     const prYml = fs.readFileSync(path.join(dir, ".github", "workflows", "pr.yml"), "utf-8");
     // Substrate routing line, not the old language-branched mvnw/uv/npx-knex shape.
     expect(prYml).toMatch(/lakebase-schema-migrate apply/);
-    expect(prYml).toMatch(/github:databricks-solutions\/lakebase-app-dev-kit/);
+    expect(prYml).toMatch(/github:databricks-solutions\/lakebase-scm-utils/);
     expect(prYml).toMatch(/--instance "\$LAKEBASE_PROJECT_ID"/);
     expect(prYml).toMatch(/--branch "\$LAKEBASE_BRANCH_NAME"/);
     // The old per-language branches MUST be gone – substrate handles
@@ -256,7 +259,7 @@ describe("deployWorkflows: {{LAKEBASE_KIT_VERSION}} substitution", () => {
     expect(prYml).toMatch(/FLYWAY_BASE="\$\{FLYWAY_DOWNLOAD_BASE_URL:-https:\/\/repo1\.maven\.org\/maven2\}"/);
   });
 
-  it("scaffolded merge.yml substitutes the kit version and substrate-routes its migrate + snapshot steps", async () => {
+  it("scaffolded merge.yml substitutes the substrate version and substrate-routes its migrate + snapshot steps", async () => {
     // PR3: same substrate-routing pattern as pr.yml, applied
     // to merge.yml's migrate-target job. Locks down all four lessons
     // learned during the ecom + python-devloop integration loop:
@@ -272,12 +275,12 @@ describe("deployWorkflows: {{LAKEBASE_KIT_VERSION}} substitution", () => {
       fs.readFileSync(path.join(__dirname, "..", "..", "package.json"), "utf-8"),
     ) as { version: string };
 
-    // Substitution leaves no placeholder behind; the kit version is the Resolve
-    // kit ref fallback and the call sites resolve #"${KIT_REF}" (Finding 24).
-    expect(mergeYml).not.toContain("{{LAKEBASE_KIT_VERSION}}");
-    expect(mergeYml).toContain(`KIT_REF:-v${kitPkg.version}`);
-    expect(mergeYml).toContain('lakebase-app-dev-kit#"${KIT_REF}"');
-    expect(mergeYml).not.toMatch(/lakebase-app-dev-kit#v\d/);
+    // Substitution leaves no placeholder behind; the substrate version is the Resolve
+    // kit ref fallback and the call sites resolve #"${SCM_UTILS_REF}" (Finding 24).
+    expect(mergeYml).not.toContain("{{LAKEBASE_SCM_UTILS_VERSION}}");
+    expect(mergeYml).toContain(`SCM_UTILS_REF:-v${kitPkg.version}`);
+    expect(mergeYml).toContain('lakebase-scm-utils#"${SCM_UTILS_REF}"');
+    expect(mergeYml).not.toMatch(/lakebase-scm-utils#v\d/);
 
     // Substrate routing for migrations (replaces the language-branched
     // mvnw/uv-run/npx-knex block).
@@ -332,7 +335,7 @@ describe("deployWorkflows: {{LAKEBASE_KIT_VERSION}} substitution", () => {
     fs.writeFileSync(path.join(templates, "common", ".gitignore.base"), "");
     fs.writeFileSync(
       path.join(wfDir, "pr.yml"),
-      "kit: {{LAKEBASE_KIT_VERSION}}\n"
+      "kit: {{LAKEBASE_SCM_UTILS_VERSION}}\n"
     );
 
     const target = mkTmp();

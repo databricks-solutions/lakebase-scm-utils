@@ -1,104 +1,95 @@
 #!/usr/bin/env bash
-# lk , run a kit CLI fast, without the npx tax.
+# lk , run a substrate/SCM or SFTDD CLI fast, without the npx tax.
 #
-# `npx --package=github:databricks-solutions/lakebase-app-dev-kit#<ref> <bin>`
-# re-resolves the GitHub ref on EVERY call (~3.5s even warm). This shim resolves
-# the kit ONCE per ref into a shared cache and runs the bin via `node dist/...`
-# (~0.09s). Use it everywhere a kit CLI is invoked from a scaffolded project:
+# `npx --package=github:databricks-solutions/<pkg>#<ref> <bin>` re-resolves the
+# GitHub ref on EVERY call (~3.5s even warm). This shim resolves a package ONCE
+# per ref into a shared cache and runs the bin via `node dist/...` (~0.09s).
 #
-#   ./scripts/lk lakebase-sftdd-log --role spec-author --event progress --slot note="…" --slot step=drafting
-#   "$(git rev-parse --show-toplevel)/scripts/lk" lakebase-sftdd-intake --feature F1
+# Two packages back a scaffolded project, and lk routes each bin to its owner so
+# each runs from its OWN dist (no cross-package node_modules paths):
+#   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (lakebase-app-dev-kit)
+#   everything else                    -> the substrate (lakebase-scm-utils)
+# SCM-only projects only ever call substrate bins, so they only resolve the
+# substrate; SFTDD projects resolve both.
 #
-# Ref resolution (so it works inside a `claude -p` agent's Bash tool, which does
-# NOT reliably inherit env vars): $LAKEBASE_KIT_REF -> .lakebase/kit-ref.local ->
-# .lakebase/kit-ref -> "main". `.lakebase/kit-ref.local` is GITIGNORED, so a branch
-# checkout/reset never reverts it: the drive writes it at launch to pin the run's
-# ref for the whole run (the committed `.lakebase/kit-ref` is git-tracked and gets
-# restored by fork-from-origin checkouts, which is how a run silently ran the wrong
-# kit). The committed `.lakebase/kit-ref` stays authoritative for CI.
-# Set LAKEBASE_KIT_DIR to point directly at a kit checkout/install (dev override).
+# Ref resolution per package (so it works inside a `claude -p` agent's Bash tool,
+# which does NOT reliably inherit env vars):
+#   substrate: $LAKEBASE_SCM_UTILS_REF -> .lakebase/scm-utils-ref.local -> .lakebase/scm-utils-ref -> main
+#   kit:       $LAKEBASE_KIT_REF        -> .lakebase/kit-ref.local        -> .lakebase/kit-ref        -> main
+# The `*.local` files are GITIGNORED, so a branch checkout/reset never reverts
+# them: the drive writes them at launch to pin the run's ref. The committed
+# `*-ref` files stay authoritative for CI.
+# Dev overrides: LAKEBASE_SCM_UTILS_DIR / LAKEBASE_KIT_DIR point directly at a
+# package checkout/install.
 set -euo pipefail
 
-bin="${1:-}"
-if [ -z "$bin" ]; then
-  echo "usage: lk <kit-bin> [args...]   (e.g. lk lakebase-sftdd-log --read)" >&2
-  exit 2
-fi
-shift
+usage() { echo "usage: lk <bin> [args...]   (e.g. lk lakebase-scm-merge --help)" >&2; exit 2; }
 
-PKG="@databricks-solutions/lakebase-app-dev-kit"
-GH="github:databricks-solutions/lakebase-app-dev-kit"
-GH_URL="https://github.com/databricks-solutions/lakebase-app-dev-kit.git"
+first="${1:-}"
+[ -z "$first" ] && usage
 
-# 1. Resolve the kit install dir.
-# Dev override: a kit checkout/install pointed at directly. --warm/--rewarm are
-# no-ops here (nothing to cache); a bin still runs.
-if [ -n "${LAKEBASE_KIT_DIR:-}" ]; then
-  kit_dir="$LAKEBASE_KIT_DIR"
-  if [ "$bin" = "--warm" ] || [ "$bin" = "--rewarm" ]; then exit 0; fi
-else
-  # Always resolve the repo root: the ref may come from env, but the local-dir
-  # recovery hint below is always read from the project.
-  root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-  # ref: env -> .lakebase/kit-ref.local (gitignored run pin, survives checkouts)
-  #      -> .lakebase/kit-ref (committed; CI reads it) -> main
-  ref="${LAKEBASE_KIT_REF:-}"
-  if [ -z "$ref" ] && [ -f "$root/.lakebase/kit-ref.local" ]; then
-    ref="$(tr -d '[:space:]' < "$root/.lakebase/kit-ref.local")"
+# Repo root: the ref + recovery hints are always read from the project.
+root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+# --------------------------------------------------------------------------
+# Resolve (and cache) one package. Sets global `pkg_dir` to its install dir.
+# Args: SLUG (scm-utils|kit)  MODE (run|warm|rewarm)
+# Returns 0 on success; 97 for a cold cache with LK_NO_INSTALL; nonzero on error.
+# --------------------------------------------------------------------------
+resolve_pkg() {
+  local slug="$1" mode="$2"
+  local pkg gh gh_url dir_override ref_env ref_local ref_file local_dir_file
+  case "$slug" in
+    scm-utils)
+      pkg="@databricks-solutions/lakebase-scm-utils"
+      dir_override="${LAKEBASE_SCM_UTILS_DIR:-}"
+      ref_env="${LAKEBASE_SCM_UTILS_REF:-}"
+      ref_local="$root/.lakebase/scm-utils-ref.local"; ref_file="$root/.lakebase/scm-utils-ref"
+      local_dir_file="$root/.lakebase/scm-utils-local-dir" ;;
+    kit)
+      pkg="@databricks-solutions/lakebase-app-dev-kit"
+      dir_override="${LAKEBASE_KIT_DIR:-}"
+      ref_env="${LAKEBASE_KIT_REF:-}"
+      ref_local="$root/.lakebase/kit-ref.local"; ref_file="$root/.lakebase/kit-ref"
+      local_dir_file="$root/.lakebase/kit-local-dir" ;;
+    *) echo "lk: internal error, unknown package slug '$slug'" >&2; return 1 ;;
+  esac
+  gh="github:databricks-solutions/${pkg##*/}"
+  gh_url="https://github.com/databricks-solutions/${pkg##*/}.git"
+
+  # Dev override: a checkout/install pointed at directly. warm/rewarm are no-ops.
+  if [ -n "$dir_override" ]; then
+    pkg_dir="$dir_override"
+    return 0
   fi
-  if [ -z "$ref" ] && [ -f "$root/.lakebase/kit-ref" ]; then
-    ref="$(tr -d '[:space:]' < "$root/.lakebase/kit-ref")"
-  fi
+
+  local ref="$ref_env"
+  [ -z "$ref" ] && [ -f "$ref_local" ] && ref="$(tr -d '[:space:]' < "$ref_local")"
+  [ -z "$ref" ] && [ -f "$ref_file" ] && ref="$(tr -d '[:space:]' < "$ref_file")"
   ref="${ref:-main}"
 
-  # A LOCAL-ONLY ref (a capture/dev ref pinned to a working tree) exists nowhere
-  # on GitHub, so it resolves ONLY via its cache symlink. If that symlink is lost
-  # mid-run a GitHub re-resolve is impossible and lk would hard-fail. .lakebase/
-  # kit-local-dir records the kit path for exactly that case, so lk can re-plant
-  # the symlink + self-heal instead of bricking the run.
-  local_dir=""
-  if [ -f "$root/.lakebase/kit-local-dir" ]; then
-    local_dir="$(tr -d '[:space:]' < "$root/.lakebase/kit-local-dir")"
-  fi
+  local cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/${pkg##*/}"
+  local cache="${cache_root}/${ref}"
+  pkg_dir="${cache}/node_modules/${pkg}"
 
-  cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/lakebase-app-dev-kit"
-  cache="${cache_root}/${ref}"
-  kit_dir="${cache}/node_modules/${PKG}"
+  local is_sha=0; case "$ref" in *[!0-9a-fA-F]* ) ;; * ) [ ${#ref} -eq 40 ] && is_sha=1 ;; esac
+  remote_sha() { git ls-remote "$gh_url" "$ref" 2>/dev/null | awk 'NR==1{print $1}'; }
 
-  # An immutable ref (a 40-hex commit SHA) can never go stale, so we never
-  # re-resolve it. A BRANCH ref MOVES: the prior cache for `feature-x` can hold an
-  # old commit's dist, which is how a re-run silently executed stale code. So at
-  # WARM time (only , bin runs stay network-free + fast) we resolve the branch's
-  # current remote SHA and reinstall if the cached one differs. Best-effort: if
-  # the network probe fails we keep whatever is cached rather than break offline.
-  is_sha=0; case "$ref" in *[!0-9a-fA-F]* ) ;; * ) [ ${#ref} -eq 40 ] && is_sha=1 ;; esac
-
-  remote_sha() { git ls-remote "$GH_URL" "$ref" 2>/dev/null | awk 'NR==1{print $1}'; }
-
-  # Completeness, not mere presence: the warm check used to accept any install
-  # with a dist/ dir, but a RELEASE artifact can ship a dist/ that is missing an
-  # entire bin family (the sftdd/ subtree was gitignored + never force-added, so
-  # 48 of 75 bins had no file). That reads as "warm" yet every lakebase-sftdd-*
-  # call dies with MODULE_NOT_FOUND. This verifies EVERY package.json bin target
-  # exists under the install, so a partial dist fails loud at warm time (and on
-  # --rewarm) instead of silently at first use. Returns 0 when complete.
-  kit_bins_complete() {
-    node -e 'const fs=require("fs"),p=require("path"),r=process.argv[1];let b={};try{b=(require(r+"/package.json").bin)||{}}catch(e){process.stderr.write("lk: cannot read kit package.json at "+r+"\n");process.exit(1)}const m=Object.values(b).filter(x=>!fs.existsSync(p.join(r,x)));if(m.length){process.stderr.write("lk: kit dist is INCOMPLETE , "+m.length+"/"+Object.keys(b).length+" bin(s) have no file (e.g. "+m.slice(0,3).join(", ")+"). Release-artifact gap: the shipped dist/ omits bins. A complete rebuilt dist is required.\n");process.exit(1)}' "$1"
+  # Completeness, not mere presence: verify EVERY package.json bin target exists
+  # under the install, so a partial dist fails loud instead of silently at use.
+  pkg_bins_complete() {
+    node -e 'const fs=require("fs"),p=require("path"),r=process.argv[1];let b={};try{b=(require(r+"/package.json").bin)||{}}catch(e){process.stderr.write("lk: cannot read package.json at "+r+"\n");process.exit(1)}const m=Object.values(b).filter(x=>!fs.existsSync(p.join(r,x)));if(m.length){process.stderr.write("lk: "+r+" dist is INCOMPLETE , "+m.length+"/"+Object.keys(b).length+" bin(s) have no file (e.g. "+m.slice(0,3).join(", ")+").\n");process.exit(1)}' "$1"
   }
 
-  # Install `<committish>` fresh into the cache via a temp prefix + atomic rename
-  # (so parallel role spawns never see a half-populated cache). Records the
-  # resolved SHA so a later warm can detect a moved branch. Returns nonzero on
-  # failure (caller keeps any existing cache).
-  install_kit() {
-    committish="$1"; sha="$2"
+  install_pkg() {
+    local committish="$1" sha="$2" tmp
     mkdir -p "$cache_root"
     tmp="$(mktemp -d "${cache_root}/.tmp.XXXXXX")"
-    if npm install --no-save --prefer-online --prefix "$tmp" "${GH}#${committish}" >/dev/null 2>&1 \
-       && [ -d "${tmp}/node_modules/${PKG}/dist" ]; then
+    if npm install --no-save --prefer-online --prefix "$tmp" "${gh}#${committish}" >/dev/null 2>&1 \
+       && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
       rm -rf "$cache"
       if mv "$tmp" "$cache" 2>/dev/null; then
-        [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.kit-sha" 2>/dev/null || true
+        [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.pkg-sha" 2>/dev/null || true
         return 0
       fi
       rm -rf "$tmp"; return 1
@@ -106,88 +97,81 @@ else
     rm -rf "$tmp"; return 1
   }
 
-  # `lk --rewarm`: force a fresh install, bypassing BOTH the ref-keyed cache AND
-  # npm's cached git resolution , install the resolved SHA committish (content-
-  # addressed) so a moved branch cannot serve a stale build. Falls back to the
-  # branch ref if the SHA cannot be resolved (offline).
-  if [ "$bin" = "--rewarm" ]; then
-    sha="$(remote_sha)"
-    install_kit "${sha:-$ref}" "$sha" || { echo "lk: --rewarm failed for '${ref}'" >&2; exit 1; }
-    kit_bins_complete "$kit_dir" || { echo "lk: --rewarm installed an INCOMPLETE dist for '${ref}' (cache: ${cache})" >&2; exit 1; }
-    exit 0
+  if [ "$mode" = "rewarm" ]; then
+    local sha; sha="$(remote_sha)"
+    install_pkg "${sha:-$ref}" "$sha" || { echo "lk: --rewarm failed for ${slug} '${ref}'" >&2; return 1; }
+    pkg_bins_complete "$pkg_dir" || { echo "lk: --rewarm installed an INCOMPLETE dist for ${slug} '${ref}' (cache: ${cache})" >&2; return 1; }
+    return 0
   fi
 
-  # `lk --warm`: ensure the cache holds the ref's CURRENT commit (createProject
-  # calls this once at scaffold). Reinstall when the dist is missing, or , for a
-  # moving branch , when the remote SHA has advanced past the cached one.
-  if [ "$bin" = "--warm" ]; then
-    need_install=0
-    # Reinstall when dist/ is absent OR present-but-incomplete (a partial release
-    # artifact); the bin-completeness check is the real "is it usable" signal.
-    { [ -d "${kit_dir}/dist" ] && kit_bins_complete "$kit_dir" >/dev/null 2>&1; } || need_install=1
+  if [ "$mode" = "warm" ]; then
+    local need_install=0
+    { [ -d "${pkg_dir}/dist" ] && pkg_bins_complete "$pkg_dir" >/dev/null 2>&1; } || need_install=1
     if [ "$need_install" -eq 0 ] && [ "$is_sha" -eq 0 ]; then
-      cached_sha=""; [ -f "${cache}/.kit-sha" ] && cached_sha="$(tr -d '[:space:]' < "${cache}/.kit-sha")"
-      live_sha="$(remote_sha)"
+      local cached_sha=""; [ -f "${cache}/.pkg-sha" ] && cached_sha="$(tr -d '[:space:]' < "${cache}/.pkg-sha")"
+      local live_sha; live_sha="$(remote_sha)"
       [ -n "$live_sha" ] && [ "$live_sha" != "$cached_sha" ] && need_install=1
     fi
     if [ "$need_install" -eq 1 ]; then
-      sha="$([ "$is_sha" -eq 1 ] && printf '%s' "$ref" || remote_sha)"
-      install_kit "${sha:-$ref}" "$sha" || true
+      local sha; sha="$([ "$is_sha" -eq 1 ] && printf '%s' "$ref" || remote_sha)"
+      install_pkg "${sha:-$ref}" "$sha" || true
     fi
-    [ -d "${kit_dir}/dist" ] || { echo "lk: could not warm the kit for ref '${ref}' (cache: ${cache})" >&2; exit 1; }
-    kit_bins_complete "$kit_dir" || { echo "lk: kit for ref '${ref}' warmed but its dist is incomplete (cache: ${cache})" >&2; exit 1; }
-    exit 0
+    [ -d "${pkg_dir}/dist" ] || { echo "lk: could not warm ${slug} for ref '${ref}' (cache: ${cache})" >&2; return 1; }
+    pkg_bins_complete "$pkg_dir" || { echo "lk: ${slug} for ref '${ref}' warmed but its dist is incomplete (cache: ${cache})" >&2; return 1; }
+    return 0
   fi
 
-  # A bin run: install once if the cache is cold (fast path , no network when
-  # warm, so per-turn agent calls stay ~0.09s; freshness for a moving branch is
-  # the warm step's job).
-  #
-  # LK_NO_INSTALL: callers on a latency-sensitive, best-effort path (e.g. the
-  # prepare-commit-msg schema-diff enrichment) set this so a COLD cache never
-  # triggers a synchronous `npm install` (the ~70s commit stall). With it set we
-  # skip the install and exit 97 ("kit cache cold, install skipped"); the caller
-  # treats that as "enrichment unavailable" and proceeds. Warming stays the job
-  # of `lk --warm` at scaffold/create time, never of a commit.
-  # Self-heal a lost cache for a LOCAL ref FIRST: a ref recorded in kit-local-dir
-  # exists only as a local symlink (never on GitHub), so recover from the hint and
-  # skip the doomed network install. Re-plant the symlink so later calls hit the
-  # fast cache path, and use it for this call.
-  if [ ! -d "${kit_dir}/dist" ] && [ -n "$local_dir" ] && [ -d "${local_dir}/dist" ]; then
-    mkdir -p "$(dirname "$kit_dir")" && rm -rf "$kit_dir" && ln -s "$local_dir" "$kit_dir" 2>/dev/null || true
-    [ -d "${kit_dir}/dist" ] || kit_dir="$local_dir"
-    echo "lk: cache for ref '${ref}' was missing; recovered from .lakebase/kit-local-dir (${local_dir})." >&2
+  # mode=run: install once if the cache is cold (fast path, no network when warm).
+  # Self-heal a lost cache for a LOCAL-ONLY ref FIRST: a ref recorded in
+  # .lakebase/<slug>-local-dir exists only as a local symlink (never on GitHub),
+  # so recover from the hint and skip the doomed network install. Re-plant the
+  # symlink so later calls hit the fast cache path, and use it for this call.
+  local local_dir=""
+  [ -f "$local_dir_file" ] && local_dir="$(tr -d '[:space:]' < "$local_dir_file")"
+  if [ ! -d "${pkg_dir}/dist" ] && [ -n "$local_dir" ] && [ -d "${local_dir}/dist" ]; then
+    mkdir -p "$(dirname "$pkg_dir")" && rm -rf "$pkg_dir" && ln -s "$local_dir" "$pkg_dir" 2>/dev/null || true
+    [ -d "${pkg_dir}/dist" ] || pkg_dir="$local_dir"
+    echo "lk: cache for ${slug} ref '${ref}' was missing; recovered from ${local_dir_file##*/} (${local_dir})." >&2
   fi
 
-  # A bin run: install once if the cache is cold (fast path , no network when
-  # warm, so per-turn agent calls stay ~0.09s; freshness for a moving branch is
-  # the warm step's job).
-  #
-  # LK_NO_INSTALL: callers on a latency-sensitive, best-effort path (e.g. the
-  # prepare-commit-msg schema-diff enrichment) set this so a COLD cache never
-  # triggers a synchronous `npm install` (the ~70s commit stall). With it set we
-  # skip the install and exit 97 ("kit cache cold, install skipped"); the caller
-  # treats that as "enrichment unavailable" and proceeds. Warming stays the job
-  # of `lk --warm` at scaffold/create time, never of a commit.
-  if [ ! -d "${kit_dir}/dist" ]; then
+  # LK_NO_INSTALL: latency-sensitive callers skip a cold-cache install and treat
+  # exit 97 as "unavailable" (warming is the job of `lk --warm` at scaffold time).
+  if [ ! -d "${pkg_dir}/dist" ]; then
     if [ -n "${LK_NO_INSTALL:-}" ]; then
-      echo "lk: kit cache cold for ref '${ref}' and LK_NO_INSTALL set , skipping install (run 'lk --warm')." >&2
-      exit 97
+      echo "lk: ${slug} cache cold for ref '${ref}' and LK_NO_INSTALL set , skipping install (run 'lk --warm')." >&2
+      return 97
     fi
-    sha="$([ "$is_sha" -eq 1 ] && printf '%s' "$ref" || remote_sha)"
-    install_kit "${sha:-$ref}" "$sha" || true
+    local sha; sha="$([ "$is_sha" -eq 1 ] && printf '%s' "$ref" || remote_sha)"
+    install_pkg "${sha:-$ref}" "$sha" || true
   fi
-  if [ ! -d "${kit_dir}/dist" ]; then
-    echo "lk: could not resolve the kit for ref '${ref}' (cache: ${cache})" >&2
-    exit 1
+  [ -d "${pkg_dir}/dist" ] || { echo "lk: could not resolve ${slug} for ref '${ref}' (cache: ${cache})" >&2; return 1; }
+  return 0
+}
+
+# Which package owns a bin.
+pkg_for_bin() { case "$1" in lakebase-sftdd-*|lakebase-tdd-*) echo kit ;; *) echo scm-utils ;; esac; }
+
+# --warm / --rewarm: prepare the caches. Always the substrate; the kit too when
+# this project uses SFTDD (a kit ref is pinned or a .sftdd/ dir exists).
+if [ "$first" = "--warm" ] || [ "$first" = "--rewarm" ]; then
+  mode="${first#--}"
+  resolve_pkg scm-utils "$mode" || exit 1
+  if [ -n "${LAKEBASE_KIT_REF:-}" ] || [ -f "$root/.lakebase/kit-ref.local" ] || [ -f "$root/.lakebase/kit-ref" ] || [ -d "$root/.sftdd" ]; then
+    resolve_pkg kit "$mode" || exit 1
   fi
+  exit 0
 fi
 
-# 2. Map bin -> dist path from the kit's own package.json bin map (authoritative).
-rel="$(node -e 'const m=require(process.argv[1]+"/package.json").bin||{};const b=m[process.argv[2]];if(!b)process.exit(3);process.stdout.write(b)' "$kit_dir" "$bin" 2>/dev/null)" || {
-  echo "lk: unknown kit bin: ${bin}" >&2
+bin="$first"; shift
+slug="$(pkg_for_bin "$bin")"
+resolve_pkg "$slug" run; rc=$?
+[ "$rc" -eq 97 ] && exit 97
+[ "$rc" -ne 0 ] && exit "$rc"
+
+# Map bin -> dist path from the resolved package's own package.json bin map.
+rel="$(node -e 'const m=require(process.argv[1]+"/package.json").bin||{};const b=m[process.argv[2]];if(!b)process.exit(3);process.stdout.write(b)' "$pkg_dir" "$bin" 2>/dev/null)" || {
+  echo "lk: unknown bin: ${bin}" >&2
   exit 2
 }
 
-# 3. Run it directly.
-exec node "${kit_dir}/${rel}" "$@"
+exec node "${pkg_dir}/${rel}" "$@"

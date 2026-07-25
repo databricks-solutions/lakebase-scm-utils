@@ -31,15 +31,15 @@ describe("pr.yml: Resolve CI app endpoint", () => {
     expect(yaml).toMatch(/--branch\s+"\$CI_BRANCH"/);
   });
 
-  it("resolves the kit ref from .lakebase/kit-ref at every call site (Finding 24)", () => {
-    // The kit ref follows .lakebase/kit-ref (via the Resolve kit ref step ->
-    // KIT_REF), the SAME source scripts/lk uses, instead of a scaffold-time
-    // literal pin: github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}"
+  it("resolves the kit ref from .lakebase/scm-utils-ref at every call site (Finding 24)", () => {
+    // The kit ref follows .lakebase/scm-utils-ref (via the Resolve substrate ref step ->
+    // SCM_UTILS_REF), the SAME source scripts/lk uses, instead of a scaffold-time
+    // literal pin: github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}"
     expect(yaml).toContain(
-      'github:databricks-solutions/lakebase-app-dev-kit#"${KIT_REF}"',
+      'github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}"',
     );
     // No stale hardcoded #v<version> pin remains.
-    expect(yaml).not.toMatch(/lakebase-app-dev-kit#v\d/);
+    expect(yaml).not.toMatch(/lakebase-scm-utils#v\d/);
   });
 
   it("exports LAKEBASE_APP_ENDPOINT to $GITHUB_ENV only when a URL was resolved", () => {

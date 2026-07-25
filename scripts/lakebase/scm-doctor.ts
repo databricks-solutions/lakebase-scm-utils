@@ -190,31 +190,33 @@ export async function runDoctor(args: DoctorArgs, deps: RunDoctorDeps = {}): Pro
     // best-effort: no git remote / no token / offline -> skip silently.
   }
 
-  // 1c. CI workflows follow .lakebase/kit-ref? The runtime substrate (scripts/lk)
-  // resolves the kit from .lakebase/kit-ref, but a workflow scaffolded before
-  // FEIP-8050 baked a LITERAL `#v<ver>` pin at every kit call site, so a kit-ref
-  // bump never reached CI (every run executed the stale kit). Flag the old shape
-  // so the human re-emits the kit-ref-aware workflow. Best-effort, file-only.
+  // 1c. CI workflows follow .lakebase/scm-utils-ref? The runtime substrate
+  // (scripts/lk) resolves the substrate from .lakebase/scm-utils-ref, but a
+  // workflow scaffolded with a LITERAL `#v<ver>` pin at every call site means a
+  // scm-utils-ref bump never reaches CI (every run executes the stale substrate).
+  // Flag the old shape so the human re-emits the ref-aware workflow. Best-effort,
+  // file-only.
   for (const wf of ["pr.yml", "merge.yml"]) {
     try {
       const p = path.join(projectDir, ".github", "workflows", wf);
       if (!fs.existsSync(p)) continue;
       const body = fs.readFileSync(p, "utf8");
-      // The anti-pattern: a hardcoded version tag right after the kit package ref.
-      if (/lakebase-app-dev-kit#v\d/.test(body)) {
+      // The anti-pattern: a hardcoded version tag right after the substrate ref.
+      if (/lakebase-scm-utils#v\d/.test(body)) {
         findings.push({
-          id: "ci-workflow-kit-pin",
+          id: "ci-workflow-substrate-pin",
           severity: "warn",
           message:
-            `.github/workflows/${wf} hardcodes a kit version pin ` +
-            `(github:databricks-solutions/lakebase-app-dev-kit#v<ver>) instead of ` +
-            `resolving .lakebase/kit-ref at runtime, so bumping .lakebase/kit-ref does ` +
-            `NOT change the kit CI actually runs (FEIP-8050, Finding 24).`,
+            `.github/workflows/${wf} hardcodes a substrate version pin ` +
+            `(github:databricks-solutions/lakebase-scm-utils#v<ver>) instead of ` +
+            `resolving .lakebase/scm-utils-ref at runtime, so bumping ` +
+            `.lakebase/scm-utils-ref does NOT change the substrate CI actually runs.`,
           suggestion:
-            "Re-emit the workflows from the current kit templates so they resolve " +
-            "KIT_REF from .lakebase/kit-ref at CI time (updateWorkflows in " +
-            "scripts/lakebase/workflow-drift.ts; lakebase-doctor reports this as " +
-            "workflow-drift). Until then a kit-ref bump will not reach CI.",
+            "Re-emit the workflows from the current substrate templates so they " +
+            "resolve SCM_UTILS_REF from .lakebase/scm-utils-ref at CI time " +
+            "(updateWorkflows in scripts/lakebase/workflow-drift.ts; lakebase-doctor " +
+            "reports this as workflow-drift). Until then a scm-utils-ref bump will " +
+            "not reach CI.",
         });
       }
     } catch {

@@ -7,11 +7,11 @@
 // diff gates, bug fixes) but existing projects never auto-pick those
 // changes up. `detectWorkflowDrift` surfaces the gap; `updateWorkflows`
 // closes it by writing the current kit templates into the
-// project's .github/workflows/, with the same {{LAKEBASE_KIT_VERSION}}
+// project's .github/workflows/, with the same {{LAKEBASE_SCM_UTILS_VERSION}}
 // substitution the scaffolder does.
 //
-// The "kit version pinned by the project" surfaces via npm's installed
-// view: if the project depends on @databricks-solutions/lakebase-app-dev-kit,
+// The "substrate version pinned by the project" surfaces via npm's installed
+// view: if the project depends on @databricks-solutions/lakebase-scm-utils,
 // the templates at node_modules/.../templates/project/common/.github/workflows/
 // are the canonical reference for the pinned version. The drift detector
 // doesn't fetch from npm or github; it diffs against whatever is currently
@@ -134,7 +134,7 @@ export function detectWorkflowDrift(
     ? fs.readdirSync(projectWorkflowsDir).filter((f) => f.endsWith(".yml"))
     : [];
 
-  // Substitute {{LAKEBASE_KIT_VERSION}} in the template BEFORE comparing, the
+  // Substitute {{LAKEBASE_SCM_UTILS_VERSION}} in the template BEFORE comparing, the
   // same substitution updateWorkflows() writes and detectCommandDrift() applies.
   // A correctly-scaffolded project carries the version pin (placeholder already
   // resolved), so diffing against the RAW template would report permanent,
@@ -219,7 +219,7 @@ export interface UpdateWorkflowsArgs {
    */
   dryRun?: boolean;
   /**
-   * When true, substitute `{{LAKEBASE_KIT_VERSION}}` with the kit's
+   * When true, substitute `{{LAKEBASE_SCM_UTILS_VERSION}}` with the kit's
    * current version (read from its package.json) before writing.
    * Default: true – matches the scaffolder's behavior.
    */
@@ -256,14 +256,14 @@ function readKitVersion(kitWorkflowsDir: string): string {
 }
 
 function applyPlaceholders(content: string, version: string): string {
-  return content.replace(/\{\{LAKEBASE_KIT_VERSION\}\}/g, version);
+  return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
 }
 
 /**
  * Substitute the `${KIT_VERSION_AT_SCAFFOLD}` placeholder the
  * `.claude/commands/{design,build}.md` templates use. Distinct from
  * `applyPlaceholders` so the workflow path can stay focused on its
- * `{{LAKEBASE_KIT_VERSION}}` shape and the command path can stay
+ * `{{LAKEBASE_SCM_UTILS_VERSION}}` shape and the command path can stay
  * focused on its own.
  */
 function applyCommandPlaceholders(content: string, version: string): string {
@@ -509,7 +509,7 @@ export function detectScaffoldedDrift(
  *
  * Defaults to:
  *   - WRITES the kit's template content into the project, overwriting
- *     any drifted copies. `{{LAKEBASE_KIT_VERSION}}` is substituted with
+ *     any drifted copies. `{{LAKEBASE_SCM_UTILS_VERSION}}` is substituted with
  *     the kit's current version (read from its package.json).
  *   - LEAVES extra project workflow files in place (the project might
  *     have added its own .yml alongside the kit's set). Pass
