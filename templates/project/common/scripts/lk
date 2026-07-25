@@ -8,7 +8,11 @@
 # Two packages back a scaffolded project, and lk routes each bin to its owner so
 # each runs from its OWN dist (no cross-package node_modules paths):
 #   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (lakebase-app-dev-kit)
-#   everything else                    -> the substrate (lakebase-scm-utils)
+#   everything else                    -> the substrate (lakebase-scm-utils),
+#                                         falling back to the kit for kit bins
+#                                         that carry no sftdd-/tdd- prefix
+#                                         (e.g. lakebase-resolve-sftdd-dir).
+# Ownership is read from each package's own bin map, never a hardcoded list here.
 # SCM-only projects only ever call substrate bins, so they only resolve the
 # substrate; SFTDD projects resolve both.
 #
@@ -148,15 +152,35 @@ resolve_pkg() {
   return 0
 }
 
-# Which package owns a bin.
+# Which package a bin PREFERS. The sftdd-/tdd- prefixed bins are unambiguously
+# the kit's; every other bin resolves against the substrate first and falls back
+# to the kit (below) when the substrate does not define it. That keeps kit bins
+# without the prefix (e.g. lakebase-resolve-sftdd-dir, lakebase-adopt-sftdd)
+# routing correctly WITHOUT hardcoding the kit's bin list here: ownership is read
+# from each package's own package.json bin map.
 pkg_for_bin() { case "$1" in lakebase-sftdd-*|lakebase-tdd-*) echo kit ;; *) echo scm-utils ;; esac; }
+
+# True when this project actually uses the SFTDD kit: an explicit dir/ref
+# override, a pinned kit-ref, or a scaffolded .sftdd/.tdd runtime dir. Gates both
+# the --warm kit pass and the substrate->kit bin fallback, so a pure-substrate
+# project never tries to resolve (and network-install) the kit for a typo'd bin.
+project_uses_kit() {
+  [ -n "${LAKEBASE_KIT_DIR:-}" ] || [ -n "${LAKEBASE_KIT_REF:-}" ] \
+    || [ -f "$root/.lakebase/kit-ref.local" ] || [ -f "$root/.lakebase/kit-ref" ] \
+    || [ -d "$root/.sftdd" ] || [ -d "$root/.tdd" ]
+}
+
+# Map bin -> dist path from a resolved package's own bin map; prints the relative
+# path, or nothing when the package does not define the bin. Always exits 0 so a
+# miss never trips `set -e` (the caller branches on an empty result instead).
+bin_rel() { node -e 'const m=require(process.argv[1]+"/package.json").bin||{};const b=m[process.argv[2]];if(b)process.stdout.write(b)' "$1" "$2" 2>/dev/null || true; }
 
 # --warm / --rewarm: prepare the caches. Always the substrate; the kit too when
 # this project uses SFTDD (a kit ref is pinned or a .sftdd/ dir exists).
 if [ "$first" = "--warm" ] || [ "$first" = "--rewarm" ]; then
   mode="${first#--}"
   resolve_pkg scm-utils "$mode" || exit 1
-  if [ -n "${LAKEBASE_KIT_REF:-}" ] || [ -f "$root/.lakebase/kit-ref.local" ] || [ -f "$root/.lakebase/kit-ref" ] || [ -d "$root/.sftdd" ]; then
+  if project_uses_kit; then
     resolve_pkg kit "$mode" || exit 1
   fi
   exit 0
@@ -167,11 +191,21 @@ slug="$(pkg_for_bin "$bin")"
 resolve_pkg "$slug" run; rc=$?
 [ "$rc" -eq 97 ] && exit 97
 [ "$rc" -ne 0 ] && exit "$rc"
+rel="$(bin_rel "$pkg_dir" "$bin")"
 
-# Map bin -> dist path from the resolved package's own package.json bin map.
-rel="$(node -e 'const m=require(process.argv[1]+"/package.json").bin||{};const b=m[process.argv[2]];if(!b)process.exit(3);process.stdout.write(b)' "$pkg_dir" "$bin" 2>/dev/null)" || {
-  echo "lk: unknown bin: ${bin}" >&2
-  exit 2
-}
+# Substrate->kit fallback: a non-prefixed bin defaults to the substrate, but some
+# kit bins carry no sftdd-/tdd- prefix. When the substrate does not define the bin
+# and this project uses the kit, resolve it from the kit instead. sftdd-/tdd- bins
+# route to the kit up front and never reach here, so an unknown kit bin still fails
+# fast with no substrate round-trip.
+if [ -z "$rel" ] && [ "$slug" = "scm-utils" ] && project_uses_kit; then
+  resolve_pkg kit run; krc=$?
+  [ "$krc" -eq 97 ] && exit 97
+  if [ "$krc" -eq 0 ]; then
+    rel="$(bin_rel "$pkg_dir" "$bin")"
+    [ -n "$rel" ] && slug="kit"
+  fi
+fi
 
+[ -z "$rel" ] && { echo "lk: unknown bin: ${bin}" >&2; exit 2; }
 exec node "${pkg_dir}/${rel}" "$@"

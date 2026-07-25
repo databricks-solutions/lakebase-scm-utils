@@ -37,7 +37,13 @@ function fakeKitDir(dir: string): string {
   mkdirSync(join(dir, "dist"), { recursive: true });
   writeFileSync(
     join(dir, "package.json"),
-    JSON.stringify({ name: PKG, bin: { "lakebase-sftdd-log": "dist/echo.js" } }),
+    // A sftdd-prefixed bin (routes to the kit up front) plus a kit bin with NO
+    // sftdd-/tdd- prefix (lakebase-resolve-sftdd-dir), which reaches the kit only
+    // via the substrate->kit fallback.
+    JSON.stringify({
+      name: PKG,
+      bin: { "lakebase-sftdd-log": "dist/echo.js", "lakebase-resolve-sftdd-dir": "dist/echo.js" },
+    }),
   );
   writeFileSync(join(dir, "dist", "echo.js"), "process.stdout.write(JSON.stringify(process.argv.slice(2)));\n");
   return dir;
@@ -138,6 +144,39 @@ describe("lk resolver shim", () => {
     // and the failure is the bin-map lookup, not a network install.
     const kit = fakeKitDir(join(work, "kit"));
     const r = runLk(["lakebase-sftdd-not-a-bin"], { LAKEBASE_KIT_DIR: kit });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/unknown/i);
+  });
+
+  it("falls back to the kit for a kit bin without the sftdd-/tdd- prefix (lakebase-resolve-sftdd-dir)", () => {
+    // The routing bug the stockflow replay caught: a kit bin with no sftdd-/tdd-
+    // prefix defaults to the substrate, which does not define it. With the kit in
+    // use (LAKEBASE_KIT_DIR set) the substrate->kit fallback resolves it from the
+    // kit, so ownership follows each package's bin map, not a hardcoded prefix.
+    const kit = fakeKitDir(join(work, "kit"));
+    const scm = fakeScmUtilsDir(join(work, "scm"));
+    const r = runLk(
+      ["lakebase-resolve-sftdd-dir", "--project-dir", "/x"],
+      { LAKEBASE_KIT_DIR: kit, LAKEBASE_SCM_UTILS_DIR: scm },
+    );
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout)).toEqual(["--project-dir", "/x"]);
+  });
+
+  it("still reports unknown for a non-prefixed bin in neither package (kit in use)", () => {
+    const kit = fakeKitDir(join(work, "kit"));
+    const scm = fakeScmUtilsDir(join(work, "scm"));
+    const r = runLk(["lakebase-nope"], { LAKEBASE_KIT_DIR: kit, LAKEBASE_SCM_UTILS_DIR: scm });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toMatch(/unknown/i);
+  });
+
+  it("does NOT probe the kit for a non-prefixed unknown bin when the project does not use the kit", () => {
+    // No kit dir/ref and no .sftdd => project_uses_kit is false, so the fallback
+    // never fires and a typo fails fast without a (network) kit resolution. Hermetic:
+    // only the substrate is overridden; any kit resolution would time out on install.
+    const scm = fakeScmUtilsDir(join(work, "scm"));
+    const r = runLk(["lakebase-nope"], { LAKEBASE_SCM_UTILS_DIR: scm });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/unknown/i);
   });
