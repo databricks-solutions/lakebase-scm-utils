@@ -69,6 +69,7 @@ __export(git_exports, {
   getOwnerRepo: () => getOwnerRepo,
   getRecentMerges: () => getRecentMerges,
   getRepoRoot: () => getRepoRoot,
+  gitBranchExists: () => gitBranchExists,
   gitInit: () => gitInit,
   hasRemoteBranch: () => hasRemoteBranch,
   hasUpstream: () => hasUpstream,
@@ -92,6 +93,7 @@ __export(git_exports, {
   removeRemote: () => removeRemote,
   removeWorktree: () => removeWorktree,
   renameBranch: () => renameBranch,
+  resolveDefaultBranch: () => resolveDefaultBranch,
   resolveNearestParent: () => resolveNearestParent,
   revert: () => revert,
   stash: () => stash,
@@ -913,6 +915,29 @@ async function getFileAtRef(args) {
     return "";
   }
 }
+async function gitBranchExists(args) {
+  if (!args.branch) return false;
+  for (const ref of [`refs/heads/${args.branch}`, `refs/remotes/origin/${args.branch}`]) {
+    try {
+      await exec2(`git rev-parse --verify --quiet ${shq(ref)}`, { cwd: args.cwd });
+      return true;
+    } catch {
+    }
+  }
+  return false;
+}
+async function resolveDefaultBranch(args) {
+  try {
+    const ref = await exec2("git rev-parse --abbrev-ref origin/HEAD", { cwd: args.cwd });
+    const name = ref.replace(/^origin\//, "").trim();
+    if (name && name !== "HEAD") return name;
+  } catch {
+  }
+  for (const cand of ["main", "master"]) {
+    if (await gitBranchExists({ cwd: args.cwd, branch: cand })) return cand;
+  }
+  return "main";
+}
 async function listTags(args) {
   try {
     const raw = await exec2("git tag -l", { cwd: args.cwd });
@@ -984,6 +1009,7 @@ async function cherryPick(args) {
   getOwnerRepo,
   getRecentMerges,
   getRepoRoot,
+  gitBranchExists,
   gitInit,
   hasRemoteBranch,
   hasUpstream,
@@ -1007,6 +1033,7 @@ async function cherryPick(args) {
   removeRemote,
   removeWorktree,
   renameBranch,
+  resolveDefaultBranch,
   resolveNearestParent,
   revert,
   stash,

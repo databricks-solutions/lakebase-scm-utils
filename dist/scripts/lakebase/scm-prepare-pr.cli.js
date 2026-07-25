@@ -60,6 +60,29 @@ async function getCurrentBranch(args) {
     return "";
   }
 }
+async function gitBranchExists(args) {
+  if (!args.branch) return false;
+  for (const ref of [`refs/heads/${args.branch}`, `refs/remotes/origin/${args.branch}`]) {
+    try {
+      await exec2(`git rev-parse --verify --quiet ${shq(ref)}`, { cwd: args.cwd });
+      return true;
+    } catch {
+    }
+  }
+  return false;
+}
+async function resolveDefaultBranch(args) {
+  try {
+    const ref = await exec2("git rev-parse --abbrev-ref origin/HEAD", { cwd: args.cwd });
+    const name = ref.replace(/^origin\//, "").trim();
+    if (name && name !== "HEAD") return name;
+  } catch {
+  }
+  for (const cand of ["main", "master"]) {
+    if (await gitBranchExists({ cwd: args.cwd, branch: cand })) return cand;
+  }
+  return "main";
+}
 
 // scripts/git/status.ts
 async function getAheadBehind(args) {
@@ -151,6 +174,14 @@ async function getOwnerRepo(cwd) {
   } catch {
     return "";
   }
+}
+
+// scripts/lakebase/scm-git-base.ts
+async function resolveGitBase(parentBranch, cwd) {
+  if (parentBranch && await gitBranchExists({ cwd, branch: parentBranch })) {
+    return parentBranch;
+  }
+  return resolveDefaultBranch({ cwd });
 }
 
 // scripts/github/pr.ts
@@ -647,15 +678,16 @@ async function preparePr(args) {
       );
     }
   }
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
   if (!args.allowNoCommits) {
     const ahead = await ensureAheadOfParent(
       args.projectDir,
       current.branch,
-      current.parent_branch
+      gitBase
     );
     if (ahead === 0) {
       throw new ScmPreparePrError(
-        `Branch "${current.branch}" has 0 commits ahead of "${current.parent_branch}". Make at least one commit (or pass --allow-no-commits).`,
+        `Branch "${current.branch}" has 0 commits ahead of "${gitBase}". Make at least one commit (or pass --allow-no-commits).`,
         "no-commits-ahead"
       );
     }
@@ -691,9 +723,9 @@ async function preparePr(args) {
         prUrl = await createPullRequest({
           ownerRepo,
           headBranch: current.branch,
-          baseBranch: current.parent_branch,
+          baseBranch: gitBase,
           title: args.title ?? `feat: ${current.feature_id}`,
-          body: args.body ?? defaultBody(current.feature_id, current.parent_branch)
+          body: args.body ?? defaultBody(current.feature_id, gitBase)
         });
         prCreated = true;
       } catch (err) {
@@ -750,11 +782,11 @@ function pushFailureHint(rawMessage) {
     "  remote, then re-run prepare-pr."
   ].join("\n");
 }
-function defaultBody(featureId, parentBranch) {
+function defaultBody(featureId, baseBranch) {
   return [
     `Feature: \`${featureId}\``,
     "",
-    `Forks from \`${parentBranch}\`.`,
+    `Forks from \`${baseBranch}\`.`,
     "",
     "PR opened by `lakebase-scm-prepare-pr` (phase B+)."
   ].join("\n");

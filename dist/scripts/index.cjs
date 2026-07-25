@@ -217,6 +217,7 @@ __export(scripts_exports, {
   getRunnerStatus: () => getRunnerStatus,
   getSchemaDiff: () => getSchemaDiff,
   getTargetNames: () => getTargetNames,
+  gitBranchExists: () => gitBranchExists,
   gitInit: () => gitInit,
   grantLakebasePermission: () => grantLakebasePermission,
   grantUcCatalogPermission: () => grantUcCatalogPermission,
@@ -298,6 +299,7 @@ __export(scripts_exports, {
   resolveBranchPath: () => resolveBranchPath,
   resolveCurrentUser: () => resolveCurrentUser,
   resolveDatabricksHost: () => resolveDatabricksHost,
+  resolveDefaultBranch: () => resolveDefaultBranch,
   resolveEndpointHost: () => resolveEndpointHost,
   resolveFeatureStartPoint: () => resolveFeatureStartPoint,
   resolveGitHubToken: () => resolveGitHubToken,
@@ -342,6 +344,7 @@ __export(scripts_exports, {
   stashStaged: () => stashStaged,
   stateFilePath: () => stateFilePath,
   stopRunner: () => stopRunner,
+  substrateVersion: () => substrateVersion,
   sync: () => sync,
   syncCiSecrets: () => syncCiSecrets,
   syncEnvToCurrentBranch: () => syncEnvToCurrentBranch,
@@ -1104,6 +1107,29 @@ async function getFileAtRef(args) {
   } catch {
     return "";
   }
+}
+async function gitBranchExists(args) {
+  if (!args.branch) return false;
+  for (const ref of [`refs/heads/${args.branch}`, `refs/remotes/origin/${args.branch}`]) {
+    try {
+      await exec2(`git rev-parse --verify --quiet ${shq(ref)}`, { cwd: args.cwd });
+      return true;
+    } catch {
+    }
+  }
+  return false;
+}
+async function resolveDefaultBranch(args) {
+  try {
+    const ref = await exec2("git rev-parse --abbrev-ref origin/HEAD", { cwd: args.cwd });
+    const name = ref.replace(/^origin\//, "").trim();
+    if (name && name !== "HEAD") return name;
+  } catch {
+  }
+  for (const cand of ["main", "master"]) {
+    if (await gitBranchExists({ cwd: args.cwd, branch: cand })) return cand;
+  }
+  return "main";
 }
 async function listTags(args) {
   try {
@@ -5657,6 +5683,21 @@ Last probe error:
           );
         }
       }
+      {
+        const envRef = process.env.LAKEBASE_SCM_UTILS_REF?.trim();
+        const ver = substrateVersion();
+        const scmRef = envRef || (ver !== "unknown" ? `v${ver}` : "");
+        if (scmRef) {
+          try {
+            const dir = path15.join(projectDir, ".lakebase");
+            fs17.mkdirSync(dir, { recursive: true });
+            fs17.writeFileSync(path15.join(dir, "scm-utils-ref"), `${scmRef}
+`, "utf8");
+          } catch (err) {
+            warnings.push(`Substrate ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
+          }
+        }
+      }
       if (enableSftdd) {
         const kitRef = process.env.LAKEBASE_KIT_REF?.trim();
         if (kitRef) {
@@ -7705,6 +7746,14 @@ async function abandonFeatureBranch(args) {
   };
 }
 
+// scripts/lakebase/scm-git-base.ts
+async function resolveGitBase(parentBranch, cwd) {
+  if (parentBranch && await gitBranchExists({ cwd, branch: parentBranch })) {
+    return parentBranch;
+  }
+  return resolveDefaultBranch({ cwd });
+}
+
 // scripts/lakebase/scm-prepare-pr.ts
 var ScmPreparePrError = class extends Error {
   constructor(message, code) {
@@ -7750,15 +7799,16 @@ async function preparePr(args) {
       );
     }
   }
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
   if (!args.allowNoCommits) {
     const ahead = await ensureAheadOfParent(
       args.projectDir,
       current.branch,
-      current.parent_branch
+      gitBase
     );
     if (ahead === 0) {
       throw new ScmPreparePrError(
-        `Branch "${current.branch}" has 0 commits ahead of "${current.parent_branch}". Make at least one commit (or pass --allow-no-commits).`,
+        `Branch "${current.branch}" has 0 commits ahead of "${gitBase}". Make at least one commit (or pass --allow-no-commits).`,
         "no-commits-ahead"
       );
     }
@@ -7794,9 +7844,9 @@ async function preparePr(args) {
         prUrl = await createPullRequest({
           ownerRepo,
           headBranch: current.branch,
-          baseBranch: current.parent_branch,
+          baseBranch: gitBase,
           title: args.title ?? `feat: ${current.feature_id}`,
-          body: args.body ?? defaultBody(current.feature_id, current.parent_branch)
+          body: args.body ?? defaultBody(current.feature_id, gitBase)
         });
         prCreated = true;
       } catch (err) {
@@ -7853,11 +7903,11 @@ function pushFailureHint(rawMessage) {
     "  remote, then re-run prepare-pr."
   ].join("\n");
 }
-function defaultBody(featureId, parentBranch) {
+function defaultBody(featureId, baseBranch) {
   return [
     `Feature: \`${featureId}\``,
     "",
-    `Forks from \`${parentBranch}\`.`,
+    `Forks from \`${baseBranch}\`.`,
     "",
     "PR opened by `lakebase-scm-prepare-pr` (phase B+)."
   ].join("\n");
@@ -8023,6 +8073,7 @@ async function mergeFeature(args) {
     );
   }
   const instance = args.instance ?? current.project_id;
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
   const wantMigrate = args.waitMigrate !== false;
   let authVerified = false;
   if (wantMigrate && args.verifyMigrateAuth) {
@@ -8053,7 +8104,7 @@ async function mergeFeature(args) {
   let localBranchDeleted = false;
   let headAfter = current.branch;
   if (!args.skipLocalCleanup) {
-    const switchTo = args.switchTo ?? current.parent_branch;
+    const switchTo = args.switchTo ?? gitBase;
     const head = await getCurrentBranch({ cwd: args.projectDir });
     if (head === current.branch) {
       try {
@@ -8126,7 +8177,7 @@ async function mergeFeature(args) {
         sleep: args.sleep,
         probe: async () => {
           const runs = await fetchRuns(ownerRepo, 20);
-          const candidates = runs.filter((r) => r.branch === current.parent_branch).filter((r) => predicate(r, mergedAt));
+          const candidates = runs.filter((r) => r.branch === gitBase).filter((r) => predicate(r, mergedAt));
           if (candidates.length === 0) {
             return { done: false };
           }
@@ -8203,14 +8254,14 @@ async function mergeFeature(args) {
         );
         if (!applied) {
           throw new ScmMergeError(
-            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${current.parent_branch}". Last seen status: ${lastStatus}.`,
+            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${gitBase}". Last seen status: ${lastStatus}.`,
             "migrate-timeout"
           );
         }
       } else {
         migrate = { waited: true, polls, timedOut: true, authVerified };
         warnings.push(
-          `Downstream migrate workflow on "${current.parent_branch}" was not confirmed within ${budgetSec}s (last seen status: ${lastStatus}). The PR merged and your local ${current.parent_branch} is synced; the migrate run may still be pending or running. Confirm it later via the Actions tab or re-run with --wait-migrate.`
+          `Downstream migrate workflow on "${gitBase}" was not confirmed within ${budgetSec}s (last seen status: ${lastStatus}). The PR merged and your local ${gitBase} is synced; the migrate run may still be pending or running. Confirm it later via the Actions tab or re-run with --wait-migrate.`
         );
       }
     }
@@ -10419,6 +10470,7 @@ function withProxyEnv(base = {}) {
   getRunnerStatus,
   getSchemaDiff,
   getTargetNames,
+  gitBranchExists,
   gitInit,
   grantLakebasePermission,
   grantUcCatalogPermission,
@@ -10500,6 +10552,7 @@ function withProxyEnv(base = {}) {
   resolveBranchPath,
   resolveCurrentUser,
   resolveDatabricksHost,
+  resolveDefaultBranch,
   resolveEndpointHost,
   resolveFeatureStartPoint,
   resolveGitHubToken,
@@ -10544,6 +10597,7 @@ function withProxyEnv(base = {}) {
   stashStaged,
   stateFilePath,
   stopRunner,
+  substrateVersion,
   sync,
   syncCiSecrets,
   syncEnvToCurrentBranch,

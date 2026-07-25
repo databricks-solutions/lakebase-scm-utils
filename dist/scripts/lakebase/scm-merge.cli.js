@@ -141,6 +141,9 @@ import { execFileSync as execFileSync2 } from "child_process";
 
 // scripts/util/exec.ts
 import * as cp from "child_process";
+function shq(s) {
+  return `'${s.replace(/'/g, "'\\''")}'`;
+}
 function exec2(command, opts = {}) {
   return new Promise((resolve2, reject) => {
     const options = {
@@ -370,6 +373,29 @@ async function getCurrentBranch(args) {
   } catch {
     return "";
   }
+}
+async function gitBranchExists(args) {
+  if (!args.branch) return false;
+  for (const ref of [`refs/heads/${args.branch}`, `refs/remotes/origin/${args.branch}`]) {
+    try {
+      await exec2(`git rev-parse --verify --quiet ${shq(ref)}`, { cwd: args.cwd });
+      return true;
+    } catch {
+    }
+  }
+  return false;
+}
+async function resolveDefaultBranch(args) {
+  try {
+    const ref = await exec2("git rev-parse --abbrev-ref origin/HEAD", { cwd: args.cwd });
+    const name = ref.replace(/^origin\//, "").trim();
+    if (name && name !== "HEAD") return name;
+  } catch {
+  }
+  for (const cand of ["main", "master"]) {
+    if (await gitBranchExists({ cwd: args.cwd, branch: cand })) return cand;
+  }
+  return "main";
 }
 
 // scripts/lakebase/branch-utils.ts
@@ -726,6 +752,14 @@ async function pollUntil(args) {
   }
 }
 
+// scripts/lakebase/scm-git-base.ts
+async function resolveGitBase(parentBranch, cwd) {
+  if (parentBranch && await gitBranchExists({ cwd, branch: parentBranch })) {
+    return parentBranch;
+  }
+  return resolveDefaultBranch({ cwd });
+}
+
 // scripts/lakebase/scm-workflow-state.ts
 import * as fs3 from "fs";
 import * as path2 from "path";
@@ -1011,6 +1045,7 @@ async function mergeFeature(args) {
     );
   }
   const instance = args.instance ?? current.project_id;
+  const gitBase = await resolveGitBase(current.parent_branch, args.projectDir);
   const wantMigrate = args.waitMigrate !== false;
   let authVerified = false;
   if (wantMigrate && args.verifyMigrateAuth) {
@@ -1041,7 +1076,7 @@ async function mergeFeature(args) {
   let localBranchDeleted = false;
   let headAfter = current.branch;
   if (!args.skipLocalCleanup) {
-    const switchTo = args.switchTo ?? current.parent_branch;
+    const switchTo = args.switchTo ?? gitBase;
     const head = await getCurrentBranch({ cwd: args.projectDir });
     if (head === current.branch) {
       try {
@@ -1114,7 +1149,7 @@ async function mergeFeature(args) {
         sleep: args.sleep,
         probe: async () => {
           const runs = await fetchRuns(ownerRepo, 20);
-          const candidates = runs.filter((r) => r.branch === current.parent_branch).filter((r) => predicate(r, mergedAt));
+          const candidates = runs.filter((r) => r.branch === gitBase).filter((r) => predicate(r, mergedAt));
           if (candidates.length === 0) {
             return { done: false };
           }
@@ -1191,14 +1226,14 @@ async function mergeFeature(args) {
         );
         if (!applied) {
           throw new ScmMergeError(
-            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${current.parent_branch}". Last seen status: ${lastStatus}.`,
+            `Timed out after ${budgetSec}s waiting for the downstream migrate workflow on "${gitBase}". Last seen status: ${lastStatus}.`,
             "migrate-timeout"
           );
         }
       } else {
         migrate = { waited: true, polls, timedOut: true, authVerified };
         warnings.push(
-          `Downstream migrate workflow on "${current.parent_branch}" was not confirmed within ${budgetSec}s (last seen status: ${lastStatus}). The PR merged and your local ${current.parent_branch} is synced; the migrate run may still be pending or running. Confirm it later via the Actions tab or re-run with --wait-migrate.`
+          `Downstream migrate workflow on "${gitBase}" was not confirmed within ${budgetSec}s (last seen status: ${lastStatus}). The PR merged and your local ${gitBase} is synced; the migrate run may still be pending or running. Confirm it later via the Actions tab or re-run with --wait-migrate.`
         );
       }
     }

@@ -1621,6 +1621,30 @@ async function schemaMigrationStatus(args) {
     tool: adapter.id
   };
 }
+async function applyAndVerifyTierMigration(args, deps = {}) {
+  const apply = deps.apply ?? applySchemaMigrations;
+  const status = deps.status ?? schemaMigrationStatus;
+  try {
+    await apply({ instance: args.instance, branch: args.branch, projectDir: args.projectDir, language: args.language, allowTier: true });
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : String(e) };
+  }
+  try {
+    const st = await status({ instance: args.instance, branch: args.branch, projectDir: args.projectDir, language: args.language });
+    if (st.pending.length > 0) {
+      return {
+        ok: false,
+        detail: `migrate-unconfirmed: ${args.branch} still has ${st.pending.length} pending migration(s) after the local apply (current=${st.current ?? "none"})`
+      };
+    }
+    return { ok: true, detail: `applied + verified ${args.branch} at head locally (current=${st.current ?? "none"})` };
+  } catch (e) {
+    return {
+      ok: false,
+      detail: `migrate-unconfirmed: could not verify ${args.branch} is at head (${e instanceof Error ? e.message : String(e)})`
+    };
+  }
+}
 function migrationTimestamp(now = /* @__PURE__ */ new Date()) {
   const p = (n) => String(n).padStart(2, "0");
   return `${now.getUTCFullYear()}${p(now.getUTCMonth() + 1)}${p(now.getUTCDate())}${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
@@ -1676,9 +1700,12 @@ function helpFor(binName) {
   return `${binName} (schema migration adapter)
 
 Subcommands:
-  apply     Apply pending forward migrations against a branch
-  rollback  Roll back applied migrations down to a target version
-  status    Show current applied version and pending migrations
+  apply       Apply pending forward migrations against a branch (a feature's
+              own paired branch; REFUSES a protected tier)
+  apply-tier  Promote path: apply + verify migrations against a PARENT TIER
+              (staging / main / dev); opts into the tier guard
+  rollback    Roll back applied migrations down to a target version
+  status      Show current applied version and pending migrations
   list      Enumerate migration files on disk (no DB connection)
 
 Common flags (for apply, rollback, status):
@@ -1744,6 +1771,25 @@ async function main() {
           endpointName: args.endpointName
         });
         printJson(result, args.pretty ?? false);
+        return 0;
+      }
+      case "apply-tier": {
+        if (!args.instance || !args.branch) {
+          process.stderr.write("apply-tier: --instance and --branch are required.\n");
+          return 2;
+        }
+        const result = await applyAndVerifyTierMigration({
+          instance: args.instance,
+          branch: args.branch,
+          projectDir: args.projectDir,
+          language: args.language
+        });
+        printJson(result, args.pretty ?? false);
+        if (!result.ok) {
+          process.stderr.write(`apply-tier: ${result.detail ?? "tier migration not confirmed at head"}
+`);
+          return 3;
+        }
         return 0;
       }
       case "rollback": {
