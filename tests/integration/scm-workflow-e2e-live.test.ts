@@ -265,8 +265,11 @@ describe.skipIf(!RUN_SUITE)(
 
         const stateAfterClaim = readState(projectDir);
         expect(stateAfterClaim.state).toBe("feature-claimed");
-        expect(stateAfterClaim.feature_id).toBe(featureId.toLowerCase());
-        expect(stateAfterClaim.branch).toMatch(/^feature[-/]/);
+        // feature_id is the raw (human-readable) id; only the git branch is
+        // sanitized/lowercased (feature-<slug>). See scm-claim-feature: the state
+        // keeps args.featureId while the branch runs through sanitizeBranchName.
+        expect(stateAfterClaim.feature_id).toBe(featureId);
+        expect(stateAfterClaim.branch).toBe(`feature-${featureId.toLowerCase()}`);
         expect(stateAfterClaim.parent_branch).toBe("staging");
         expect(stateAfterClaim.lakebase_branch_uid).toBeTruthy();
         expect(stateAfterClaim.claimed_at).toBeTruthy();
