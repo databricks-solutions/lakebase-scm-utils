@@ -1708,14 +1708,22 @@ declare function deployClaudeCommands(targetDir: string, opts?: DeployClaudeComm
  */
 declare function deployClaudeAgents(targetDir: string, opts?: DeployClaudeCommandsOptions): Promise<DeployClaudeCommandsResult>;
 /**
- * Deploy the resolved kit's skills into the project's `.claude/skills/` so the
- * scaffolded project is self-contained: the deployed agents + commands resolve
- * their `@<skill>/...` references and a human can drive the workflows in-project
- * without the kit installed as a plugin. The set is DISCOVERED from
- * `<kitRoot>/skills/` (see `discoverSkills`), never hardcoded, so the substrate
- * carries no knowledge of the extension kit's skill names. Copies each whole
- * skill dir (SKILL.md + references/ + any agents/). Skips an existing copy unless
- * `force: true`.
+ * Deploy the skills a scaffolded project needs into its `.claude/skills/` so the
+ * project is self-contained: the deployed agents + commands resolve their
+ * `@<skill>/...` references and a human can drive the workflows in-project
+ * without the kit installed as a plugin.
+ *
+ * TWO sources, both DISCOVERED (never hardcoded), so the substrate carries no
+ * knowledge of the extension kit's skill names:
+ *   1. the SUBSTRATE's own skills, resolved relative to THIS package (so a
+ *      substrate-owned skill like `lakebase-scm-workflows` ships from here, and
+ *      the extension kit need not carry a copy);
+ *   2. the extension kit's skills, discovered under the caller's `templatesDir`.
+ * The substrate's set is deployed first, so a substrate-owned name wins over any
+ * stray kit copy; a name already handled from the first root is not re-copied.
+ * When no `templatesDir` is passed (a pure-substrate scaffold) the two roots
+ * coincide and only the substrate's skills deploy. Copies each whole skill dir
+ * (SKILL.md + references/ + any agents/). Skips an existing copy unless `force`.
  */
 declare function deployClaudeSkills(targetDir: string, opts?: DeployClaudeCommandsOptions): Promise<DeployClaudeCommandsResult>;
 /** Deploy GitHub Actions workflows from common/.github/workflows/. */

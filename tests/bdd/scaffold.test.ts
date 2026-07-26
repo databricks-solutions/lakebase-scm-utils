@@ -23,6 +23,7 @@ import {
   installHooks,
   patchWorkflowsForRunnerType,
   scaffoldStaticAll,
+  deployClaudeSkills,
 } from "../../scripts/lakebase/scaffold.js";
 
 const tmpDirs: string[] = [];
@@ -445,5 +446,35 @@ describe("scaffoldStaticAll orchestrator", () => {
     expect(fs.existsSync(path.join(dir, ".vscode", "settings.json"))).toBe(true);
     expect(fs.existsSync(path.join(dir, ".github", "workflows", "pr.yml"))).toBe(true);
     expect(reports.length).toBeGreaterThan(5);
+  });
+});
+
+describe("deployClaudeSkills: substrate owns its own skills", () => {
+  it("deploys the substrate's own lakebase-scm-workflows with no templatesDir", async () => {
+    const target = mkTmp();
+    await deployClaudeSkills(target);
+    // lakebase-scm-workflows is the substrate's own skill and ships from here.
+    expect(
+      fs.existsSync(path.join(target, ".claude", "skills", "lakebase-scm-workflows", "SKILL.md")),
+    ).toBe(true);
+  });
+
+  it("deploys BOTH the substrate's own skill AND the extension kit's skills", async () => {
+    // A fake extension kit that carries its own skill but NOT lakebase-scm-workflows
+    // (the kit refers to the substrate's copy). templatesDir points at its tree.
+    const kit = mkTmp();
+    fs.mkdirSync(path.join(kit, "skills", "my-kit-skill"), { recursive: true });
+    fs.writeFileSync(path.join(kit, "skills", "my-kit-skill", "SKILL.md"), "# my-kit-skill\n");
+    const target = mkTmp();
+    await deployClaudeSkills(target, { templatesDir: path.join(kit, "templates", "project") });
+    // The kit's own skill deploys...
+    expect(
+      fs.existsSync(path.join(target, ".claude", "skills", "my-kit-skill", "SKILL.md")),
+    ).toBe(true);
+    // ...and the substrate's scm skill deploys from the substrate, though the kit
+    // has no copy of it.
+    expect(
+      fs.existsSync(path.join(target, ".claude", "skills", "lakebase-scm-workflows", "SKILL.md")),
+    ).toBe(true);
   });
 });

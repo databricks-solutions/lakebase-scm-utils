@@ -3635,20 +3635,26 @@ function discoverSkills(skillsRoot) {
   }).sort();
 }
 async function deployClaudeSkills(targetDir, opts) {
-  const skillsRoot = path9.join(path9.dirname(path9.dirname(templatesRoot(opts))), "skills");
+  const substrateSkillsRoot = path9.join(path9.dirname(path9.dirname(findTemplatesDir3())), "skills");
+  const kitSkillsRoot = path9.join(path9.dirname(path9.dirname(templatesRoot(opts))), "skills");
   const written = [];
   const skipped = [];
-  for (const skill of discoverSkills(skillsRoot)) {
-    const src = path9.join(skillsRoot, skill);
-    const relDest = path9.join(".claude", "skills", skill);
-    const destPath = path9.join(targetDir, relDest);
-    if (fs11.existsSync(destPath) && !opts?.force) {
-      skipped.push(relDest);
-      continue;
+  const seen = /* @__PURE__ */ new Set();
+  for (const skillsRoot of [substrateSkillsRoot, kitSkillsRoot]) {
+    for (const skill of discoverSkills(skillsRoot)) {
+      if (seen.has(skill)) continue;
+      seen.add(skill);
+      const src = path9.join(skillsRoot, skill);
+      const relDest = path9.join(".claude", "skills", skill);
+      const destPath = path9.join(targetDir, relDest);
+      if (fs11.existsSync(destPath) && !opts?.force) {
+        skipped.push(relDest);
+        continue;
+      }
+      fs11.mkdirSync(path9.dirname(destPath), { recursive: true });
+      fs11.cpSync(src, destPath, { recursive: true });
+      written.push(relDest);
     }
-    fs11.mkdirSync(path9.dirname(destPath), { recursive: true });
-    fs11.cpSync(src, destPath, { recursive: true });
-    written.push(relDest);
   }
   return { written, skipped };
 }
