@@ -2,7 +2,7 @@
 //
 // The SFTDD-coupled project scaffolders (create-project, adopt-lakebase-project,
 // adopt-sftdd) and the SFTDD command updater (update-commands) live in the
-// SFTDD kit (consort), not this package, so they are not
+// SFTDD kit, not this package, so they are not
 // re-exported here. The canonical owner files (env-file.ts, project-verify.ts)
 // still export writeEnvFile / verifyHooks / verifyWorkflows / verifyProject.
 

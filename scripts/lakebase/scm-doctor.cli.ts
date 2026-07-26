@@ -16,8 +16,8 @@ import {
 // The standalone lakebase-scm-utils doctor carries no SFTDD dependency, so it
 // does not inject the SFTDD stale-experiment/spike finder. runDoctor's
 // findStaleBranches dep is optional (defaults to no stale-branch findings).
-// The SFTDD kit (consort) re-adds that finding by injecting its
-// own finder where it composes this substrate.
+// The SFTDD kit re-adds that finding by injecting its own finder where it
+// composes this substrate.
 
 interface ParsedArgs {
   projectDir?: string;

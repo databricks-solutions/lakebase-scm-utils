@@ -3599,45 +3599,47 @@ async function deployClaudeCommands(targetDir, opts) {
   return { written, skipped };
 }
 async function deployClaudeAgents(targetDir, opts) {
-  const kitRoot = path9.dirname(path9.dirname(templatesRoot(opts)));
-  const src = path9.join(kitRoot, "skills", "consort", "agents");
-  if (!fs11.existsSync(src)) {
+  const skillsRoot = path9.join(path9.dirname(path9.dirname(templatesRoot(opts))), "skills");
+  if (!fs11.existsSync(skillsRoot)) {
     return { written: [], skipped: [] };
   }
   const destDir = path9.join(targetDir, ".claude", "agents");
-  fs11.mkdirSync(destDir, { recursive: true });
   const written = [];
   const skipped = [];
-  for (const entry of fs11.readdirSync(src)) {
-    if (!entry.endsWith(".md")) continue;
-    const relDest = path9.join(".claude", "agents", entry);
-    const destPath = path9.join(targetDir, relDest);
-    if (fs11.existsSync(destPath) && !opts?.force) {
-      skipped.push(relDest);
-      continue;
+  for (const skill of fs11.readdirSync(skillsRoot).sort()) {
+    const src = path9.join(skillsRoot, skill, "agents");
+    if (!fs11.existsSync(src) || !fs11.statSync(src).isDirectory()) continue;
+    for (const entry of fs11.readdirSync(src)) {
+      if (!entry.endsWith(".md")) continue;
+      const relDest = path9.join(".claude", "agents", entry);
+      const destPath = path9.join(targetDir, relDest);
+      if (fs11.existsSync(destPath) && !opts?.force) {
+        skipped.push(relDest);
+        continue;
+      }
+      fs11.mkdirSync(destDir, { recursive: true });
+      fs11.copyFileSync(path9.join(src, entry), destPath);
+      written.push(relDest);
     }
-    fs11.copyFileSync(path9.join(src, entry), destPath);
-    written.push(relDest);
   }
   return { written, skipped };
 }
-var PROJECT_SKILLS = [
-  "software-design-principles",
-  "architectural-design-principles",
-  "ui-ux-design-principles",
-  "consort",
-  "lakebase-scm-workflows",
-  "lakebase-release-workflows",
-  "databricks-lakebase",
-  "databricks-core"
-];
+function discoverSkills(skillsRoot) {
+  if (!fs11.existsSync(skillsRoot)) return [];
+  return fs11.readdirSync(skillsRoot).filter((d) => {
+    try {
+      return fs11.existsSync(path9.join(skillsRoot, d, "SKILL.md"));
+    } catch {
+      return false;
+    }
+  }).sort();
+}
 async function deployClaudeSkills(targetDir, opts) {
-  const kitRoot = path9.dirname(path9.dirname(templatesRoot(opts)));
+  const skillsRoot = path9.join(path9.dirname(path9.dirname(templatesRoot(opts))), "skills");
   const written = [];
   const skipped = [];
-  for (const skill of PROJECT_SKILLS) {
-    const src = path9.join(kitRoot, "skills", skill);
-    if (!fs11.existsSync(src)) continue;
+  for (const skill of discoverSkills(skillsRoot)) {
+    const src = path9.join(skillsRoot, skill);
     const relDest = path9.join(".claude", "skills", skill);
     const destPath = path9.join(targetDir, relDest);
     if (fs11.existsSync(destPath) && !opts?.force) {
@@ -3844,9 +3846,9 @@ async function scaffoldStaticAll(args) {
     report("Deploying .claude/agents/");
     const agents = await deployClaudeAgents(args.targetDir, opts);
     claudeAgents = agents.written;
-    report(`Deploying .claude/skills/ (${PROJECT_SKILLS.length} skills: engineering + design canon + workflows)`);
     const skills = await deployClaudeSkills(args.targetDir, opts);
     claudeSkills = skills.written;
+    report(`Deploying .claude/skills/ (${claudeSkills.length} skills)`);
   }
   return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills };
 }
@@ -9128,7 +9130,6 @@ export {
   NODE_E2E_TEMPLATE_FILES,
   PLAYWRIGHT_TEMPLATE_FILES,
   PLAYWRIGHT_TEST_VERSION_RANGE,
-  PROJECT_SKILLS,
   PYTEST_BDD_VERSION_RANGE,
   PYTEST_PLAYWRIGHT_VERSION_RANGE,
   PYTHON_E2E_TEMPLATE_FILES,

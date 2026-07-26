@@ -184,87 +184,86 @@ export async function deployClaudeCommands(
 }
 
 /**
- * Deploy the TDD-workflow role agent definitions into the project's
- * `.claude/agents/` so Claude Code can discover + spawn them. The
- * canonical source is the skill at `<kitRoot>/skills/consort/agents/`;
- * this copies each `<role>.md` verbatim (the bodies are the system prompts).
- * Discoverability is required for the deterministic orchestrator (`lakebase-sftdd-drive`)
- * to spawn the roles via `claude -p --agent <role>`. Skips files that
- * already exist unless `force: true`.
+ * Deploy the role agent definitions a scaffolded project needs into its
+ * `.claude/agents/` so Claude Code can discover + spawn them. The substrate does
+ * not know which skill owns them: it discovers each skill's `agents/` subtree
+ * under `<kitRoot>/skills/` and copies each `<role>.md` verbatim (the bodies are
+ * the system prompts). In practice only the extension kit's framework skill ships
+ * an `agents/` dir, so this deploys exactly its roles. Discoverability is required
+ * for the deterministic orchestrator to spawn the roles via
+ * `claude -p --agent <role>`. Skips files that already exist unless `force: true`.
  */
 export async function deployClaudeAgents(
   targetDir: string,
   opts?: DeployClaudeCommandsOptions
 ): Promise<DeployClaudeCommandsResult> {
-  const kitRoot = path.dirname(path.dirname(templatesRoot(opts)));
-  const src = path.join(kitRoot, "skills", "consort", "agents");
-  if (!fs.existsSync(src)) {
+  const skillsRoot = path.join(path.dirname(path.dirname(templatesRoot(opts))), "skills");
+  if (!fs.existsSync(skillsRoot)) {
     return { written: [], skipped: [] };
   }
   const destDir = path.join(targetDir, ".claude", "agents");
-  fs.mkdirSync(destDir, { recursive: true });
   const written: string[] = [];
   const skipped: string[] = [];
-  for (const entry of fs.readdirSync(src)) {
-    if (!entry.endsWith(".md")) continue;
-    const relDest = path.join(".claude", "agents", entry);
-    const destPath = path.join(targetDir, relDest);
-    if (fs.existsSync(destPath) && !opts?.force) {
-      skipped.push(relDest);
-      continue;
+  for (const skill of fs.readdirSync(skillsRoot).sort()) {
+    const src = path.join(skillsRoot, skill, "agents");
+    if (!fs.existsSync(src) || !fs.statSync(src).isDirectory()) continue;
+    for (const entry of fs.readdirSync(src)) {
+      if (!entry.endsWith(".md")) continue;
+      const relDest = path.join(".claude", "agents", entry);
+      const destPath = path.join(targetDir, relDest);
+      if (fs.existsSync(destPath) && !opts?.force) {
+        skipped.push(relDest);
+        continue;
+      }
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.copyFileSync(path.join(src, entry), destPath);
+      written.push(relDest);
     }
-    fs.copyFileSync(path.join(src, entry), destPath);
-    written.push(relDest);
   }
   return { written, skipped };
 }
 
 /**
- * The kit skills a scaffolded project carries in its own `.claude/skills/` so the
- * deployed agents + commands resolve every `@<skill>/...` cross-reference and a
- * human can invoke the TDD / SCM / release interactions directly , without the
- * kit having to be installed as a plugin. The set is the engineering canon plus
- * the three workflow skills the agents/commands reference and their two Databricks
- * parents (the `parent:` chain `lakebase-{scm,release}-workflows` -> `databricks-lakebase`):
- *
- * - `software-design-principles` , registered by the Navigator/Driver/Architect.
- * - `consort` , the `@consort/...` target the commands
- *   + agent docs reference (SKILL.md, references/, agents/).
- * - `lakebase-scm-workflows` / `lakebase-release-workflows` , the human SCM + release
- *   surface the Release Engineer composes on.
- * - `databricks-lakebase` / `databricks-core` , the parent CLI skills the above
- *   compose on (`parent: databricks-lakebase`).
+ * Discover the skills a scaffolded project should carry in its own
+ * `.claude/skills/`: every immediate subdir of `<skillsRoot>` that contains a
+ * `SKILL.md`. The substrate does NOT enumerate the extension kit's skills by
+ * name; it deploys whatever skills the resolved kit ships (its engineering canon
+ * plus the workflow skills the deployed agents/commands cross-reference).
+ * Sorted for determinism.
  */
-export const PROJECT_SKILLS = [
-  "software-design-principles",
-  "architectural-design-principles",
-  "ui-ux-design-principles",
-  "consort",
-  "lakebase-scm-workflows",
-  "lakebase-release-workflows",
-  "databricks-lakebase",
-  "databricks-core",
-] as const;
+function discoverSkills(skillsRoot: string): string[] {
+  if (!fs.existsSync(skillsRoot)) return [];
+  return fs
+    .readdirSync(skillsRoot)
+    .filter((d) => {
+      try {
+        return fs.existsSync(path.join(skillsRoot, d, "SKILL.md"));
+      } catch {
+        return false;
+      }
+    })
+    .sort();
+}
 
 /**
- * Deploy the kit skills (see `PROJECT_SKILLS`) into the project's `.claude/skills/`
- * so the scaffolded project is self-contained: the deployed agents + commands can
- * resolve their `@<skill>/...` references and a human can drive the TDD / SCM /
- * release workflows in-project. Without this the references are dead , the skills
- * only exist in the kit, not the scaffolded project where the agents run. Copies
- * each whole skill dir (SKILL.md + references/ + any agents/). Skips an existing
- * copy unless `force: true`.
+ * Deploy the resolved kit's skills into the project's `.claude/skills/` so the
+ * scaffolded project is self-contained: the deployed agents + commands resolve
+ * their `@<skill>/...` references and a human can drive the workflows in-project
+ * without the kit installed as a plugin. The set is DISCOVERED from
+ * `<kitRoot>/skills/` (see `discoverSkills`), never hardcoded, so the substrate
+ * carries no knowledge of the extension kit's skill names. Copies each whole
+ * skill dir (SKILL.md + references/ + any agents/). Skips an existing copy unless
+ * `force: true`.
  */
 export async function deployClaudeSkills(
   targetDir: string,
   opts?: DeployClaudeCommandsOptions
 ): Promise<DeployClaudeCommandsResult> {
-  const kitRoot = path.dirname(path.dirname(templatesRoot(opts)));
+  const skillsRoot = path.join(path.dirname(path.dirname(templatesRoot(opts))), "skills");
   const written: string[] = [];
   const skipped: string[] = [];
-  for (const skill of PROJECT_SKILLS) {
-    const src = path.join(kitRoot, "skills", skill);
-    if (!fs.existsSync(src)) continue;
+  for (const skill of discoverSkills(skillsRoot)) {
+    const src = path.join(skillsRoot, skill);
     const relDest = path.join(".claude", "skills", skill);
     const destPath = path.join(targetDir, relDest);
     if (fs.existsSync(destPath) && !opts?.force) {
@@ -652,9 +651,9 @@ export async function scaffoldStaticAll(args: ScaffoldStaticAllArgs): Promise<Sc
     report("Deploying .claude/agents/");
     const agents = await deployClaudeAgents(args.targetDir, opts);
     claudeAgents = agents.written;
-    report(`Deploying .claude/skills/ (${PROJECT_SKILLS.length} skills: engineering + design canon + workflows)`);
     const skills = await deployClaudeSkills(args.targetDir, opts);
     claudeSkills = skills.written;
+    report(`Deploying .claude/skills/ (${claudeSkills.length} skills)`);
   }
 
   return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills };

@@ -439,7 +439,7 @@ describe.skipIf(!RUN_SUITE)(
           `           databricks postgres delete-project projects/${projectName}`,
         );
         console.log(
-          `           node -e 'import("@databricks-solutions/consort/lakebase").then(m =>` +
+          `           node -e 'import("@databricks-solutions/lakebase-scm-utils/lakebase").then(m =>` +
             ` m.removeRunner({fullRepoName: "${fullRepoName}", projectName: "${projectName}"}))'`,
         );
         console.log(`           rm -rf ${parentDir}`);

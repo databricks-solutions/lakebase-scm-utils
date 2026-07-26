@@ -430,7 +430,7 @@ export function printLeaveIntactNotice(
     `           databricks postgres delete-project projects/${ctx.projectName}`,
   );
   console.log(
-    `           node -e 'import("@databricks-solutions/consort/lakebase").then(m =>` +
+    `           node -e 'import("@databricks-solutions/lakebase-scm-utils/lakebase").then(m =>` +
       ` m.removeRunner({fullRepoName: "${ctx.fullRepoName}", projectName: "${ctx.projectName}"}))'`,
   );
   console.log(`           rm -rf ${ctx.parentDir}`);
