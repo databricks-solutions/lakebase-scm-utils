@@ -7,7 +7,10 @@
 #
 # Two packages back a scaffolded project, and lk routes each bin to its owner so
 # each runs from its OWN dist (no cross-package node_modules paths):
-#   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (consort)
+#   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (its package name is
+#                                         project config: $LAKEBASE_KIT_PACKAGE
+#                                         or .lakebase/kit-package, written by the
+#                                         kit's scaffolder; the substrate names it nowhere)
 #   everything else                    -> the substrate (lakebase-scm-utils),
 #                                         falling back to the kit for kit bins
 #                                         that carry no sftdd-/tdd- prefix
@@ -51,7 +54,11 @@ resolve_pkg() {
       ref_local="$root/.lakebase/scm-utils-ref.local"; ref_file="$root/.lakebase/scm-utils-ref"
       local_dir_file="$root/.lakebase/scm-utils-local-dir" ;;
     kit)
-      pkg="@databricks-solutions/consort"
+      # The kit package name is project config, NOT hardcoded here (the substrate
+      # must not name the extension): $LAKEBASE_KIT_PACKAGE or the committed
+      # .lakebase/kit-package, which the kit's scaffolder writes.
+      pkg="${LAKEBASE_KIT_PACKAGE:-}"
+      [ -z "$pkg" ] && [ -f "$root/.lakebase/kit-package" ] && pkg="$(tr -d '[:space:]' < "$root/.lakebase/kit-package")"
       dir_override="${LAKEBASE_KIT_DIR:-}"
       ref_env="${LAKEBASE_KIT_REF:-}"
       ref_local="$root/.lakebase/kit-ref.local"; ref_file="$root/.lakebase/kit-ref"
@@ -65,6 +72,14 @@ resolve_pkg() {
   if [ -n "$dir_override" ]; then
     pkg_dir="$dir_override"
     return 0
+  fi
+
+  # Beyond the dir override, resolving a package needs its name. The kit's name is
+  # project config; fail clearly if it is absent rather than build a broken
+  # github:databricks-solutions/ URL from an empty package.
+  if [ -z "$pkg" ]; then
+    echo "lk: ${slug} package not configured; missing .lakebase/kit-package (run the scaffolder)" >&2
+    return 1
   fi
 
   local ref="$ref_env"
