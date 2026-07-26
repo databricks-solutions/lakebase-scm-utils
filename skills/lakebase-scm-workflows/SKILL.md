@@ -1,7 +1,7 @@
 ---
 name: lakebase-scm-workflows
 description: "Opinionated git-Lakebase branch-pairing workflows. Use when scaffolding a Lakebase-paired project, creating/deleting Lakebase branches in lockstep with git branches, diffing parent-aware schemas, opening or merging PRs that touch Lakebase, or running the same operations the lakebase-scm-extension exposes in VS Code."
-compatibility: Requires databricks CLI (>= v0.294.0), git (>= 2.30), Node.js (>= 20), and @databricks-solutions/lakebase-app-dev-kit
+compatibility: Requires databricks CLI (>= v0.294.0), git (>= 2.30), Node.js (>= 20), and @databricks-solutions/consort
 metadata:
   version: "0.1.0"
 parent: databricks-lakebase
@@ -71,7 +71,7 @@ import {
   writeWorkflowState,
   initWorkflowState,
   describeGates,
-} from "@databricks-solutions/lakebase-app-dev-kit";
+} from "@databricks-solutions/consort";
 
 const s = readWorkflowState(projectDir);    // ScmWorkflowState | null
 writeWorkflowState(projectDir, {            // validates first; atomic write
@@ -96,7 +96,7 @@ Exit codes: `0` success (incl. idempotent no-op), `1` no state file, `2` precond
 Programmatic equivalent:
 
 ```ts
-import { claimFeatureBranch } from "@databricks-solutions/lakebase-app-dev-kit";
+import { claimFeatureBranch } from "@databricks-solutions/consort";
 
 const { state, paired, alreadyClaimed } = await claimFeatureBranch({
   projectDir,
@@ -188,7 +188,7 @@ lakebase-github-token --diagnose      # which sources are configured
 ```
 
 ```ts
-import { resolveGitHubToken } from "@databricks-solutions/lakebase-app-dev-kit";
+import { resolveGitHubToken } from "@databricks-solutions/consort";
 const token = await resolveGitHubToken();
 ```
 
@@ -204,7 +204,7 @@ lakebase-get-connection --output dsn --instance <id> --branch <name>
 ```
 
 ```ts
-import { getConnection } from "@databricks-solutions/lakebase-app-dev-kit";
+import { getConnection } from "@databricks-solutions/consort";
 const pool = await getConnection({ output: "pool", instance, branch });
 // -> @databricks/lakebase pg.Pool with refresh-on-connect
 ```
@@ -244,7 +244,7 @@ lakebase-create-project ... --skip-commands
 ```
 
 ```ts
-import { createProject } from "@databricks-solutions/lakebase-app-dev-kit";
+import { createProject } from "@databricks-solutions/consort";
 const result = await createProject({
   projectName: "proj-checkout",
   parentDir: process.env.HOME + "/code",
@@ -290,7 +290,7 @@ All 9 subcommands have matching MCP tools (`lakebase_branch_list` / `_show` / `_
 ```ts
 import { createBranch, deleteBranch, createPairedBranch, deletePairedBranch,
          checkoutPaired, syncEnvToCurrentBranch }
-  from "@databricks-solutions/lakebase-app-dev-kit";
+  from "@databricks-solutions/consort";
 
 // Lakebase-only
 const branch = await createBranch({
@@ -334,7 +334,7 @@ lakebase-resolve-profile --write-env .env
 
 ```ts
 import { getConnection, getEndpoint, getCredential }
-  from "@databricks-solutions/lakebase-app-dev-kit";
+  from "@databricks-solutions/consort";
 
 // DSN string (for Flyway, Alembic, psql):
 const { dsn } = await getConnection({ output: "dsn", instance, branch });
@@ -353,13 +353,13 @@ const { token, email } = await getCredential({ instance, branch });
 ### 4. Schema introspection
 
 ```bash
-node -e "import('@databricks-solutions/lakebase-app-dev-kit').then(m => m.queryBranchSchema({instance:'proj-checkout', branch:'feature-add-orders'}).then(r => console.log(JSON.stringify(r, null, 2))))"
+node -e "import('@databricks-solutions/consort').then(m => m.queryBranchSchema({instance:'proj-checkout', branch:'feature-add-orders'}).then(r => console.log(JSON.stringify(r, null, 2))))"
 # -> [{ name: 'users', columns: [{ name: 'id', dataType: 'uuid' }, ...] }, ...]
 ```
 
 ```ts
 import { queryBranchSchema, queryBranchTables }
-  from "@databricks-solutions/lakebase-app-dev-kit";
+  from "@databricks-solutions/consort";
 
 const schema = await queryBranchSchema({ instance, branch });
 const tables = await queryBranchTables({ instance, branch });
@@ -379,7 +379,7 @@ lakebase-schema-diff --instance proj-checkout --branch feature-add-orders --agai
 ```
 
 ```ts
-import { getSchemaDiff } from "@databricks-solutions/lakebase-app-dev-kit";
+import { getSchemaDiff } from "@databricks-solutions/consort";
 
 const diff = await getSchemaDiff({
   instance: "proj-checkout",
@@ -432,7 +432,7 @@ All 7 subcommands have matching MCP tools (`lakebase_pr_open` / `_merge` / `_mer
 import {
   createPullRequest, getPullRequest, mergePullRequest, mergePairedPullRequest,
   getPullRequestReviews, getPullRequestFiles, getPullRequestComments,
-} from "@databricks-solutions/lakebase-app-dev-kit";
+} from "@databricks-solutions/consort";
 
 // Open a PR with the current branch's schema diff embedded in the body.
 const diff = await getSchemaDiff({ instance: "proj-checkout", branch: "feature-add-orders" });
@@ -478,7 +478,7 @@ import {
   detectScaffoldedDrift,
   updateWorkflows,
   updateCommands,
-} from "@databricks-solutions/lakebase-app-dev-kit";
+} from "@databricks-solutions/consort";
 
 // One verdict across every scaffolded surface.
 const report = detectScaffoldedDrift({ projectDir });
@@ -518,11 +518,11 @@ Hermetic BDD covers every code path; the end-to-end smoke is what proves the sub
 6. Add a hook file: `echo '# project hook' > /tmp/drift-smoke/.claude/commands/design.pre-hook.md`.
 7. Re-run `lakebase-update-commands --project-dir /tmp/drift-smoke --force`. Expected: no entry for `design.pre-hook.md`; the file is byte-identical before and after.
 
-For the `[E2E]`-tag testing story that ships alongside scaffolded Playwright projects, the drift loop matters because the same `--enable-e2e`-installed `playwright.config.ts` + smoke fixture could fall behind as the kit evolves; running `lakebase-update-commands --dry-run` in CI catches that surface drifting alongside `/design` and `/build`. See [`../lakebase-sftdd-workflows/SKILL.md`](../lakebase-sftdd-workflows/SKILL.md) for the runner contract that ties an `[E2E]` AC's outcome back to `outcomes.json`.
+For the `[E2E]`-tag testing story that ships alongside scaffolded Playwright projects, the drift loop matters because the same `--enable-e2e`-installed `playwright.config.ts` + smoke fixture could fall behind as the kit evolves; running `lakebase-update-commands --dry-run` in CI catches that surface drifting alongside `/design` and `/build`. See [`../consort/SKILL.md`](../consort/SKILL.md) for the runner contract that ties an `[E2E]` AC's outcome back to `outcomes.json`.
 
 ## References
 
 - [`references/get-connection.md`](references/get-connection.md) – Lakebase credential seam (DSN + Pool, OAuth refresh, fallback chain).
 - [`references/github-auth.md`](references/github-auth.md) – GitHub token seam (env → VS Code session → `gh auth token`).
 - Parent skill: [`databricks-lakebase`](https://github.com/databricks/databricks-agent-skills) – Postgres CLI surface this skill composes on.
-- Sibling skill: [`../lakebase-sftdd-workflows/SKILL.md`](../lakebase-sftdd-workflows/SKILL.md) – TDD workflow on paired branches; consumes `createBranch`, `getSchemaDiff`, `getConnection` from this skill.
+- Sibling skill: [`../consort/SKILL.md`](../consort/SKILL.md) – TDD workflow on paired branches; consumes `createBranch`, `getSchemaDiff`, `getConnection` from this skill.

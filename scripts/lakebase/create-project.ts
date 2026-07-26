@@ -41,7 +41,7 @@ import {
  * Optional SFTDD setup, injected by callers that want a project bootstrapped
  * with the SFTDD (.sftdd/) scaffold + sftdd-config.json. The base substrate
  * does NOT depend on the SFTDD orchestration or its templates; the SFTDD kit
- * (lakebase-app-dev-kit) supplies these hooks. When omitted, createProject
+ * (consort) supplies these hooks. When omitted, createProject
  * creates a plain SCM project with no .sftdd/ artifacts.
  */
 export interface SftddSetupHooks {

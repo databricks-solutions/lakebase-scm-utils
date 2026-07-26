@@ -41,7 +41,7 @@ lakebase-get-connection --output dsn --instance proj-abc --branch br-feature --j
 ### Module
 
 ```ts
-import { getConnection } from "@databricks-solutions/lakebase-app-dev-kit";
+import { getConnection } from "@databricks-solutions/consort";
 
 const { url, host, database, user } = await getConnection({
   output: "dsn",
@@ -57,7 +57,7 @@ A long-lived `@databricks/lakebase` `pg.Pool` with refresh-on-connect. For JS/TS
 > Not available on the CLI – `pg.Pool` is a runtime object and can't be serialized to stdout. The CLI prints an error and exits with code 2 if you pass `--output pool`.
 
 ```ts
-import { getConnection } from "@databricks-solutions/lakebase-app-dev-kit";
+import { getConnection } from "@databricks-solutions/consort";
 
 const pool = await getConnection({
   output: "pool",
@@ -73,7 +73,7 @@ const { rows } = await pool.query("SELECT current_database() AS db, current_user
 Pass your own `WorkspaceClient` (from `@databricks/sdk-experimental`) – typically the one AppKit's `asUser(req)` returns – to scope the connection to the request user:
 
 ```ts
-import { getConnection } from "@databricks-solutions/lakebase-app-dev-kit";
+import { getConnection } from "@databricks-solutions/consort";
 
 app.get("/me", async (req, res) => {
   const pool = await getConnection({

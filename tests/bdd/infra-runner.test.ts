@@ -223,8 +223,8 @@ describe("enableInfraForProject orchestrator", () => {
 });
 
 // NOTE: the SKILL.md/spec-format.md tag-to-runner doc-conformance checks for
-// the Infra row live with the SFTDD skill (lakebase-sftdd-workflows), which
-// stays in lakebase-app-dev-kit. This package owns only the infra-runner
+// the Infra row live with the SFTDD skill (consort), which
+// stays in consort. This package owns only the infra-runner
 // substrate behavior, exercised above; the SFTDD skill docs are asserted in
 // the kit's own copy of this test.
 

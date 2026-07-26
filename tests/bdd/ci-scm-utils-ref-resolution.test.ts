@@ -71,7 +71,7 @@ describe.each(["pr.yml", "merge.yml"] as const)(
       // No leftover literal-version pin anywhere in the invocation lines.
       expect(yaml).not.toMatch(/lakebase-scm-utils#v\d/);
       // And no lingering reference to the kit package in CI (all bins are substrate).
-      expect(yaml).not.toMatch(/lakebase-app-dev-kit/);
+      expect(yaml).not.toMatch(/consort/);
     });
   },
 );

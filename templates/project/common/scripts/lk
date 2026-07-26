@@ -7,7 +7,7 @@
 #
 # Two packages back a scaffolded project, and lk routes each bin to its owner so
 # each runs from its OWN dist (no cross-package node_modules paths):
-#   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (lakebase-app-dev-kit)
+#   lakebase-sftdd-* / lakebase-tdd-*  -> the SFTDD kit (consort)
 #   everything else                    -> the substrate (lakebase-scm-utils),
 #                                         falling back to the kit for kit bins
 #                                         that carry no sftdd-/tdd- prefix
@@ -51,7 +51,7 @@ resolve_pkg() {
       ref_local="$root/.lakebase/scm-utils-ref.local"; ref_file="$root/.lakebase/scm-utils-ref"
       local_dir_file="$root/.lakebase/scm-utils-local-dir" ;;
     kit)
-      pkg="@databricks-solutions/lakebase-app-dev-kit"
+      pkg="@databricks-solutions/consort"
       dir_override="${LAKEBASE_KIT_DIR:-}"
       ref_env="${LAKEBASE_KIT_REF:-}"
       ref_local="$root/.lakebase/kit-ref.local"; ref_file="$root/.lakebase/kit-ref"

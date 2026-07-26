@@ -49,7 +49,7 @@ lakebase-github-token --diagnose
 
 ```ts
 import { resolveGitHubToken, tryVsCodeSession, tryGhAuthToken, diagnoseGitHubAuth }
-  from "@databricks-solutions/lakebase-app-dev-kit";
+  from "@databricks-solutions/consort";
 import { Octokit } from "octokit";
 
 const token = await resolveGitHubToken();
@@ -64,7 +64,7 @@ The extension's `src/utils/githubAuth.ts` becomes a thin wrapper that adds the *
 ```ts
 // src/utils/githubAuth.ts
 import { resolveGitHubToken, tryVsCodeSession }
-  from "@databricks-solutions/lakebase-app-dev-kit";
+  from "@databricks-solutions/consort";
 
 export const GITHUB_SCOPES = ["repo", "workflow", "delete_repo"] as const;
 

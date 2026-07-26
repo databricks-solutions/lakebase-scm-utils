@@ -3855,7 +3855,7 @@ async function deployClaudeCommands(targetDir, opts) {
 }
 async function deployClaudeAgents(targetDir, opts) {
   const kitRoot = path9.dirname(path9.dirname(templatesRoot(opts)));
-  const src = path9.join(kitRoot, "skills", "lakebase-sftdd-workflows", "agents");
+  const src = path9.join(kitRoot, "skills", "consort", "agents");
   if (!fs11.existsSync(src)) {
     return { written: [], skipped: [] };
   }
@@ -3880,7 +3880,7 @@ var PROJECT_SKILLS = [
   "software-design-principles",
   "architectural-design-principles",
   "ui-ux-design-principles",
-  "lakebase-sftdd-workflows",
+  "consort",
   "lakebase-scm-workflows",
   "lakebase-release-workflows",
   "databricks-lakebase",

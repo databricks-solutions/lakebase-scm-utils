@@ -5,7 +5,7 @@
 // fake package dir + a pre-seeded cache, so they never hit the network/npm.
 //
 // Two packages back a scaffolded project and lk routes each bin to its owner:
-// `lakebase-sftdd-*` / `lakebase-tdd-*` -> the SFTDD kit (lakebase-app-dev-kit);
+// `lakebase-sftdd-*` / `lakebase-tdd-*` -> the SFTDD kit (consort);
 // everything else -> the substrate (lakebase-scm-utils). The sftdd-bin tests
 // below therefore exercise the KIT route (LAKEBASE_KIT_DIR / kit-ref / kit cache),
 // and a dedicated block exercises the default substrate route.
@@ -21,7 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(here, "..", "..");
 const LK = join(REPO_ROOT, "templates", "project", "common", "scripts", "lk");
 
-const PKG = "@databricks-solutions/lakebase-app-dev-kit";
+const PKG = "@databricks-solutions/consort";
 const SCM_PKG = "@databricks-solutions/lakebase-scm-utils";
 
 let work: string;
@@ -84,7 +84,7 @@ describe("lk resolver shim", () => {
 
   it("resolves the kit from the shared per-ref cache without installing (LAKEBASE_KIT_REF)", () => {
     const cache = join(work, "cache");
-    const kit = fakeKitDir(join(cache, "lakebase-app-dev-kit", "myref", "node_modules", PKG));
+    const kit = fakeKitDir(join(cache, "consort", "myref", "node_modules", PKG));
     void kit;
     const r = runLk(["lakebase-sftdd-log", "--x"], { XDG_CACHE_HOME: cache, LAKEBASE_KIT_REF: "myref" });
     expect(r.status, r.stderr).toBe(0);
@@ -93,7 +93,7 @@ describe("lk resolver shim", () => {
 
   it("reads the pinned ref from .lakebase/kit-ref when no env is set", () => {
     const cache = join(work, "cache");
-    fakeKitDir(join(cache, "lakebase-app-dev-kit", "fileref", "node_modules", PKG));
+    fakeKitDir(join(cache, "consort", "fileref", "node_modules", PKG));
     const proj = join(work, "proj");
     mkdirSync(join(proj, ".lakebase"), { recursive: true });
     writeFileSync(join(proj, ".lakebase", "kit-ref"), "fileref\n");
@@ -108,7 +108,7 @@ describe("lk resolver shim", () => {
     // .local ref's cache is seeded, so resolving succeeds ONLY if .local is read;
     // reading the committed ref would miss the cache and attempt a (failing) install.
     const cache = join(work, "cache");
-    fakeKitDir(join(cache, "lakebase-app-dev-kit", "localref", "node_modules", PKG));
+    fakeKitDir(join(cache, "consort", "localref", "node_modules", PKG));
     const proj = join(work, "proj");
     mkdirSync(join(proj, ".lakebase"), { recursive: true });
     writeFileSync(join(proj, ".lakebase", "kit-ref"), "committedref\n");
@@ -136,7 +136,7 @@ describe("lk resolver shim", () => {
     expect(JSON.parse(r.stdout)).toEqual(["--z"]);
     expect(r.stderr).toMatch(/recovered from .*kit-local-dir/);
     // Re-planted the cache symlink so later calls hit the fast path.
-    expect(existsSync(join(cache, "lakebase-app-dev-kit", "sftdd-capture-local", "node_modules", PKG))).toBe(true);
+    expect(existsSync(join(cache, "consort", "sftdd-capture-local", "node_modules", PKG))).toBe(true);
   });
 
   it("exits non-zero for an unknown bin", () => {

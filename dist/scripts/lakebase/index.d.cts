@@ -1699,7 +1699,7 @@ declare function deployClaudeCommands(targetDir: string, opts?: DeployClaudeComm
 /**
  * Deploy the TDD-workflow role agent definitions into the project's
  * `.claude/agents/` so Claude Code can discover + spawn them. The
- * canonical source is the skill at `<kitRoot>/skills/lakebase-sftdd-workflows/agents/`;
+ * canonical source is the skill at `<kitRoot>/skills/consort/agents/`;
  * this copies each `<role>.md` verbatim (the bodies are the system prompts).
  * Discoverability is required for the deterministic orchestrator (`lakebase-sftdd-drive`)
  * to spawn the roles via `claude -p --agent <role>`. Skips files that
@@ -1715,14 +1715,14 @@ declare function deployClaudeAgents(targetDir: string, opts?: DeployClaudeComman
  * parents (the `parent:` chain `lakebase-{scm,release}-workflows` -> `databricks-lakebase`):
  *
  * - `software-design-principles` , registered by the Navigator/Driver/Architect.
- * - `lakebase-sftdd-workflows` , the `@lakebase-sftdd-workflows/...` target the commands
+ * - `consort` , the `@consort/...` target the commands
  *   + agent docs reference (SKILL.md, references/, agents/).
  * - `lakebase-scm-workflows` / `lakebase-release-workflows` , the human SCM + release
  *   surface the Release Engineer composes on.
  * - `databricks-lakebase` / `databricks-core` , the parent CLI skills the above
  *   compose on (`parent: databricks-lakebase`).
  */
-declare const PROJECT_SKILLS: readonly ["software-design-principles", "architectural-design-principles", "ui-ux-design-principles", "lakebase-sftdd-workflows", "lakebase-scm-workflows", "lakebase-release-workflows", "databricks-lakebase", "databricks-core"];
+declare const PROJECT_SKILLS: readonly ["software-design-principles", "architectural-design-principles", "ui-ux-design-principles", "consort", "lakebase-scm-workflows", "lakebase-release-workflows", "databricks-lakebase", "databricks-core"];
 /**
  * Deploy the kit skills (see `PROJECT_SKILLS`) into the project's `.claude/skills/`
  * so the scaffolded project is self-contained: the deployed agents + commands can
@@ -1932,7 +1932,7 @@ declare function deployLanguageProject(args: DeployLanguageProjectArgs): Promise
  * Optional SFTDD setup, injected by callers that want a project bootstrapped
  * with the SFTDD (.sftdd/) scaffold + sftdd-config.json. The base substrate
  * does NOT depend on the SFTDD orchestration or its templates; the SFTDD kit
- * (lakebase-app-dev-kit) supplies these hooks. When omitted, createProject
+ * (consort) supplies these hooks. When omitted, createProject
  * creates a plain SCM project with no .sftdd/ artifacts.
  */
 interface SftddSetupHooks {

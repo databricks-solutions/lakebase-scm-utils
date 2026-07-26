@@ -1,14 +1,14 @@
 # @databricks-solutions/lakebase-scm-utils
 
 The Lakebase SCM + substrate engine. This package is the portable core extracted from
-`lakebase-app-dev-kit`: it owns database branching, the paired-branch SCM workflow state
+`consort`: it owns database branching, the paired-branch SCM workflow state
 machine, connection + credential minting, schema migration, project scaffold + deploy
 primitives, and the shared git / github / util layer.
 
 It ships two consumption surfaces:
 
 - **Library API** (for the VS Code extension `lakebase-scm-extension` and the SFTDD
-  orchestration in `lakebase-app-dev-kit`): import the substrate from the package barrel
+  orchestration in `consort`): import the substrate from the package barrel
   or a sub-path.
   ```ts
   import { createBranch, getConnection } from "@databricks-solutions/lakebase-scm-utils";
@@ -20,9 +20,9 @@ It ships two consumption surfaces:
 ## Why this exists
 
 The SCM workflows and their supporting substrate were originally embedded in
-`lakebase-app-dev-kit` alongside the SFTDD orchestration. They are extracted here so both
+`consort` alongside the SFTDD orchestration. They are extracted here so both
 the IDE extension and the SFTDD kit can depend on a single, versioned engine, for easier
-consumption and portability. The SFTDD orchestration stays in `lakebase-app-dev-kit` and
+consumption and portability. The SFTDD orchestration stays in `consort` and
 depends back on this package.
 
 ## Install
