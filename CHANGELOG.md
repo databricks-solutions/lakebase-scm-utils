@@ -2,6 +2,17 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0-beta.9
+
+- **Client scaffold now ships a working `.gitignore`.** npm strips a literal
+  `.gitignore` from a packed tarball, so the React client template carried one in
+  source that never reached an installed consumer; a scaffolded project therefore
+  committed `client/node_modules/`, whose Vite/Vitest cache kept the tree
+  perpetually dirty and made `scm-prepare-pr` refuse to open the promote PR. The
+  template now ships the file as the npm-safe `.gitignore.base`, and
+  `deployClientProject` renames it to `.gitignore` at scaffold time (the same
+  pattern the base project's `deployGitignore` already uses).
+
 ## 0.1.0-beta.3
 
 - Add the SFTDD-decoupled base project scaffolders `createProject` and

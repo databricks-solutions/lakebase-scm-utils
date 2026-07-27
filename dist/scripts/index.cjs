@@ -4231,6 +4231,10 @@ function deployClientProject(targetDir, projectName, opts) {
   if (!fs11.existsSync(src)) return [];
   const destDir = path9.join(targetDir, "client");
   copyDirSubstituted(src, destDir, { projectName });
+  const baseIgnore = path9.join(destDir, ".gitignore.base");
+  if (fs11.existsSync(baseIgnore)) {
+    fs11.renameSync(baseIgnore, path9.join(destDir, ".gitignore"));
+  }
   return listFilesRelative(destDir).map((r) => path9.join("client", r));
 }
 async function deployClaudeCommands(targetDir, opts) {

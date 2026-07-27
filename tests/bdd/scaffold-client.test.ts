@@ -62,6 +62,22 @@ describe("deployClientProject", () => {
     }
   });
 
+  it("writes client/.gitignore (from the npm-safe .gitignore.base) so node_modules is not committed", () => {
+    // npm strips a literal `.gitignore` from a packed tarball, so the template
+    // ships `.gitignore.base` and deployClientProject renames it. Regression: a
+    // missing client/.gitignore committed client/node_modules/, whose Vitest cache
+    // kept the tree dirty and blocked scm-prepare-pr at the promote gate.
+    const target = mkTarget();
+    const written = deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });
+    expect(fs.existsSync(path.join(target, "client", ".gitignore")), "client/.gitignore should be written").toBe(true);
+    // The npm-safe source name must not leak into the scaffold.
+    expect(fs.existsSync(path.join(target, "client", ".gitignore.base"))).toBe(false);
+    const ignore = read(target, "client/.gitignore");
+    expect(ignore).toMatch(/node_modules\//);
+    expect(written).toContain("client/.gitignore");
+    expect(written).not.toContain("client/.gitignore.base");
+  });
+
   it("api/client.ts teaches the Problem Details field-error pattern (Finding 26)", () => {
     const target = mkTarget();
     deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });

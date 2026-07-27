@@ -131,6 +131,16 @@ export function deployClientProject(
   if (!fs.existsSync(src)) return [];
   const destDir = path.join(targetDir, "client");
   copyDirSubstituted(src, destDir, { projectName });
+  // npm strips a literal `.gitignore` from a packed tarball, so the client
+  // template ships it as `.gitignore.base` (an npm-safe name) and we rename it to
+  // `.gitignore` here, the same pattern deployGitignore uses for the base project.
+  // Without this, a scaffolded project commits client/node_modules/ and its Vite/
+  // Vitest cache keeps the tree perpetually dirty, so scm-prepare-pr refuses to
+  // open the promote PR (the F1 promote halt).
+  const baseIgnore = path.join(destDir, ".gitignore.base");
+  if (fs.existsSync(baseIgnore)) {
+    fs.renameSync(baseIgnore, path.join(destDir, ".gitignore"));
+  }
   return listFilesRelative(destDir).map((r) => path.join("client", r));
 }
 
