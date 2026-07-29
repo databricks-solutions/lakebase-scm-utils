@@ -2,6 +2,26 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0-beta.10
+
+- **`lakebase-doctor` now covers the cold-start prerequisites.** Alongside the
+  existing Databricks CLI version gate, the doctor version-checks Node.js 20+,
+  Python 3.10+, JDK 17+, npm, and the GitHub CLI (present + authenticated), each
+  emitting the same `{name,status,message,hint}` record. A wrong or missing
+  prerequisite is now caught up front with a fix hint rather than failing later
+  in the alembic / Flyway path or the plugin itself.
+- **New `lakebase-enabled` probe.** The doctor now confirms the resolved
+  workspace actually has Lakebase (database instances) enabled, rather than
+  assuming it from a successful auth. A workspace without Lakebase turned on is
+  the highest-consequence cold-start blocker; it now surfaces as a clear doctor
+  finding instead of an opaque failure at first provisioning.
+- **Fix: `--profile` is no longer threaded onto global CLI commands.** The CLI
+  wrapper appended `--profile` to every invocation, which made `databricks
+  --version` fail (the CLI parsed the profile as an unknown subcommand). That
+  made the `databricks-cli` check report "not found" whenever a profile was set,
+  cascading auth / identity / lakebase checks to skip. A new `noProfile` option
+  suppresses the thread for profile-independent commands.
+
 ## 0.1.0-beta.9
 
 - **Client scaffold now ships a working `.gitignore`.** npm strips a literal

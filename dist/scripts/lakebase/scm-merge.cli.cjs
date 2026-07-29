@@ -35,7 +35,7 @@ __export(scm_merge_cli_exports, {
 });
 module.exports = __toCommonJS(scm_merge_cli_exports);
 
-// ../../../../../../../Users/kevin.hartman/code/databricks-solutions/lakebase-app-dev-kit/node_modules/tsup/assets/cjs_shims.js
+// node_modules/tsup/assets/cjs_shims.js
 var getImportMetaUrl = () => typeof document === "undefined" ? new URL(`file:${__filename}`).href : document.currentScript && document.currentScript.tagName.toUpperCase() === "SCRIPT" ? document.currentScript.src : new URL("main.js", document.baseURI).href;
 var importMetaUrl = /* @__PURE__ */ getImportMetaUrl();
 
@@ -315,7 +315,7 @@ function buildInvocation(args, opts) {
   const trimmedHost = opts.host?.replace(/\/+$/, "");
   const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
-  const argv = profile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
 }
 function classifyDatabricksError(err, argv, profile) {

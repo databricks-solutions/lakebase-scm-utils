@@ -23,7 +23,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../../../../../../Users/kevin.hartman/code/databricks-solutions/lakebase-app-dev-kit/node_modules/tsup/assets/cjs_shims.js
+// node_modules/tsup/assets/cjs_shims.js
 var getImportMetaUrl = () => typeof document === "undefined" ? new URL(`file:${__filename}`).href : document.currentScript && document.currentScript.tagName.toUpperCase() === "SCRIPT" ? document.currentScript.src : new URL("main.js", document.baseURI).href;
 var importMetaUrl = /* @__PURE__ */ getImportMetaUrl();
 
@@ -245,7 +245,7 @@ function buildInvocation(args, opts) {
   const trimmedHost = opts.host?.replace(/\/+$/, "");
   const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
-  const argv = profile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
 }
 function classifyDatabricksError(err, argv, profile) {
@@ -1638,7 +1638,10 @@ function readEnvFile(projectDir) {
 }
 async function checkDatabricksCli() {
   try {
-    const out = await runDatabricks(["--version"], { timeout: 5e3 });
+    const out = await runDatabricks(["--version"], {
+      timeout: 5e3,
+      noProfile: true
+    });
     const trimmed = out.trim();
     const m = trimmed.match(/v?(\d+)\.(\d+)/);
     if (m) {
@@ -1666,6 +1669,123 @@ async function checkDatabricksCli() {
       message: "databricks CLI not found on PATH",
       detail: { error: err.message },
       hint: "Install via Homebrew (`brew install databricks-cli`) or the official installer."
+    };
+  }
+}
+var defaultVersionRunner = (cmd, args) => exec2(`${cmd} ${args.join(" ")}`, { timeout: 5e3 });
+function parseVersion(s) {
+  const m = s.match(/v?(\d+)(?:\.(\d+))?/);
+  if (!m) return null;
+  return { major: parseInt(m[1], 10), minor: m[2] ? parseInt(m[2], 10) : 0 };
+}
+var PREREQS = [
+  {
+    name: "node",
+    cmd: "node",
+    versionArgs: ["--version"],
+    minMajor: 20,
+    label: "Node.js",
+    hint: "Install Node.js 20+ (e.g. `brew install node@20`, nvm, or https://nodejs.org)."
+  },
+  {
+    name: "npm",
+    cmd: "npm",
+    versionArgs: ["--version"],
+    minMajor: null,
+    label: "npm",
+    hint: "npm ships with Node.js 20+; reinstall Node if it is missing."
+  },
+  {
+    name: "python",
+    cmd: "python3",
+    versionArgs: ["--version"],
+    minMajor: 3,
+    label: "Python",
+    hint: "Install Python 3.10+ (e.g. `brew install python@3.11` or https://www.python.org/downloads)."
+  },
+  {
+    name: "jdk",
+    cmd: "java",
+    versionArgs: ["-version"],
+    minMajor: 17,
+    label: "JDK",
+    hint: "Install JDK 17+ (e.g. `brew install openjdk@17`); required for the Flyway live path."
+  },
+  {
+    name: "gh",
+    cmd: "gh",
+    versionArgs: ["--version"],
+    minMajor: null,
+    label: "GitHub CLI",
+    hint: "Install the GitHub CLI (`brew install gh`) and authenticate with `gh auth login`."
+  }
+];
+async function checkPrereq(spec, run) {
+  let raw;
+  try {
+    raw = await run(spec.cmd, spec.versionArgs);
+  } catch (err) {
+    const errText = err.message ?? "";
+    const recovered = /version/i.test(errText) ? parseVersion(errText) : null;
+    if (recovered) {
+      raw = errText;
+    } else {
+      return {
+        name: spec.name,
+        status: "fail",
+        message: `${spec.label} not found on PATH`,
+        detail: { error: errText },
+        hint: spec.hint
+      };
+    }
+  }
+  const trimmed = raw.trim().split("\n")[0]?.trim() ?? raw.trim();
+  const version = parseVersion(trimmed);
+  if (spec.minMajor !== null && version && version.major < spec.minMajor) {
+    return {
+      name: spec.name,
+      status: "warn",
+      message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
+      detail: { version: trimmed, minMajor: spec.minMajor },
+      hint: spec.hint
+    };
+  }
+  return {
+    name: spec.name,
+    status: "ok",
+    message: `${spec.label} ${trimmed}`,
+    detail: { version: trimmed }
+  };
+}
+async function checkPrerequisites(run = defaultVersionRunner) {
+  return Promise.all(PREREQS.map((spec) => checkPrereq(spec, run)));
+}
+async function checkLakebaseEnabled(profile, listInstances) {
+  const run = listInstances ?? (() => runDatabricks(["database", "list-database-instances", "-o", "json"], {
+    profile,
+    timeout: 15e3
+  }));
+  try {
+    const out = await run();
+    let count;
+    try {
+      const parsed = JSON.parse(out || "[]");
+      count = Array.isArray(parsed) ? parsed.length : Array.isArray(parsed?.database_instances) ? parsed.database_instances.length : void 0;
+    } catch {
+    }
+    return {
+      name: "lakebase-enabled",
+      status: "ok",
+      message: count === void 0 ? "Workspace has Lakebase enabled" : `Workspace has Lakebase enabled (${count} database instance${count === 1 ? "" : "s"})`,
+      detail: { instanceCount: count }
+    };
+  } catch (err) {
+    return {
+      name: "lakebase-enabled",
+      status: "fail",
+      message: "Workspace does not have Lakebase enabled (or account lacks access)",
+      detail: { error: err.message },
+      hint: "Enable Lakebase (Database Instances) on this workspace, or point at a workspace where it is enabled. Consort has no mock mode; a real Lakebase workspace is required."
     };
   }
 }
@@ -1957,10 +2077,18 @@ async function runDoctor(args = {}) {
   const language = checkLanguage(projectDir);
   const hooks = checkHooks(projectDir);
   const workflowDrift = checkWorkflowDrift(projectDir);
+  const prereqs = await checkPrerequisites();
+  const lakebaseEnabled = auth.status === "ok" ? await checkLakebaseEnabled(profile) : {
+    name: "lakebase-enabled",
+    status: "skip",
+    message: "Skipped: auth check failed"
+  };
   const checks = [
     cli,
+    ...prereqs,
     auth,
     identity,
+    lakebaseEnabled,
     env,
     configProfile,
     lakebaseProject,

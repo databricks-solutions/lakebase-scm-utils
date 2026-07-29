@@ -285,7 +285,7 @@ function buildInvocation(args, opts) {
   const trimmedHost = opts.host?.replace(/\/+$/, "");
   const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
-  const argv = profile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
 }
 function classifyDatabricksError(err, argv, profile) {
