@@ -70,6 +70,19 @@ describe("buildInvocation: profile resolved one way + threaded explicitly", () =
     });
     expect(argv.filter((a) => a === "--profile")).toHaveLength(1);
   });
+
+  it("does NOT thread --profile for a profile-independent command (noProfile) even when one resolves", () => {
+    // `databricks --version` (and --help) are global commands that reject a
+    // trailing `--profile`: the CLI parses --version as the command and treats
+    // the profile as an unknown subcommand. noProfile suppresses the thread so
+    // version/help checks work regardless of DATABRICKS_CONFIG_PROFILE.
+    const { argv } = buildInvocation(["--version"], {
+      env: { DATABRICKS_CONFIG_PROFILE: "fevm-serverless-stable-ecparr" },
+      noProfile: true,
+    });
+    expect(argv).toEqual(["--version"]);
+    expect(argv).not.toContain("--profile");
+  });
 });
 
 describe("classifyDatabricksError: auth failures surface one actionable error", () => {

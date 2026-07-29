@@ -30,6 +30,12 @@ export interface DatabricksCliOptions {
   env?: NodeJS.ProcessEnv;
   /** Project dir whose `.env` supplies DATABRICKS_CONFIG_PROFILE. Defaults to process.cwd(). */
   cwd?: string;
+  /** Suppress `--profile` threading for profile-independent global commands
+   *  (`--version`, `--help`). The CLI rejects a trailing `--profile` on these:
+   *  it parses `--version` as the command and the profile as an unknown
+   *  subcommand. Set this for version/help probes so they work regardless of
+   *  DATABRICKS_CONFIG_PROFILE. */
+  noProfile?: boolean;
 }
 
 /** A `databricks` CLI call failed. Message: `databricks <args> failed: <msg>\nstderr: <stderr>`. */
@@ -113,7 +119,10 @@ export function buildInvocation(args: string[], opts: DatabricksCliOptions): {
   const trimmedHost = opts.host?.replace(/\/+$/, "");
   const env: NodeJS.ProcessEnv = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
-  const argv = profile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  const argv =
+    profile && !opts.noProfile && !args.includes("--profile")
+      ? [...args, "--profile", profile]
+      : args;
   return { argv, env, profile };
 }
 

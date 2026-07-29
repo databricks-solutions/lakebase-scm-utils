@@ -63,7 +63,13 @@ function readEnvFile(projectDir: string): Record<string, string> {
 
 async function checkDatabricksCli(): Promise<CheckResult> {
   try {
-    const out = await runDatabricks(["--version"], { timeout: 5_000 });
+    // `--version` is a global command; threading `--profile` makes the CLI
+    // reject it ("unknown command <profile>"). noProfile keeps this probe
+    // working regardless of DATABRICKS_CONFIG_PROFILE.
+    const out = await runDatabricks(["--version"], {
+      timeout: 5_000,
+      noProfile: true,
+    });
     const trimmed = out.trim();
     const m = trimmed.match(/v?(\d+)\.(\d+)/);
     if (m) {
