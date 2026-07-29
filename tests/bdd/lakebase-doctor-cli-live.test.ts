@@ -154,15 +154,17 @@ describe.skipIf(!RUN_SUITE)(
       expect(r.stdout).toMatch(/lakebase-doctor/);
     });
 
-    it("--json against a paired project: overall is OK or WARN, all 8 checks present", () => {
+    it("--json against a paired project: all checks present incl. prereqs + lakebase-enabled", () => {
       const r = runDoctor(["--json", "--project-dir", paired]);
       expect(r.parsed).toBeDefined();
       const report = r.parsed as DoctorReport;
-      expect(["ok", "warn"]).toContain(report.overall);
-      expect(report.checks.length).toBe(9);
+      // overall may be fail here: the test runner's env can be missing a
+      // cold-start prereq (e.g. JDK 17) even though the Lakebase path is healthy,
+      // so we assert the check SET, not the aggregate status.
       const names = report.checks.map((c) => c.name).sort();
       expect(names).toEqual(
         [
+          // existing checks
           "databricks-auth",
           "databricks-cli",
           "detected-language",
@@ -172,8 +174,32 @@ describe.skipIf(!RUN_SUITE)(
           "lakebase-project",
           "workflow-drift",
           "workspace-identity",
+          // cold-start prerequisites
+          "node",
+          "npm",
+          "python",
+          "jdk",
+          "gh",
+          // workspace lakebase-enabled probe
+          "lakebase-enabled",
         ].sort()
       );
+      // Every check emits the uniform record shape.
+      for (const c of report.checks) {
+        expect(typeof c.name).toBe("string");
+        expect(["ok", "warn", "fail", "skip"]).toContain(c.status);
+        expect(typeof c.message).toBe("string");
+      }
+    });
+
+    it("paired project on a Lakebase workspace: lakebase-enabled probe reports OK", () => {
+      const r = runDoctor(["--json", "--project-dir", paired]);
+      const report = r.parsed as DoctorReport;
+      const enabled = report.checks.find((c) => c.name === "lakebase-enabled")!;
+      // The live test workspace has Lakebase on (it just provisioned a project),
+      // so the probe must confirm it, not skip or fail.
+      expect(enabled.status).toBe("ok");
+      expect(enabled.message).toMatch(/Lakebase enabled/);
     });
 
     it("paired project: critical checks are OK", () => {
