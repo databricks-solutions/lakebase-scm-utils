@@ -47,14 +47,26 @@ interface DoctorReport {
   checks: CheckResult[];
 }
 
-function runDoctorJson(projectDir: string, hostOverride?: string): DoctorReport {
+function runDoctorJson(
+  projectDir: string,
+  opts: { host?: string; profile?: string | null } = {}
+): DoctorReport {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    DATABRICKS_HOST: opts.host ?? DATABRICKS_HOST,
+    DATABRICKS_CONFIG_PROFILE: DATABRICKS_PROFILE,
+  };
+  // profile: null means "unset it" (so no cached ~/.databrickscfg host can
+  // override our host and mask a failure). A set profile makes the CLI use the
+  // profile's own host, ignoring DATABRICKS_HOST.
+  if (opts.profile === null) {
+    delete env.DATABRICKS_CONFIG_PROFILE;
+  } else if (opts.profile) {
+    env.DATABRICKS_CONFIG_PROFILE = opts.profile;
+  }
   const proc = spawnSync("node", [DOCTOR_CLI, "--json", "--project-dir", projectDir], {
     encoding: "utf8",
-    env: {
-      ...process.env,
-      DATABRICKS_HOST: hostOverride ?? DATABRICKS_HOST,
-      DATABRICKS_CONFIG_PROFILE: DATABRICKS_PROFILE,
-    },
+    env,
     cwd: REPO_ROOT,
     timeout: 90_000,
   });
@@ -130,12 +142,19 @@ describe.skipIf(!RUN)("lakebase-doctor on a freshly scaffolded project (live)", 
     expect(enabled.message).toMatch(/Lakebase enabled/);
   });
 
-  it("NEGATIVE: lakebase-enabled probe FAILS (with a hint) against a bogus host", () => {
-    // Point the doctor at a host that cannot serve database instances. The
-    // probe must report red with a fix hint, never a silent clean pass. This is
-    // the anti-regression against a doctor that reports ok when it cannot tell.
-    const report = runDoctorJson(projectDir, "https://nonexistent-workspace.invalid");
+  it("NEGATIVE: probe does NOT report ok against an unreachable workspace", () => {
+    // Clear the profile (so no cached ~/.databrickscfg host masks the override)
+    // and point at a bogus host. With no reachable workspace the doctor must NOT
+    // report lakebase-enabled ok: it either fails the probe with a fix hint, or
+    // skips it upstream when auth cannot resolve. The one thing it must never do
+    // is claim Lakebase is enabled when it cannot tell. This is the anti-
+    // regression against a silently-green probe.
+    const report = runDoctorJson(projectDir, {
+      host: "https://nonexistent-workspace.invalid",
+      profile: null,
+    });
     const enabled = report.checks.find((c) => c.name === "lakebase-enabled")!;
+    expect(enabled.status).not.toBe("ok");
     expect(["fail", "skip"]).toContain(enabled.status);
     if (enabled.status === "fail") {
       expect(enabled.hint).toBeTruthy();
