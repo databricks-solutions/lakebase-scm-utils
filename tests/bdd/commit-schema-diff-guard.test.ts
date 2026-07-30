@@ -95,8 +95,13 @@ describe("W2: commit-time schema diff never blocks the commit", () => {
     const elapsedMs = Date.now() - start;
 
     expect(res.status).toBe(0);                       // commit succeeded
-    expect(fs.existsSync(marker)).toBe(false);        // npm install was NOT invoked
-    expect(elapsedMs).toBeLessThan(15_000);           // nowhere near the 70s stall
+    expect(fs.existsSync(marker)).toBe(false);        // npm install was NOT invoked (the real guard)
+    // Coarse ceiling: if the install stall HAD fired, the fake npm sleeps 30s
+    // (the real stall is ~70s), so a commit under that proves the stall did not
+    // happen. Kept well clear of the 30s fake-sleep so a slow CI host / parallel
+    // load spike (git + shell hook + lk resolve can take >15s under contention)
+    // does not flake this; the marker assertion above is the deterministic one.
+    expect(elapsedMs).toBeLessThan(28_000);
     // The commit landed.
     expect(git(["log", "--oneline"], workdir)).toMatch(/add file/);
   });
