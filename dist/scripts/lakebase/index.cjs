@@ -114,6 +114,7 @@ __export(lakebase_exports, {
   detectLanguageAt: () => detectLanguageAt,
   detectScaffoldedDrift: () => detectScaffoldedDrift,
   detectWorkflowDrift: () => detectWorkflowDrift,
+  dirIsEmpty: () => dirIsEmpty,
   enableE2eForProject: () => enableE2eForProject,
   enableInfraForProject: () => enableInfraForProject,
   endpointPath: () => endpointPath,
@@ -231,6 +232,7 @@ __export(lakebase_exports, {
   updateWorkflows: () => updateWorkflows,
   uploadDirectory: () => uploadDirectory,
   validateApp: () => validateApp,
+  validateCreateInputs: () => validateCreateInputs,
   validateWorkflowState: () => validateWorkflowState,
   verifyHooks: () => verifyHooks,
   verifyProject: () => verifyProject,
@@ -3085,6 +3087,28 @@ async function queryBranchTables(args) {
 var import_node_child_process8 = require("child_process");
 var fs4 = __toESM(require("fs"), 1);
 var path3 = __toESM(require("path"), 1);
+function validateCreateInputs(input) {
+  if (input.useGithub && !input.githubOwner) {
+    return { ok: false, reason: "GitHub owner is required when creating a GitHub repository" };
+  }
+  if ((input.tiers === 2 || input.tiers === 3) && !input.useGithub) {
+    return {
+      ok: false,
+      reason: `tiers ${input.tiers} requires a GitHub repository: cutting a long-running tier (staging/dev) pushes its git side to origin. Re-run with a --github-owner, or pair --no-github with --tiers 1 (prod only).`
+    };
+  }
+  if (!input.useGithub && input.dirExists(input.projectDir) && !input.dirIsEmpty(input.projectDir)) {
+    return { ok: false, reason: `Directory already exists and is not empty: ${input.projectDir}` };
+  }
+  return { ok: true };
+}
+function dirIsEmpty(dir) {
+  try {
+    return fs4.readdirSync(dir).length === 0;
+  } catch {
+    return true;
+  }
+}
 function lastLines(s, n = 3) {
   return (s ?? "").trim().split("\n").filter(Boolean).slice(-n).join("; ");
 }
@@ -5222,11 +5246,16 @@ async function createProject(input, progress) {
   const skipCommands = input.skipCommands === true;
   const tiers = input.tiers;
   const warnings = [];
-  if (useGithub && !input.githubOwner) {
-    throw new Error("GitHub owner is required when creating a GitHub repository");
-  }
-  if (!useGithub && fs17.existsSync(projectDir)) {
-    throw new Error(`Directory already exists: ${projectDir}`);
+  {
+    const v = validateCreateInputs({
+      projectDir,
+      useGithub,
+      githubOwner: input.githubOwner,
+      tiers,
+      dirExists: (p) => fs17.existsSync(p),
+      dirIsEmpty
+    });
+    if (!v.ok) throw new Error(v.reason);
   }
   const fullRepoName = input.githubOwner ? `${input.githubOwner}/${input.projectName}` : "";
   report("Checking Databricks authentication...");
@@ -5278,9 +5307,6 @@ Last probe error:
     });
   } else {
     report("Creating local project directory...", projectDir);
-    if (fs17.existsSync(projectDir)) {
-      throw new Error(`Directory already exists: ${projectDir}`);
-    }
     fs17.mkdirSync(projectDir, { recursive: true });
     await gitInit(projectDir);
   }
@@ -5450,40 +5476,34 @@ Last probe error:
         push: useGithub
       });
       if (tiers === 2 || tiers === 3) {
-        if (!useGithub) {
+        report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
+        try {
+          await createLongRunningBranch({
+            name: "staging",
+            forkFromBranch: "main",
+            projectId: lakebaseProjectId,
+            workTreeDir: projectDir,
+            databricksHost: host
+          });
+        } catch (err) {
           warnings.push(
-            `tiers === ${tiers} requires a GitHub repository (createLongRunningBranch pushes the tier's git side to origin). Extra tiers were NOT cut.`
+            `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`
           );
-        } else {
-          report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
+        }
+        if (tiers === 3) {
+          report("Cutting dev tier (tiers=3) via createLongRunningBranch (off staging)...");
           try {
             await createLongRunningBranch({
-              name: "staging",
-              forkFromBranch: "main",
+              name: "dev",
+              forkFromBranch: "staging",
               projectId: lakebaseProjectId,
               workTreeDir: projectDir,
               databricksHost: host
             });
           } catch (err) {
             warnings.push(
-              `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`
+              `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`
             );
-          }
-          if (tiers === 3) {
-            report("Cutting dev tier (tiers=3) via createLongRunningBranch (off staging)...");
-            try {
-              await createLongRunningBranch({
-                name: "dev",
-                forkFromBranch: "staging",
-                projectId: lakebaseProjectId,
-                workTreeDir: projectDir,
-                databricksHost: host
-              });
-            } catch (err) {
-              warnings.push(
-                `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`
-              );
-            }
           }
         }
       }
@@ -9595,6 +9615,7 @@ function isUcMissingError(msg) {
   detectLanguageAt,
   detectScaffoldedDrift,
   detectWorkflowDrift,
+  dirIsEmpty,
   enableE2eForProject,
   enableInfraForProject,
   endpointPath,
@@ -9712,6 +9733,7 @@ function isUcMissingError(msg) {
   updateWorkflows,
   uploadDirectory,
   validateApp,
+  validateCreateInputs,
   validateWorkflowState,
   verifyHooks,
   verifyProject,

@@ -11,6 +11,8 @@ import {
   kitWarmWarning,
   databricksAuthPrereqMessage,
   withLakebaseRollback,
+  validateCreateInputs,
+  dirIsEmpty,
 } from "../../scripts/lakebase/create-preflight.js";
 
 const tmpDirs: string[] = [];
@@ -90,6 +92,102 @@ describe("W5: databricksAuthPrereqMessage", () => {
     const msg = databricksAuthPrereqMessage("https://x.cloud.databricks.com/", "token expired");
     expect(msg).toMatch(/databricks auth login --host https:\/\/x\.cloud\.databricks\.com/);
     expect(msg).toMatch(/token expired/);
+  });
+});
+
+describe("validateCreateInputs (fail-fast pure-input validation)", () => {
+  const base = {
+    projectDir: "/tmp/proj",
+    useGithub: true,
+    githubOwner: "acme",
+    tiers: undefined as 1 | 2 | 3 | undefined,
+    dirExists: () => false,
+    dirIsEmpty: () => true,
+  };
+
+  it("ok for a well-formed GitHub request", () => {
+    expect(validateCreateInputs({ ...base })).toEqual({ ok: true });
+  });
+
+  it("requires a github owner when creating a repo", () => {
+    const res = validateCreateInputs({ ...base, githubOwner: undefined });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/GitHub owner is required/);
+  });
+
+  // F3: tiers 2/3 need a remote; reject the --no-github combo up front.
+  it("rejects tiers 2 with --no-github", () => {
+    const res = validateCreateInputs({ ...base, useGithub: false, githubOwner: undefined, tiers: 2 });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/tiers 2 requires a GitHub repository/);
+    expect(res.reason).toMatch(/--tiers 1/);
+  });
+
+  it("rejects tiers 3 with --no-github", () => {
+    const res = validateCreateInputs({ ...base, useGithub: false, githubOwner: undefined, tiers: 3 });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/tiers 3 requires a GitHub repository/);
+  });
+
+  it("allows tiers 1 with --no-github", () => {
+    expect(
+      validateCreateInputs({ ...base, useGithub: false, githubOwner: undefined, tiers: 1 }),
+    ).toEqual({ ok: true });
+  });
+
+  it("allows tiers 2 WITH a github repo", () => {
+    expect(validateCreateInputs({ ...base, tiers: 2 })).toEqual({ ok: true });
+  });
+
+  // F1: a pre-existing EMPTY dir is accepted on the --no-github path.
+  it("accepts a pre-existing EMPTY dir on the --no-github path", () => {
+    expect(
+      validateCreateInputs({
+        ...base,
+        useGithub: false,
+        githubOwner: undefined,
+        dirExists: () => true,
+        dirIsEmpty: () => true,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it("refuses a pre-existing NON-EMPTY dir on the --no-github path", () => {
+    const res = validateCreateInputs({
+      ...base,
+      useGithub: false,
+      githubOwner: undefined,
+      dirExists: () => true,
+      dirIsEmpty: () => false,
+    });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/already exists and is not empty/);
+  });
+
+  it("does not probe the dir on the GitHub path (the clone owns it)", () => {
+    // dirExists true + non-empty, but useGithub: the check is skipped.
+    expect(
+      validateCreateInputs({ ...base, dirExists: () => true, dirIsEmpty: () => false }),
+    ).toEqual({ ok: true });
+  });
+});
+
+describe("dirIsEmpty", () => {
+  it("true for a nonexistent dir", () => {
+    expect(dirIsEmpty(path.join(os.tmpdir(), "lbscm-does-not-exist-" + Date.now()))).toBe(true);
+  });
+
+  it("true for an existing empty dir", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lbscm-empty-"));
+    tmpDirs.push(dir);
+    expect(dirIsEmpty(dir)).toBe(true);
+  });
+
+  it("false for a dir with contents", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lbscm-full-"));
+    tmpDirs.push(dir);
+    fs.writeFileSync(path.join(dir, "f.txt"), "x");
+    expect(dirIsEmpty(dir)).toBe(false);
   });
 });
 

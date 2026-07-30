@@ -2,6 +2,26 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0-beta.11
+
+- **`createProject` accepts a pre-existing EMPTY target directory on the
+  `--no-github` path.** It previously refused any existing directory, so the
+  common "I made the folder first, then ran create in it" case failed with
+  `Directory already exists`. A pre-existing empty dir is now fine (mkdir is a
+  no-op on it); only a non-empty directory is refused, with the clearer message
+  `Directory already exists and is not empty`.
+- **`tiers 2`/`3` with `--no-github` is now rejected up front, not after
+  provisioning.** Cutting a long-running tier (staging/dev) pushes its git side
+  to `origin`, so it requires a GitHub remote. The old behavior provisioned the
+  whole tier-1 project and only then skipped the extra tiers with a post-hoc
+  warning, leaving a silently under-provisioned project. The incompatible
+  combination now fails in the cheap pure-input validation, before the auth
+  probe or any provisioning, telling you to supply a `--github-owner` or pair
+  `--no-github` with `--tiers 1`.
+- Both checks move into a single `validateCreateInputs` preflight helper
+  (with the github-owner requirement), so the validation lives in one place and
+  is unit-tested hermetically.
+
 ## 0.1.0-beta.10
 
 - **`lakebase-doctor` now covers the cold-start prerequisites.** Alongside the

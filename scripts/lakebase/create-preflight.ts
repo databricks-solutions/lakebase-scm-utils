@@ -25,6 +25,61 @@ export interface PreflightResult {
   reason?: string;
 }
 
+/**
+ * Cheap, pure-input validation for createProject, run BEFORE any auth probe or
+ * provisioning so a bad request fails fast with the specific input error (not a
+ * masking auth error, and not deep inside provisioning after a repo or Lakebase
+ * project already exists). Returns the first blocking reason, or ok when the
+ * inputs are internally consistent. `dirExists`/`dirIsEmpty` are injected so the
+ * check is unit-testable without touching the filesystem; the caller wires the
+ * real fs probes.
+ */
+export function validateCreateInputs(input: {
+  projectDir: string;
+  useGithub: boolean;
+  githubOwner?: string;
+  tiers?: 1 | 2 | 3;
+  dirExists: (p: string) => boolean;
+  dirIsEmpty: (p: string) => boolean;
+}): PreflightResult {
+  if (input.useGithub && !input.githubOwner) {
+    return { ok: false, reason: "GitHub owner is required when creating a GitHub repository" };
+  }
+  // Tiers 2/3 cut a long-running branch, which pushes the tier's git side to
+  // origin, so they REQUIRE a GitHub remote. Reject the combination up front
+  // rather than provisioning everything and then skipping the tiers with a
+  // post-hoc warning (the old behavior silently produced a tier-1 project).
+  if ((input.tiers === 2 || input.tiers === 3) && !input.useGithub) {
+    return {
+      ok: false,
+      reason:
+        `tiers ${input.tiers} requires a GitHub repository: cutting a long-running tier ` +
+        `(staging/dev) pushes its git side to origin. Re-run with a --github-owner, or ` +
+        `pair --no-github with --tiers 1 (prod only).`,
+    };
+  }
+  // On the local-only (--no-github) path the creator makes the project dir
+  // itself. A pre-existing EMPTY dir is fine (a common "I made the folder first"
+  // case); only refuse one that already has contents, which would risk
+  // clobbering an unrelated project. (With GitHub, the clone owns the dir, so
+  // this check is the local-path counterpart.)
+  if (!input.useGithub && input.dirExists(input.projectDir) && !input.dirIsEmpty(input.projectDir)) {
+    return { ok: false, reason: `Directory already exists and is not empty: ${input.projectDir}` };
+  }
+  return { ok: true };
+}
+
+/** True when `dir` does not exist, or exists with no entries. */
+export function dirIsEmpty(dir: string): boolean {
+  try {
+    return fs.readdirSync(dir).length === 0;
+  } catch {
+    // Unreadable / nonexistent: treat as "empty" for the caller's purposes;
+    // the dirExists probe governs whether it is there at all.
+    return true;
+  }
+}
+
 function lastLines(s?: string, n = 3): string {
   return (s ?? "").trim().split("\n").filter(Boolean).slice(-n).join("; ");
 }

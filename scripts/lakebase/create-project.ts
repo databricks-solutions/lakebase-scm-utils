@@ -23,6 +23,8 @@ import {
   warmAndVerifyKit,
   kitWarmWarning,
   withLakebaseRollback,
+  validateCreateInputs,
+  dirIsEmpty,
 } from "./create-preflight.js";
 import { scaffoldAll, substrateVersion } from "./scaffold.js";
 import type { ClientFramework } from "./scaffold-language.js";
@@ -228,14 +230,22 @@ export async function createProject(
   const tiers = input.tiers;
   const warnings: string[] = [];
 
-  if (useGithub && !input.githubOwner) {
-    throw new Error("GitHub owner is required when creating a GitHub repository");
-  }
   // Cheap, pure-input validation runs BEFORE the auth probe so a bad request
   // fails without shelling out (and so the failure is the specific input error,
-  // not a masking auth error).
-  if (!useGithub && fs.existsSync(projectDir)) {
-    throw new Error(`Directory already exists: ${projectDir}`);
+  // not a masking auth error). Covers: github-owner required, tiers 2/3 need a
+  // remote (reject --no-github + tiers>1 here, not post-provision), and the
+  // local-only dir check (a pre-existing EMPTY dir is fine; a non-empty one is
+  // refused).
+  {
+    const v = validateCreateInputs({
+      projectDir,
+      useGithub,
+      githubOwner: input.githubOwner,
+      tiers,
+      dirExists: (p) => fs.existsSync(p),
+      dirIsEmpty,
+    });
+    if (!v.ok) throw new Error(v.reason);
   }
   const fullRepoName = input.githubOwner
     ? `${input.githubOwner}/${input.projectName}`
@@ -299,9 +309,8 @@ export async function createProject(
     });
   } else {
     report("Creating local project directory...", projectDir);
-    if (fs.existsSync(projectDir)) {
-      throw new Error(`Directory already exists: ${projectDir}`);
-    }
+    // A pre-existing EMPTY dir is accepted (validated up front); mkdir with
+    // recursive is a no-op on it. A non-empty dir was already rejected.
     fs.mkdirSync(projectDir, { recursive: true });
     await gitInit(projectDir);
   }
@@ -560,42 +569,38 @@ export async function createProject(
   //
   // Runs AFTER commitAndPush because createLongRunningBranch needs
   // origin to already have the parent ref (e.g. main, staging).
+  // tiers 2/3 with --no-github is rejected up front by validateCreateInputs, so
+  // by here useGithub is guaranteed true for any tiers>1 request.
   if (tiers === 2 || tiers === 3) {
-    if (!useGithub) {
+    report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
+    try {
+      await createLongRunningBranch({
+        name: "staging",
+        forkFromBranch: "main",
+        projectId: lakebaseProjectId,
+        workTreeDir: projectDir,
+        databricksHost: host,
+      });
+    } catch (err) {
       warnings.push(
-        `tiers === ${tiers} requires a GitHub repository (createLongRunningBranch pushes the tier's git side to origin). Extra tiers were NOT cut.`,
+        `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`,
       );
-    } else {
-      report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
+    }
+
+    if (tiers === 3) {
+      report("Cutting dev tier (tiers=3) via createLongRunningBranch (off staging)...");
       try {
         await createLongRunningBranch({
-          name: "staging",
-          forkFromBranch: "main",
+          name: "dev",
+          forkFromBranch: "staging",
           projectId: lakebaseProjectId,
           workTreeDir: projectDir,
           databricksHost: host,
         });
       } catch (err) {
         warnings.push(
-          `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`,
+          `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`,
         );
-      }
-
-      if (tiers === 3) {
-        report("Cutting dev tier (tiers=3) via createLongRunningBranch (off staging)...");
-        try {
-          await createLongRunningBranch({
-            name: "dev",
-            forkFromBranch: "staging",
-            projectId: lakebaseProjectId,
-            workTreeDir: projectDir,
-            databricksHost: host,
-          });
-        } catch (err) {
-          warnings.push(
-            `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`,
-          );
-        }
       }
     }
   }
