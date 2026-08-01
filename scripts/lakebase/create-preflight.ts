@@ -84,19 +84,32 @@ function lastLines(s?: string, n = 3): string {
   return (s ?? "").trim().split("\n").filter(Boolean).slice(-n).join("; ");
 }
 
+/** Injectable runner for checkDatabricksAuth (defaults to the real CLI wrapper). */
+type AuthProbe = (args: string[]) => Promise<string>;
+
 /**
- * W5: probe Databricks auth before any project work. Returns ok:false with a
- * concise reason when `databricks current-user me` fails (stale/missing creds,
- * unreachable host), so the caller can surface a one-time `databricks auth
- * login` prereq instead of failing cryptically inside createLakebaseProject.
+ * W5: probe Databricks auth before any project work. Uses `databricks auth token
+ * --force-refresh`, which forces a REFRESH-token exchange , so an EXPIRED refresh
+ * token fails HERE, up front, with the `databricks auth login` remediation.
+ *
+ * This deliberately does NOT use `current-user me`: that call is served from the
+ * CACHED access token and passes even when the refresh token is dead, so it
+ * silently masks an expired session , the preflight reports ok, then credential
+ * MINTING (generate-database-credential, which needs a fresh token exchange)
+ * fails much later inside the app/tests, where it degrades into a connection
+ * hang. Exercising the refresh token here is what turns that latent 2-hour spin
+ * into an immediate, actionable failure.
  */
-export async function checkDatabricksAuth(host?: string): Promise<PreflightResult> {
+export async function checkDatabricksAuth(
+  host?: string,
+  run: AuthProbe = (args) => runDatabricks(args, { host, timeout: 8_000 }),
+): Promise<PreflightResult> {
   try {
-    await runDatabricks(["current-user", "me", "-o", "json"], { host, timeout: 8_000 });
+    await run(["auth", "token", "--force-refresh", "-o", "json"]);
     return { ok: true };
   } catch (err) {
     const e = err as { stderr?: string; message?: string };
-    return { ok: false, reason: lastLines(e.stderr, 2) || e.message || "databricks current-user me failed" };
+    return { ok: false, reason: lastLines(e.stderr, 2) || e.message || "databricks auth token failed" };
   }
 }
 

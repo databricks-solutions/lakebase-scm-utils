@@ -1576,13 +1576,22 @@ declare function validateCreateInputs(input: {
 }): PreflightResult;
 /** True when `dir` does not exist, or exists with no entries. */
 declare function dirIsEmpty(dir: string): boolean;
+/** Injectable runner for checkDatabricksAuth (defaults to the real CLI wrapper). */
+type AuthProbe = (args: string[]) => Promise<string>;
 /**
- * W5: probe Databricks auth before any project work. Returns ok:false with a
- * concise reason when `databricks current-user me` fails (stale/missing creds,
- * unreachable host), so the caller can surface a one-time `databricks auth
- * login` prereq instead of failing cryptically inside createLakebaseProject.
+ * W5: probe Databricks auth before any project work. Uses `databricks auth token
+ * --force-refresh`, which forces a REFRESH-token exchange , so an EXPIRED refresh
+ * token fails HERE, up front, with the `databricks auth login` remediation.
+ *
+ * This deliberately does NOT use `current-user me`: that call is served from the
+ * CACHED access token and passes even when the refresh token is dead, so it
+ * silently masks an expired session , the preflight reports ok, then credential
+ * MINTING (generate-database-credential, which needs a fresh token exchange)
+ * fails much later inside the app/tests, where it degrades into a connection
+ * hang. Exercising the refresh token here is what turns that latent 2-hour spin
+ * into an immediate, actionable failure.
  */
-declare function checkDatabricksAuth(host?: string): Promise<PreflightResult>;
+declare function checkDatabricksAuth(host?: string, run?: AuthProbe): Promise<PreflightResult>;
 /** The actionable prereq message for a failed auth probe (W5). */
 declare function databricksAuthPrereqMessage(host?: string, reason?: string): string;
 /**

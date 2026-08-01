@@ -303,33 +303,36 @@ export async function checkLakebaseEnabled(
 
 async function checkAuth(profile?: string): Promise<CheckResult> {
   try {
-    const out = await runDatabricks(["auth", "describe", "-o", "json"], {
+    // `auth token --force-refresh` forces a REFRESH-token exchange, so an EXPIRED
+    // refresh token fails HERE. `auth describe` only reads local config and would
+    // report "authenticated" on a dead session (the masking bug that let expired
+    // creds surface much later as a credential-mint hang). We still best-effort
+    // read the host from `auth describe` for the message only.
+    await runDatabricks(["auth", "token", "--force-refresh", "-o", "json"], {
       profile,
-      timeout: 5_000,
+      timeout: 8_000,
     });
     let host: string | undefined;
     try {
+      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, timeout: 5_000 });
       const parsed = JSON.parse(out);
-      host =
-        parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
+      host = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
     } catch {
-      // ignore parse error; the auth call still succeeded
+      // host is cosmetic; the refresh-token exchange above already proved auth.
     }
     return {
       name: "databricks-auth",
       status: "ok",
-      message: host
-        ? `Authenticated to ${host}`
-        : "Authenticated (no host parsed from describe)",
+      message: host ? `Authenticated to ${host}` : "Authenticated (refresh token valid)",
       detail: { host, profile: profile ?? "default" },
     };
   } catch (err) {
     return {
       name: "databricks-auth",
       status: "fail",
-      message: "databricks auth describe failed",
+      message: "databricks auth token failed (session expired or not logged in)",
       detail: { error: (err as Error).message },
-      hint: "Run `databricks auth login --host <your-workspace>` to authenticate.",
+      hint: "Run `databricks auth login --host <your-workspace>` to re-authenticate (the OAuth refresh token is expired/invalid).",
     };
   }
 }

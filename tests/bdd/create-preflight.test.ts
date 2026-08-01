@@ -13,6 +13,7 @@ import {
   withLakebaseRollback,
   validateCreateInputs,
   dirIsEmpty,
+  checkDatabricksAuth,
 } from "../../scripts/lakebase/create-preflight.js";
 
 const tmpDirs: string[] = [];
@@ -84,6 +85,33 @@ describe("W3: warmAndVerifyKit", () => {
     const msg = kitWarmWarning("/p", "network down");
     expect(msg).toMatch(/network down/);
     expect(msg).toMatch(/\.\/scripts\/lk --warm/);
+  });
+});
+
+describe("W5: checkDatabricksAuth exercises the REFRESH token (not the cached access token)", () => {
+  it("probes via `auth token --force-refresh`, NOT `current-user me` (which masks an expired refresh token)", async () => {
+    const calls: string[][] = [];
+    const run = async (args: string[]) => { calls.push(args); return "{}"; };
+    const res = await checkDatabricksAuth(undefined, run);
+    expect(res.ok).toBe(true);
+    // The probe must force a refresh-token exchange; current-user me uses the
+    // cached access token and passes even when the refresh token is dead , the
+    // exact masking bug that let an expired token spin the drive for hours.
+    const probe = calls[0].join(" ");
+    expect(probe).toMatch(/auth token/);
+    expect(probe).toMatch(/--force-refresh/);
+    expect(probe).not.toMatch(/current-user/);
+  });
+
+  it("returns ok:false with the auth-login remediation when the refresh token is invalid", async () => {
+    const run = async () => {
+      const e: Error & { stderr?: string } = new Error("auth failed");
+      e.stderr = "A new access token could not be retrieved because the refresh token is invalid. To reauthenticate, run: databricks auth login";
+      throw e;
+    };
+    const res = await checkDatabricksAuth(undefined, run);
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/refresh token is invalid|reauthenticate|auth login/i);
   });
 });
 

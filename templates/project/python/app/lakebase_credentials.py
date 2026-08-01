@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import threading
 import time
@@ -27,6 +28,21 @@ _DEFAULT_ENDPOINT = "primary"
 _lock = threading.Lock()
 _cached_token: str | None = None
 _minted_at: float = 0.0
+
+
+class DatabricksAuthExpired(RuntimeError):
+    """The databricks CLI could not mint a credential because the OAuth session
+    (refresh token) is expired/invalid. Distinct + non-retryable: the SQLAlchemy
+    pool must NOT retry this (it cannot self-heal), and the caller should surface
+    the `databricks auth login` remediation and stop, rather than hang."""
+
+
+# stderr signatures the CLI emits when the refresh token is dead / no valid auth.
+_AUTH_EXPIRED_RE = re.compile(
+    r"refresh token is invalid|could not be retrieved because|reauthenticate|"
+    r"auth login|not authenticated|no valid.*(credential|token)|\b401\b|unauthorized",
+    re.IGNORECASE,
+)
 
 
 def endpoint_path_from_env() -> str | None:
@@ -46,12 +62,31 @@ def _profile_args() -> list[str]:
 
 
 def _run_databricks(args: list[str]) -> str:
+    # NOTE: check=False + explicit returncode handling so we can INSPECT stderr.
+    # With check=True the CalledProcessError discards the classified message and
+    # (worse) an expired-refresh-token failure would bubble as a generic error
+    # into the SQLAlchemy do_connect hook, where the pool retries + hangs. We
+    # instead detect the auth-expiry signature and raise DatabricksAuthExpired
+    # immediately (non-retryable) with the reauth remediation.
     proc = subprocess.run(
         ["databricks", *args, *_profile_args()],
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
+    if proc.returncode != 0:
+        stderr = (proc.stderr or "").strip()
+        if _AUTH_EXPIRED_RE.search(stderr):
+            profile = os.getenv("DATABRICKS_CONFIG_PROFILE")
+            hint = f" --profile {profile}" if profile else ""
+            raise DatabricksAuthExpired(
+                "Databricks auth session expired , cannot mint a Lakebase "
+                f"credential. Re-authenticate with: databricks auth login{hint}\n"
+                f"(databricks stderr: {stderr})"
+            )
+        raise subprocess.CalledProcessError(
+            proc.returncode, ["databricks", *args], output=proc.stdout, stderr=proc.stderr
+        )
     return proc.stdout
 
 

@@ -2,6 +2,28 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.0
+
+First stable (graduated from the `0.1.0-beta` line). Ships a fail-fast fix for
+expired Databricks authentication, so a dead OAuth session surfaces immediately
+with the `databricks auth login` remediation instead of degrading into a
+credential-mint hang.
+
+- **Auth preflight now exercises the REFRESH token.** `checkDatabricksAuth`
+  (create preflight) and the health doctor's `databricks-auth` check now run
+  `databricks auth token --force-refresh` instead of `current-user me` /
+  `auth describe`. Those older probes are served from the CACHED access token,
+  so they reported "authenticated" even when the refresh token was expired,
+  then credential minting (which needs a fresh token exchange) failed much later
+  inside the app/tests and degraded into a connection hang. Forcing a refresh
+  here fails up front with a clear reason.
+- **The scaffolded Python app fails fast on an expired session instead of
+  hanging.** `app/lakebase_credentials.py` now raises a distinct, non-retryable
+  `DatabricksAuthExpired` (naming `databricks auth login`) when
+  `generate-database-credential` reports an invalid refresh token, rather than
+  letting a raw `CalledProcessError` bubble into the SQLAlchemy `do_connect`
+  pool, where it retried and hung.
+
 ## 0.1.0-beta.11
 
 - **`createProject` accepts a pre-existing EMPTY target directory on the

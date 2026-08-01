@@ -54,6 +54,19 @@ describe("runtime token minting: no static token in scaffolded config", () => {
     expect(cred).toMatch(/LAKEBASE_BRANCH_ID/);
   });
 
+  it("python credential helper FAILS FAST on an expired/invalid auth token (no pool hang)", () => {
+    // When the databricks OAuth refresh token is expired, generate-database-credential
+    // exits nonzero with 'refresh token is invalid ... reauthenticate'. The helper
+    // must detect that and raise a CLEAR, non-retryable error naming the remediation
+    // , NOT let a raw CalledProcessError bubble into the SQLAlchemy pool, which hangs.
+    const cred = read("python/app/lakebase_credentials.py");
+    // Captures stderr (not check=True that discards it) and inspects it.
+    expect(cred).toMatch(/CalledProcessError/);
+    expect(cred).toMatch(/refresh token|reauthenticate|auth login/i);
+    // A distinct, catchable auth-expiry error type , so callers/the pool can fail fast.
+    expect(cred).toMatch(/class DatabricksAuthExpired|DatabricksAuthExpired/);
+  });
+
   it("python database.py injects a minted token per connection + honors explicit DATABASE_URL", () => {
     const db = read("python/app/database.py");
     expect(db).toMatch(/do_connect/);

@@ -1764,12 +1764,13 @@ async function checkLakebaseEnabled(profile, listInstances) {
 }
 async function checkAuth(profile) {
   try {
-    const out = await runDatabricks(["auth", "describe", "-o", "json"], {
+    await runDatabricks(["auth", "token", "--force-refresh", "-o", "json"], {
       profile,
-      timeout: 5e3
+      timeout: 8e3
     });
     let host;
     try {
+      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, timeout: 5e3 });
       const parsed = JSON.parse(out);
       host = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
     } catch {
@@ -1777,16 +1778,16 @@ async function checkAuth(profile) {
     return {
       name: "databricks-auth",
       status: "ok",
-      message: host ? `Authenticated to ${host}` : "Authenticated (no host parsed from describe)",
+      message: host ? `Authenticated to ${host}` : "Authenticated (refresh token valid)",
       detail: { host, profile: profile ?? "default" }
     };
   } catch (err) {
     return {
       name: "databricks-auth",
       status: "fail",
-      message: "databricks auth describe failed",
+      message: "databricks auth token failed (session expired or not logged in)",
       detail: { error: err.message },
-      hint: "Run `databricks auth login --host <your-workspace>` to authenticate."
+      hint: "Run `databricks auth login --host <your-workspace>` to re-authenticate (the OAuth refresh token is expired/invalid)."
     };
   }
 }
