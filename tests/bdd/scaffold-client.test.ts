@@ -53,13 +53,38 @@ describe("deployClientProject", () => {
       "client/src/hooks/useHealth.ts",
       "client/src/components/StatusBadge.tsx",
       "client/src/pages/HomePage.tsx",
+      "client/src/pages/AboutPage.tsx",
       "client/src/styles/theme.css",
+      "client/src/styles/global.css",
+      "client/public/favicon.svg",
       "client/tests/setup.ts",
       "client/tests/e2e/home.spec.ts",
+      "client/tests/e2e/about.spec.ts",
     ]) {
       expect(fs.existsSync(path.join(target, f)), `${f} should be scaffolded`).toBe(true);
       expect(written).toContain(f);
     }
+  });
+
+  it("ships a design vocabulary + a reachable, styled example page (the UX-gate pattern)", () => {
+    const target = mkTarget();
+    deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });
+    // main.tsx imports the component vocabulary so every page can consume it.
+    expect(read(target, "client/src/main.tsx")).toMatch(/styles\/global\.css/);
+    // global.css defines the component classes the token-consumption gate looks for.
+    const global = read(target, "client/src/styles/global.css");
+    for (const cls of [".navbar", ".card", ".btn", ".field", ".table", ".badge", ".empty-state", ".toast"]) {
+      expect(global, `global.css should define ${cls}`).toContain(cls);
+    }
+    // The example page is routed in App.tsx (reachable) and styled (consumes .page/.card).
+    const app = read(target, "client/src/App.tsx");
+    expect(app).toMatch(/element=\{<AboutPage/);
+    expect(app).toMatch(/to="\/about"/); // a nav affordance
+    const about = read(target, "client/src/pages/AboutPage.tsx");
+    expect(about).toMatch(/className="page"/);
+    expect(about).toMatch(/className="card"/);
+    // index.html wires the app-icon slot.
+    expect(read(target, "client/index.html")).toMatch(/rel="icon"[^>]*favicon\.svg/);
   });
 
   it("writes client/.gitignore (from the npm-safe .gitignore.base) so node_modules is not committed", () => {
