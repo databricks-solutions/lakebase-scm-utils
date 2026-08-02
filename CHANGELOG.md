@@ -2,6 +2,27 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.1
+
+Upgrades the React client scaffold so a fresh project ships with a design-system
+vocabulary to apply, an app-icon slot, and a reachable + styled example page ,
+the pattern consort's UX gate (`lakebase-sftdd-ux-clean`) checks for, so a build
+no longer hand-rolls bare, unreachable feature pages.
+
+- **`global.css` component vocabulary.** New shared classes built entirely from
+  `var(--token)`: `page`/`card`/`btn`/`field`/`table`/`badge`/`empty-state`/
+  `toast`/`navbar`. Every feature page composes these instead of raw HTML.
+- **Fuller `theme.css` token set.** The navy scale, semantic light-pill colors,
+  the type scale, the 4px spacing scale, radius (incl the sharp-0 primary CTA),
+  and navy-tinted shadows the vocabulary needs.
+- **App-icon slot.** `public/favicon.svg` (a generic brandable Databricks spark
+  mark), wired into `index.html` and shown in the navbar / page titles.
+- **Reachable, styled example page.** `pages/AboutPage.tsx` is routed in
+  `App.tsx` and linked from a navbar affordance, and `tests/e2e/about.spec.ts`
+  navigates the real app to it , the reachable + styled + navigated pattern to
+  model feature pages on (a bare, unrouted page is what the UX gate flags).
+- `STYLE_GUIDE.md` documents the vocabulary + the icon slot.
+
 ## 0.1.0
 
 First stable (graduated from the `0.1.0-beta` line). Ships a fail-fast fix for
