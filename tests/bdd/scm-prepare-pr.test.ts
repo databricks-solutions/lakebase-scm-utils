@@ -135,14 +135,15 @@ describe("preparePr precondition", () => {
   });
 
   it("scopes the dirty-tree check to CODE: asks isDirty to ignore .sftdd/ + .tdd/ + .lakebase/", async () => {
-    // The driver writes .sftdd log + phase pointer and .lakebase state mid-run, on
+    // The driver writes .consort log + phase pointer and .lakebase state mid-run, on
     // the very step that opens the PR; the guard must tolerate that, refusing only
-    // on uncommitted code. Assert prepare-pr passes the ignore prefixes.
+    // on uncommitted code. Assert prepare-pr passes the ignore prefixes (the current
+    // .consort root plus the legacy .sftdd/.tdd roots for pre-rename projects).
     seedClaim();
     mockIsDirty.mockResolvedValue(false); // no CODE changes once metadata is ignored
     await prep.preparePr({ projectDir: tmpDir });
     expect(mockIsDirty).toHaveBeenCalledWith(
-      expect.objectContaining({ ignore: [".sftdd/", ".tdd/", ".lakebase/", ".claude/agent-memory/"] }),
+      expect.objectContaining({ ignore: [".consort/", ".sftdd/", ".tdd/", ".lakebase/", ".claude/agent-memory/"] }),
     );
   });
 

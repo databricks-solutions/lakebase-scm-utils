@@ -1629,6 +1629,7 @@ import { Client } from "pg";
 var POSTGRES_PORT = 5432;
 var DEFAULT_DATABASE = "databricks_postgres";
 var RUNTIME_ARTIFACT_IGNORE = [
+  ".consort/",
   ".sftdd/",
   ".tdd/",
   ".lakebase/",

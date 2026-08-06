@@ -793,6 +793,7 @@ import { Client } from "pg";
 // scripts/lakebase/constants.ts
 var DEFAULT_DATABASE = "databricks_postgres";
 var RUNTIME_ARTIFACT_IGNORE = [
+  ".consort/",
   ".sftdd/",
   ".tdd/",
   ".lakebase/",

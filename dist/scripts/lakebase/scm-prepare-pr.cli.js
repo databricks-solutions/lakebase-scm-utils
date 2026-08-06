@@ -407,6 +407,7 @@ function parseCiStatus(rawChecks) {
 
 // scripts/lakebase/constants.ts
 var RUNTIME_ARTIFACT_IGNORE = [
+  ".consort/",
   ".sftdd/",
   ".tdd/",
   ".lakebase/",

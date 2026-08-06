@@ -38,6 +38,7 @@ export const DEFAULT_DATABASE = "databricks_postgres";
  * default and callers may extend it per-call.
  */
 export const RUNTIME_ARTIFACT_IGNORE = [
+  ".consort/",
   ".sftdd/",
   ".tdd/",
   ".lakebase/",
