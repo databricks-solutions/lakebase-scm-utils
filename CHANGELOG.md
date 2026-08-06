@@ -2,6 +2,21 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.1.2
+
+Renames the injected setup-hook API to the Consort name, backwards-compatibly ,
+the consort kit renamed its workflow surface to Consort and this lets it drop the
+last external-contract naming exception. Every old name is retained, so existing
+callers keep compiling and running unchanged.
+
+- **`SftddSetupHooks` -> `ConsortSetupHooks`.** The old type name is kept as a
+  structural alias (`type SftddSetupHooks = ConsortSetupHooks`).
+- **`CreateProjectArgs.sftddHooks` -> `consortHooks`.** The old field is still
+  read as a fallback (`consortHooks ?? sftddHooks`).
+- **`AdoptLakebaseProjectArgs.adoptSftddHook` -> `adoptConsortHook`.** The old
+  field is still read as a fallback.
+- No behavior change; the base scaffolder is unchanged apart from the hook names.
+
 ## 0.1.1
 
 Upgrades the React client scaffold so a fresh project ships with a design-system
