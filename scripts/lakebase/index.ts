@@ -26,7 +26,7 @@ export * from "./branch-schema.js";
 export * from "./paired-branch.js";
 export * from "./branch-utils.js";
 export * from "./create-preflight.js";
-// Base project scaffolders (SFTDD-decoupled; the SFTDD kit injects sftddHooks).
+// Base project scaffolders (Consort-decoupled; the Consort kit injects consortHooks).
 // Named export for create-project to avoid re-export ambiguity with env-file /
 // project-verify (which it re-exports for its own callers).
 export {
@@ -34,6 +34,8 @@ export {
   type CreateProjectArgs,
   type CreateProjectResult,
   type ProgressCallback,
+  type ConsortSetupHooks,
+  // @deprecated alias, retained for callers importing the old name.
   type SftddSetupHooks,
 } from "./create-project.js";
 export * from "./adopt-lakebase-project.js";
