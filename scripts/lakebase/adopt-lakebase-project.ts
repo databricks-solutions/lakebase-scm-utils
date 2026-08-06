@@ -41,16 +41,18 @@ export interface AdoptLakebaseProjectArgs {
   /** Databricks workspace URL the project should live under. */
   databricksHost: string;
   /**
-   * Whether to also lay down `.sftdd/` (delegates to the injected hook).
-   * Default: false (brownfield onboarding is incremental; SFTDD adoption
-   * is a separate, opt-in decision). Requires `adoptSftddHook` to take effect.
+   * Whether to also lay down `.consort/` (delegates to the injected hook).
+   * Default: false (brownfield onboarding is incremental; Consort adoption
+   * is a separate, opt-in decision). Requires `adoptConsortHook` to take effect.
    */
   enableSftdd?: boolean;
   /**
-   * Injected SFTDD adoption. When provided (and enableSftdd is true), lays down
-   * the .sftdd/ scaffold on an existing project and returns the project-relative
-   * paths written. Supplied by the SFTDD kit; omitted for a plain SCM adoption.
+   * Injected Consort adoption. When provided (and enableSftdd is true), lays down
+   * the .consort/ scaffold on an existing project and returns the project-relative
+   * paths written. Supplied by the Consort kit; omitted for a plain SCM adoption.
    */
+  adoptConsortHook?: (projectDir: string) => { added: string[] };
+  /** @deprecated renamed to {@link adoptConsortHook}. Still read as a fallback. */
   adoptSftddHook?: (projectDir: string) => { added: string[] };
   /**
    * Whether to wire `[E2E]` Playwright support (delegates to
@@ -178,15 +180,16 @@ export async function adoptLakebaseProject(
     filesWritten.push(".env", ".env.example");
   }
 
-  // Step 4 (opt-in): optional SFTDD adoption, injected by the kit.
-  if (args.enableSftdd && args.adoptSftddHook) {
+  // Step 4 (opt-in): optional Consort adoption, injected by the kit.
+  const adoptConsortHook = args.adoptConsortHook ?? args.adoptSftddHook;
+  if (args.enableSftdd && adoptConsortHook) {
     if (!dryRun) {
-      const result = args.adoptSftddHook(args.projectDir);
+      const result = adoptConsortHook(args.projectDir);
       for (const rel of result.added) {
         filesWritten.push(rel);
       }
     } else {
-      warnings.push("dryRun: skipped enableSftdd. Re-run without --dry-run to drop the .sftdd/ scaffold.");
+      warnings.push("dryRun: skipped enableSftdd. Re-run without --dry-run to drop the .consort/ scaffold.");
     }
   }
 

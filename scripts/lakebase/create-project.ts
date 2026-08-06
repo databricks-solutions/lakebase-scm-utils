@@ -46,10 +46,10 @@ import {
  * supplies these hooks. When omitted, createProject
  * creates a plain SCM project with no .sftdd/ artifacts.
  */
-export interface SftddSetupHooks {
-  /** Lay down the .sftdd/ bootstrap scaffold into the project dir. */
+export interface ConsortSetupHooks {
+  /** Lay down the .consort/ bootstrap scaffold into the project dir. */
   layDownScaffold(projectDir: string): void;
-  /** Seed .lakebase/sftdd-config.json (per-role models, uiTrack, clientFramework). */
+  /** Seed .lakebase/consort-config.json (per-role models, uiTrack, clientFramework). */
   seedConfig(
     projectDir: string,
     opts: {
@@ -59,6 +59,10 @@ export interface SftddSetupHooks {
     },
   ): void;
 }
+
+/** @deprecated renamed to {@link ConsortSetupHooks}. Kept as a structural alias
+ *  so callers importing the old name keep compiling. */
+export type SftddSetupHooks = ConsortSetupHooks;
 
 export interface CreateProjectArgs {
   /** Project name (Lakebase project id and local directory name). */
@@ -157,11 +161,14 @@ export interface CreateProjectArgs {
    */
   agentModels?: Record<string, string>;
   /**
-   * SFTDD setup hooks. When provided (and enableSftdd is not false), the base
-   * scaffold lays down the .sftdd/ bootstrap and seeds sftdd-config.json via
+   * Consort setup hooks. When provided (and enableSftdd is not false), the base
+   * scaffold lays down the .consort/ bootstrap and seeds consort-config.json via
    * these injected hooks. The kit supplies them; a plain SCM consumer omits them.
    */
-  sftddHooks?: SftddSetupHooks;
+  consortHooks?: ConsortSetupHooks;
+  /** @deprecated renamed to {@link CreateProjectArgs.consortHooks}. Still read as
+   *  a fallback so existing callers keep working; prefer `consortHooks`. */
+  sftddHooks?: ConsortSetupHooks;
 }
 
 export interface CreateProjectResult {
@@ -347,10 +354,11 @@ export async function createProject(
     report: (m, d) => report(m, d),
   });
 
-  // ── Step 5b: .sftdd/ scaffold (injected by the SFTDD kit) ────────
-  if (enableSftdd && input.sftddHooks) {
-    report("Scaffolding .sftdd/ workflow directory...");
-    input.sftddHooks.layDownScaffold(projectDir);
+  // ── Step 5b: .consort/ scaffold (injected by the Consort kit) ────────
+  const consortHooks = input.consortHooks ?? input.sftddHooks;
+  if (enableSftdd && consortHooks) {
+    report("Scaffolding .consort/ workflow directory...");
+    consortHooks.layDownScaffold(projectDir);
   }
 
   // ── Step 5c: Playwright E2E wire-up (phase 2) ────────
@@ -469,9 +477,9 @@ export async function createProject(
   // project.uiTrack from the create-time input (the one way in for the UX lane).
   // Written before the initial commit so it is tracked, like workflow-state.json.
   // Best-effort: a failure is a warning; the code defaults still apply.
-  if (enableSftdd && input.sftddHooks) {
+  if (enableSftdd && consortHooks) {
     try {
-      input.sftddHooks.seedConfig(projectDir, {
+      consortHooks.seedConfig(projectDir, {
         agentModels: input.agentModels,
         uiTrack,
         clientFramework,

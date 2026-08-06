@@ -5331,9 +5331,10 @@ Last probe error:
         clientFramework,
         report: (m, d) => report(m, d)
       });
-      if (enableSftdd && input.sftddHooks) {
-        report("Scaffolding .sftdd/ workflow directory...");
-        input.sftddHooks.layDownScaffold(projectDir);
+      const consortHooks = input.consortHooks ?? input.sftddHooks;
+      if (enableSftdd && consortHooks) {
+        report("Scaffolding .consort/ workflow directory...");
+        consortHooks.layDownScaffold(projectDir);
       }
       if (enableE2e) {
         report("Wiring Playwright E2E support...");
@@ -5414,9 +5415,9 @@ Last probe error:
           `SCM workflow-state seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. Run lakebase-scm-state to inspect.`
         );
       }
-      if (enableSftdd && input.sftddHooks) {
+      if (enableSftdd && consortHooks) {
         try {
-          input.sftddHooks.seedConfig(projectDir, {
+          consortHooks.seedConfig(projectDir, {
             agentModels: input.agentModels,
             uiTrack,
             clientFramework
@@ -5571,14 +5572,15 @@ async function adoptLakebaseProject(args) {
     }
     filesWritten.push(".env", ".env.example");
   }
-  if (args.enableSftdd && args.adoptSftddHook) {
+  const adoptConsortHook = args.adoptConsortHook ?? args.adoptSftddHook;
+  if (args.enableSftdd && adoptConsortHook) {
     if (!dryRun) {
-      const result = args.adoptSftddHook(args.projectDir);
+      const result = adoptConsortHook(args.projectDir);
       for (const rel of result.added) {
         filesWritten.push(rel);
       }
     } else {
-      warnings.push("dryRun: skipped enableSftdd. Re-run without --dry-run to drop the .sftdd/ scaffold.");
+      warnings.push("dryRun: skipped enableSftdd. Re-run without --dry-run to drop the .consort/ scaffold.");
     }
   }
   if (args.enableE2e) {
