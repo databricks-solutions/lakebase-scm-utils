@@ -57,7 +57,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   return out;
 }
 
-const HELP = `lakebase-scm-cleanup , tear down a project's Lakebase SCM resources
+const HELP = `lakebase-scm-cleanup: tear down a project's Lakebase SCM resources
 
 Usage:
   lakebase-scm-cleanup <mode> --instance <id> [flags]

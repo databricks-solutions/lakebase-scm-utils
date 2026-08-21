@@ -40,6 +40,7 @@ export default defineConfig({
     "scripts/lakebase/scm-recover-orphans.cli": "scripts/lakebase/scm-recover-orphans.cli.ts",
     "scripts/lakebase/scm-doctor.cli": "scripts/lakebase/scm-doctor.cli.ts",
     "scripts/lakebase/scm-feature-branch.cli": "scripts/lakebase/scm-feature-branch.cli.ts",
+    "scripts/lakebase/scm-cleanup.cli": "scripts/lakebase/scm-cleanup.cli.ts",
   },
   outDir: "dist",
   format: ["esm", "cjs"],

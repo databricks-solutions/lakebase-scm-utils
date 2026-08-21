@@ -2,6 +2,21 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.0
+
+Adds the `lakebase-scm-cleanup` teardown bin and fixes the doctor's JDK version gate.
+
+- **`lakebase-scm-cleanup`**: safe cleanup / destroy for a project's Lakebase resources —
+  `list` (classify trunk / tier / ephemeral), `branches` (delete the ephemeral
+  feature/test/uat/perf/spike branches; tiers and the trunk branch are protected), and
+  `project` (destroy the whole Lakebase project, guarded by `--confirm <id>`). Dry-run by
+  default (`--yes` to apply), idempotent, and partial-failure-honest.
+- **fix(doctor): enforce the JDK version floor.** `java -version` writes to stderr and exits
+  0, so the stdout-only runner resolved `""` and the version gate short-circuited on
+  `&& version`, reporting JDK OK on any version (11 and 22 alike). The version runner now
+  captures stdout+stderr, and the gate fails closed: a floored tool with an unreadable version
+  warns instead of passing silently.
+
 ## 0.1.2
 
 Renames the injected setup-hook API to the Consort name, backwards-compatibly ,

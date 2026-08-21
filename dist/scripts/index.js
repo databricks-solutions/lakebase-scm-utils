@@ -8552,6 +8552,7 @@ function shellEscape3(s) {
 // scripts/lakebase/doctor.ts
 import * as fs30 from "fs";
 import * as path29 from "path";
+import * as cp6 from "child_process";
 
 // scripts/lakebase/workflow-drift.ts
 import * as fs29 from "fs";
@@ -8887,7 +8888,15 @@ async function checkDatabricksCli() {
     };
   }
 }
-var defaultVersionRunner = (cmd, args) => exec2(`${cmd} ${args.join(" ")}`, { timeout: 5e3 });
+var defaultVersionRunner = (cmd, args) => new Promise((resolve2, reject) => {
+  cp6.execFile(cmd, args, { timeout: 5e3 }, (err, stdout, stderr) => {
+    const combined = `${stdout ?? ""}
+${stderr ?? ""}`.trim();
+    if (combined) return resolve2(combined);
+    if (err) return reject(err);
+    resolve2("");
+  });
+});
 function parseVersion(s) {
   const m = s.match(/v?(\d+)(?:\.(\d+))?/);
   if (!m) return null;
@@ -8956,14 +8965,25 @@ async function checkPrereq(spec, run) {
   }
   const trimmed = raw.trim().split("\n")[0]?.trim() ?? raw.trim();
   const version = parseVersion(trimmed);
-  if (spec.minMajor !== null && version && version.major < spec.minMajor) {
-    return {
-      name: spec.name,
-      status: "warn",
-      message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
-      detail: { version: trimmed, minMajor: spec.minMajor },
-      hint: spec.hint
-    };
+  if (spec.minMajor !== null) {
+    if (!version) {
+      return {
+        name: spec.name,
+        status: "warn",
+        message: `${spec.label} present but version unreadable - kit expects ${spec.minMajor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor },
+        hint: spec.hint
+      };
+    }
+    if (version.major < spec.minMajor) {
+      return {
+        name: spec.name,
+        status: "warn",
+        message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor },
+        hint: spec.hint
+      };
+    }
   }
   return {
     name: spec.name,
