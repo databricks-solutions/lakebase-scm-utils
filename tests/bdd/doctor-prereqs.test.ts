@@ -93,6 +93,27 @@ describe("checkPrerequisites (cold-start Node/Python/JDK/gh/npm)", () => {
     expect(jdk.status).toBe("ok");
     expect(jdk.message).toContain("17");
   });
+
+  it("does NOT report ok for a version-floored tool when the version can't be read (fail-closed)", async () => {
+    // Regression: real `java -version` writes to stderr and exits 0, so a
+    // stdout-only runner resolved "" -> parseVersion(null) -> the gate
+    // `minMajor && version && ...` short-circuited on `&& version` and reported
+    // jdk OK on ANY JDK. A present-but-unreadable version for a floored tool must
+    // fail closed (warn), never pass silently.
+    const run = fakeRunner({
+      node: "v20.11.0",
+      npm: "10.2.4",
+      python3: "Python 3.11.7",
+      java: "", // present but empty output (the exec-drops-stderr symptom)
+      gh: "gh version 2.40.1",
+    });
+    const results = await checkPrerequisites(run);
+    const jdk = results.find((r) => r.name === "jdk")!;
+    expect(jdk.status).not.toBe("ok");
+    expect(jdk.status).toBe("warn");
+    expect(jdk.message).toContain("17+");
+    expect(jdk.hint).toBeTruthy();
+  });
 });
 
 describe("checkLakebaseEnabled (workspace has Lakebase turned on)", () => {

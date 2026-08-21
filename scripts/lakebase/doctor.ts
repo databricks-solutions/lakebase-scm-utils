@@ -5,6 +5,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as cp from "node:child_process";
 import { exec } from "../util/exec.js";
 import { runDatabricks } from "./databricks-cli.js";
 import { resolveDatabricksHost } from "./databricks-host.js";
@@ -117,8 +118,21 @@ export type VersionRunner = (
   args: string[]
 ) => Promise<string>;
 
+// Version commands are inconsistent about which stream they use: `node --version`
+// writes to stdout, but `java -version` writes to STDERR and still exits 0. The
+// shared `exec` resolves stdout only, so a stdout-empty tool like java would come
+// back "" and slip past the version gate. Capture BOTH streams here (and spawn
+// directly, no shell, so the command text can't contaminate parsing). Treat the
+// tool as missing only when it produced no output at all AND the spawn failed.
 const defaultVersionRunner: VersionRunner = (cmd, args) =>
-  exec(`${cmd} ${args.join(" ")}`, { timeout: 5_000 });
+  new Promise<string>((resolve, reject) => {
+    cp.execFile(cmd, args, { timeout: 5_000 }, (err, stdout, stderr) => {
+      const combined = `${stdout ?? ""}\n${stderr ?? ""}`.trim();
+      if (combined) return resolve(combined);
+      if (err) return reject(err);
+      resolve("");
+    });
+  });
 
 /** Parse the first `MAJOR.MINOR` (optionally `MAJOR`) from a version string. */
 function parseVersion(s: string): { major: number; minor: number } | null {
@@ -189,9 +203,10 @@ const PREREQS: PrereqSpec[] = [
  * Presence + version check for one cold-start prerequisite. Python 3.10 is the
  * documented floor, but the kit only hard-requires major 3 (3.10 vs 3.11 is not
  * something we can reliably gate cross-distro), so minMajor is the major-line
- * floor. `java -version` prints to stderr, which `exec` folds into the rejection
- * message, so on the happy path we read stdout and on failure we still parse the
- * error text for a version before concluding it is absent.
+ * floor. The default runner captures stdout+stderr (some tools, e.g. `java
+ * -version`, print the version to stderr and exit 0), so the happy path parses
+ * either stream. If the tool is genuinely absent the runner rejects, and we still
+ * parse the error text for a version before concluding it is missing.
  */
 async function checkPrereq(
   spec: PrereqSpec,
@@ -201,7 +216,7 @@ async function checkPrereq(
   try {
     raw = await run(spec.cmd, spec.versionArgs);
   } catch (err) {
-    // `java -version` writes to stderr; exec rejects with that text attached.
+    // The runner rejects only when the spawn failed (e.g. ENOENT / not on PATH).
     // Recover a version from the error message before declaring it missing, but
     // ONLY when the text actually reads like version output (contains the word
     // "version"). Otherwise a "command not found" message for a cmd whose name
@@ -223,14 +238,28 @@ async function checkPrereq(
 
   const trimmed = raw.trim().split("\n")[0]?.trim() ?? raw.trim();
   const version = parseVersion(trimmed);
-  if (spec.minMajor !== null && version && version.major < spec.minMajor) {
-    return {
-      name: spec.name,
-      status: "warn",
-      message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
-      detail: { version: trimmed, minMajor: spec.minMajor },
-      hint: spec.hint,
-    };
+  if (spec.minMajor !== null) {
+    if (!version) {
+      // Present but no version could be parsed (empty / garbled output). Do NOT
+      // fall through to "ok" — that fails OPEN and lets any version past the floor.
+      // Fail closed: warn that the floor is unverified, with the remediation hint.
+      return {
+        name: spec.name,
+        status: "warn",
+        message: `${spec.label} present but version unreadable - kit expects ${spec.minMajor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor },
+        hint: spec.hint,
+      };
+    }
+    if (version.major < spec.minMajor) {
+      return {
+        name: spec.name,
+        status: "warn",
+        message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor },
+        hint: spec.hint,
+      };
+    }
   }
   return {
     name: spec.name,
