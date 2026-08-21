@@ -1,6 +1,17 @@
 # Build Plan — cleanup / destroy bin (`lakebase-scm-cleanup`)
 
-**Status:** design, not built. **Goal:** a safe, user-facing command to tear down the
+**Status: IMPLEMENTED (Lakebase core).** `scripts/lakebase/scm-cleanup.{ts,cli.ts}` +
+`tests/bdd/scm-cleanup.test.ts` + the `lakebase-scm-cleanup` bin. Modes shipped: `list`
+(classify trunk/tier/ephemeral; deletes nothing), `branches` (delete ephemeral
+feature/test/uat/perf/spike branches — tier + trunk protected), `project` (destroy the whole
+Lakebase project, guarded by `--confirm <id>`). Dry-run by default, `--yes` to apply,
+idempotent, partial-failure-honest. Covered by existing bins (not duplicated): single
+in-flight feature → `lakebase-scm-abandon-feature`; orphans → `lakebase-scm-recover-orphans`.
+Deferred to the composing layer (consort/extension, which knows the project dir): git-branch
++ local-worktree/`.consort` removal and `--instance` resolution from workflow state. Original
+design follows.
+
+**Goal:** a safe, user-facing command to tear down the
 kit-created resources for a project — the throwaway half of the scaffold/`/spike` story
 (the PRD sells "just try it and throw it away"), plus routine pruning of spikes, merged/
 abandoned feature branches, and orphaned Lakebase branches, and a guarded full-project

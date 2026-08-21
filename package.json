@@ -96,6 +96,7 @@
     "lakebase-scm-abandon-feature": "./dist/scripts/lakebase/scm-abandon-feature.cli.js",
     "lakebase-scm-adopt-state": "./dist/scripts/lakebase/scm-adopt-state.cli.js",
     "lakebase-scm-claim-feature-branch": "./dist/scripts/lakebase/scm-claim-feature.cli.js",
+    "lakebase-scm-cleanup": "./dist/scripts/lakebase/scm-cleanup.cli.js",
     "lakebase-scm-doctor": "./dist/scripts/lakebase/scm-doctor.cli.js",
     "lakebase-scm-feature-branch": "./dist/scripts/lakebase/scm-feature-branch.cli.js",
     "lakebase-scm-merge": "./dist/scripts/lakebase/scm-merge.cli.js",
