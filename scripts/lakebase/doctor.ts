@@ -330,30 +330,38 @@ export async function checkLakebaseEnabled(
   }
 }
 
-async function checkAuth(profile?: string): Promise<CheckResult> {
+async function checkAuth(profile?: string, host?: string): Promise<CheckResult> {
   try {
     // `auth token --force-refresh` forces a REFRESH-token exchange, so an EXPIRED
     // refresh token fails HERE. `auth describe` only reads local config and would
     // report "authenticated" on a dead session (the masking bug that let expired
     // creds surface much later as a credential-mint hang). We still best-effort
     // read the host from `auth describe` for the message only.
+    //
+    // Thread `host` (sets DATABRICKS_HOST): when the caller pins the TARGET workspace
+    // (e.g. create-project's --databricks-host) but no explicit profile, this makes the
+    // auth check resolve against that workspace instead of falling back to the DEFAULT
+    // profile (whose token may be stale) , the false-failure runDoctor's caller now avoids
+    // by also resolving the host's profile up front.
     await runDatabricks(["auth", "token", "--force-refresh", "-o", "json"], {
       profile,
+      host,
       timeout: 8_000,
     });
-    let host: string | undefined;
+    let describedHost: string | undefined;
     try {
-      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, timeout: 5_000 });
+      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, host, timeout: 5_000 });
       const parsed = JSON.parse(out);
-      host = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
+      describedHost = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
     } catch {
       // host is cosmetic; the refresh-token exchange above already proved auth.
     }
+    const shownHost = describedHost ?? host;
     return {
       name: "databricks-auth",
       status: "ok",
-      message: host ? `Authenticated to ${host}` : "Authenticated (refresh token valid)",
-      detail: { host, profile: profile ?? "default" },
+      message: shownHost ? `Authenticated to ${shownHost}` : "Authenticated (refresh token valid)",
+      detail: { host: shownHost, profile: profile ?? "default" },
     };
   } catch (err) {
     return {
@@ -366,10 +374,11 @@ async function checkAuth(profile?: string): Promise<CheckResult> {
   }
 }
 
-async function checkIdentity(profile?: string): Promise<CheckResult> {
+async function checkIdentity(profile?: string, host?: string): Promise<CheckResult> {
   try {
     const out = await runDatabricks(["current-user", "me", "-o", "json"], {
       profile,
+      host,
       timeout: 5_000,
     });
     let user: string | undefined;
@@ -630,22 +639,36 @@ function worstOf(statuses: CheckStatus[]): CheckStatus {
  */
 export async function runDoctor(args: DoctorArgs = {}): Promise<DoctorReport> {
   const projectDir = args.projectDir ?? process.cwd();
-  const profile = args.profile ?? process.env.DATABRICKS_CONFIG_PROFILE;
+  let profile = args.profile ?? process.env.DATABRICKS_CONFIG_PROFILE;
+  let host = args.host;
+
+  // When the caller pinned the TARGET workspace host (e.g. create-project passes
+  // --databricks-host) but no explicit profile, resolve the profile that matches THAT
+  // host so the auth check runs against the target workspace. Without this, an unset
+  // profile makes `databricks auth token` fall back to the DEFAULT profile , whose token
+  // may be stale/expired , and the doctor fails spuriously even though the target
+  // workspace authenticates fine. The host is also threaded into the checks below.
+  if (!profile && host) {
+    try {
+      profile = await resolveProfileForHost(host);
+    } catch {
+      // best-effort; host is still threaded into checkAuth (sets DATABRICKS_HOST).
+    }
+  }
 
   const cli = await checkDatabricksCli();
-  const auth = cli.status === "ok" ? await checkAuth(profile) : {
+  const auth = cli.status === "ok" ? await checkAuth(profile, host) : {
     name: "databricks-auth",
     status: "skip" as CheckStatus,
     message: "Skipped: databricks CLI not available",
   };
 
-  const identity = auth.status === "ok" ? await checkIdentity(profile) : {
+  const identity = auth.status === "ok" ? await checkIdentity(profile, host) : {
     name: "workspace-identity",
     status: "skip" as CheckStatus,
     message: "Skipped: auth check failed",
   };
 
-  let host = args.host;
   if (!host && auth.status === "ok") {
     try {
       // resolveDatabricksHost requires a profile string; fall back to

@@ -2,6 +2,19 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.2
+
+Doctor auth fix.
+
+- **fix(doctor): resolve the profile from the pinned host + thread the host into the auth
+  checks.** When a caller pins the TARGET workspace (`create-project`'s `--databricks-host`)
+  but no explicit profile, `runDoctor` now resolves the profile that matches that host up
+  front and threads the host (sets `DATABRICKS_HOST`) into the `auth token` / `auth describe` /
+  `current-user` probes. Previously an unset profile made `databricks auth token` fall back to
+  the DEFAULT profile , whose refresh token may be stale , so the doctor failed spuriously even
+  though the target workspace authenticated fine. An explicit `--profile` still wins (no
+  host-based resolution). Covered by `tests/bdd/doctor-auth-host.test.ts`.
+
 ## 0.2.1
 
 Scaffold + teardown polish.

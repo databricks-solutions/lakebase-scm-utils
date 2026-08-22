@@ -9079,24 +9079,26 @@ async function checkLakebaseEnabled(profile, listInstances) {
     };
   }
 }
-async function checkAuth(profile) {
+async function checkAuth(profile, host) {
   try {
     await runDatabricks(["auth", "token", "--force-refresh", "-o", "json"], {
       profile,
+      host,
       timeout: 8e3
     });
-    let host;
+    let describedHost;
     try {
-      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, timeout: 5e3 });
+      const out = await runDatabricks(["auth", "describe", "-o", "json"], { profile, host, timeout: 5e3 });
       const parsed = JSON.parse(out);
-      host = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
+      describedHost = parsed?.details?.host ?? parsed?.host ?? parsed?.host_name;
     } catch {
     }
+    const shownHost = describedHost ?? host;
     return {
       name: "databricks-auth",
       status: "ok",
-      message: host ? `Authenticated to ${host}` : "Authenticated (refresh token valid)",
-      detail: { host, profile: profile ?? "default" }
+      message: shownHost ? `Authenticated to ${shownHost}` : "Authenticated (refresh token valid)",
+      detail: { host: shownHost, profile: profile ?? "default" }
     };
   } catch (err) {
     return {
@@ -9108,10 +9110,11 @@ async function checkAuth(profile) {
     };
   }
 }
-async function checkIdentity(profile) {
+async function checkIdentity(profile, host) {
   try {
     const out = await runDatabricks(["current-user", "me", "-o", "json"], {
       profile,
+      host,
       timeout: 5e3
     });
     let user;
@@ -9338,19 +9341,25 @@ function worstOf2(statuses) {
 }
 async function runDoctor2(args = {}) {
   const projectDir = args.projectDir ?? process.cwd();
-  const profile = args.profile ?? process.env.DATABRICKS_CONFIG_PROFILE;
+  let profile = args.profile ?? process.env.DATABRICKS_CONFIG_PROFILE;
+  let host = args.host;
+  if (!profile && host) {
+    try {
+      profile = await resolveProfileForHost(host);
+    } catch {
+    }
+  }
   const cli = await checkDatabricksCli();
-  const auth = cli.status === "ok" ? await checkAuth(profile) : {
+  const auth = cli.status === "ok" ? await checkAuth(profile, host) : {
     name: "databricks-auth",
     status: "skip",
     message: "Skipped: databricks CLI not available"
   };
-  const identity = auth.status === "ok" ? await checkIdentity(profile) : {
+  const identity = auth.status === "ok" ? await checkIdentity(profile, host) : {
     name: "workspace-identity",
     status: "skip",
     message: "Skipped: auth check failed"
   };
-  let host = args.host;
   if (!host && auth.status === "ok") {
     try {
       host = await resolveDatabricksHost({ profile: profile ?? "DEFAULT" });
