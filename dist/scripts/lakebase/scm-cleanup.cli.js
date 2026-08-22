@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// scripts/lakebase/scm-cleanup.cli.ts
+import * as path2 from "path";
+
 // scripts/util/cli-entry.ts
 import { realpathSync } from "fs";
 import { fileURLToPath } from "url";
@@ -19,6 +22,20 @@ function isCliEntry(importMetaUrl) {
     return false;
   }
   return invokedResolved === moduleResolved;
+}
+
+// scripts/lakebase/env-file.ts
+import * as fs from "fs";
+import * as path from "path";
+function readEnvVar(envPath, key) {
+  if (!fs.existsSync(envPath)) return void 0;
+  let value;
+  for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
+    value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
+  }
+  return value && value.length > 0 ? value : void 0;
 }
 
 // scripts/lakebase/databricks-cli.ts
@@ -67,7 +84,7 @@ var KIT_REGISTRIES = {
 };
 
 // scripts/lakebase/databricks-profile.ts
-import * as fs from "fs";
+import * as fs2 from "fs";
 import { execFileSync } from "child_process";
 
 // scripts/util/exec.ts
@@ -111,20 +128,6 @@ function resolveProfileForHostSync(host, timeoutMs = KIT_TIMEOUTS.cliDefault) {
     return void 0;
   }
   return selectProfileForHost(out, host);
-}
-
-// scripts/lakebase/env-file.ts
-import * as fs2 from "fs";
-import * as path from "path";
-function readEnvVar(envPath, key) {
-  if (!fs2.existsSync(envPath)) return void 0;
-  let value;
-  for (const line of fs2.readFileSync(envPath, "utf-8").split("\n")) {
-    const trimmed = line.trimStart();
-    if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
-    value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
-  }
-  return value && value.length > 0 ? value : void 0;
 }
 
 // scripts/lakebase/databricks-cli.ts
@@ -248,9 +251,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path2) {
-  if (!path2.includes("/branches/")) return null;
-  const leaf = path2.split("/branches/").pop();
+function branchNameFromResourcePath(path3) {
+  if (!path3.includes("/branches/")) return null;
+  const leaf = path3.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -447,7 +450,7 @@ async function runCleanup(mode, opts) {
 // scripts/lakebase/scm-cleanup.cli.ts
 var MODES = /* @__PURE__ */ new Set(["list", "branches", "project"]);
 function parseArgs(argv) {
-  const out = { mode: "list", apply: false, json: false, pretty: false, help: false };
+  const out = { mode: "list", projectDir: process.cwd(), apply: false, json: false, pretty: false, help: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -457,6 +460,9 @@ function parseArgs(argv) {
         break;
       case "--host":
         out.host = argv[++i];
+        break;
+      case "--project-dir":
+        out.projectDir = argv[++i];
         break;
       case "--yes":
         out.apply = true;
@@ -493,12 +499,22 @@ Modes:
   project    DESTROY the whole project (all branches + the project) - needs --confirm <id>
 
 Flags:
-  --instance <id>   Lakebase project id (required)
-  --host <url>      DATABRICKS_HOST override
+  --instance <id>   Lakebase project id. Optional: defaults to LAKEBASE_PROJECT_ID
+                    from the project .env (what create-project recorded), so it can be
+                    run from inside a scaffolded project without re-specifying it.
+  --host <url>      DATABRICKS_HOST override (defaults to DATABRICKS_HOST in the .env)
+  --project-dir <d> where to read the .env from (default: cwd)
   --yes             actually delete (default: dry-run, plan only)
   --confirm <id>    required for 'project'; must equal --instance
   --json | --pretty output format
 `;
+function resolveFromEnv(projectDir) {
+  const envPath = path2.join(projectDir, ".env");
+  return {
+    instance: readEnvVar(envPath, "LAKEBASE_PROJECT_ID"),
+    host: readEnvVar(envPath, "DATABRICKS_HOST")
+  };
+}
 function render(r) {
   const head = `cleanup ${r.mode} on ${r.instance} ${r.dryRun ? "(DRY RUN - nothing deleted)" : r.applied ? "(applied)" : "(FAILED - see below)"}
   branches: ${r.counts.trunk} trunk, ${r.counts.tiers} tier(s), ${r.counts.ephemeral} ephemeral
@@ -524,10 +540,15 @@ ${HELP}`);
     process.stdout.write(HELP);
     return 0;
   }
+  const fromEnv = resolveFromEnv(args.projectDir);
+  if (!args.instance) args.instance = fromEnv.instance;
+  if (!args.host) args.host = fromEnv.host;
   if (!args.instance) {
-    process.stderr.write(`--instance <project-id> is required
+    process.stderr.write(
+      `--instance <project-id> is required (or run from a project dir whose .env has LAKEBASE_PROJECT_ID)
 
-${HELP}`);
+${HELP}`
+    );
     return 2;
   }
   try {
@@ -550,6 +571,7 @@ if (isCliEntry(import.meta.url)) {
   runCleanupCli(process.argv.slice(2)).then((code) => process.exit(code));
 }
 export {
+  resolveFromEnv,
   runCleanupCli
 };
 //# sourceMappingURL=scm-cleanup.cli.js.map

@@ -5517,7 +5517,7 @@ Last probe error:
       }
       report("Project created successfully!");
       if (enableSftdd) {
-        report(`Next: cd ${projectDir} && ./scripts/sftdd.sh plan`);
+        report(`Next: cd ${projectDir} && ./scripts/consort.sh plan`);
       }
       report(`Review the running app: cd ${projectDir} && ./scripts/run-dev.sh`);
       return {

@@ -2,6 +2,19 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.1
+
+Scaffold + teardown polish.
+
+- **fix(scaffold): the project launcher template is now `scripts/consort.sh`** (was the
+  stale pre-rename `scripts/sftdd.sh`), matching the consort commands + docs;
+  `lakebase-create-project`'s "Next:" hint points at `./scripts/consort.sh plan`. Existing
+  scaffolded projects keep their `sftdd.sh` (still works); new scaffolds get `consort.sh`.
+- **feat(cleanup): `lakebase-scm-cleanup` defaults `--instance` / `--host` from the project
+  `.env`** (`LAKEBASE_PROJECT_ID` / `DATABRICKS_HOST`, what create-project records) when not
+  passed, so it can be run from inside a scaffolded project without re-specifying them.
+  Explicit flags still win; `--project-dir` selects the `.env`.
+
 ## 0.2.0
 
 Adds the `lakebase-scm-cleanup` teardown bin and fixes the doctor's JDK version gate.
