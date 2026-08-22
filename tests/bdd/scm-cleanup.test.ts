@@ -3,7 +3,11 @@
 // default, tier+trunk protection, project double-confirm, and partial failure.
 
 import { describe, it, expect } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { runCleanup, ScmCleanupError } from "../../scripts/lakebase/scm-cleanup.js";
+import { resolveFromEnv } from "../../scripts/lakebase/scm-cleanup.cli.js";
 import type { LakebaseBranchInfo } from "../../scripts/lakebase/branch-utils.js";
 
 function mkBranch(nameLeaf: string, o: Partial<LakebaseBranchInfo> = {}): LakebaseBranchInfo {
@@ -106,5 +110,32 @@ describe("runCleanup", () => {
     expect(r.dryRun).toBe(true);
     expect(h.projectsDeleted).toEqual([]);
     expect(r.actions.some((a) => a.kind === "project" && a.action === "delete")).toBe(true);
+  });
+});
+
+describe("resolveFromEnv (pair cleanup with create-project's .env)", () => {
+  it("reads LAKEBASE_PROJECT_ID + DATABRICKS_HOST from the project .env", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cleanup-env-"));
+    try {
+      fs.writeFileSync(
+        path.join(dir, ".env"),
+        "DATABRICKS_HOST=https://dbc-x.cloud.databricks.com\nLAKEBASE_PROJECT_ID=my-instance\n",
+      );
+      expect(resolveFromEnv(dir)).toEqual({
+        instance: "my-instance",
+        host: "https://dbc-x.cloud.databricks.com",
+      });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns undefined keys when there is no .env (caller then requires --instance)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cleanup-noenv-"));
+    try {
+      expect(resolveFromEnv(dir)).toEqual({ instance: undefined, host: undefined });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
