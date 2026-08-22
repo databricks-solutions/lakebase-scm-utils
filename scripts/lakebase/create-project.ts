@@ -625,8 +625,8 @@ export async function createProject(
   report("Project created successfully!");
   if (enableSftdd) {
     // Point the user at the convenient workflow launcher (scaffolded into
-    // scripts/sftdd.sh): it drives the deterministic orchestrator.
-    report(`Next: cd ${projectDir} && ./scripts/sftdd.sh plan`);
+    // scripts/consort.sh): it drives the deterministic orchestrator.
+    report(`Next: cd ${projectDir} && ./scripts/consort.sh plan`);
   }
   // Every project ships run-dev.sh so a human can open the running app in a
   // browser to review it (the working-software review the deploy gate signs off).
