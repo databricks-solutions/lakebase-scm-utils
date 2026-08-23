@@ -2,6 +2,17 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.8
+
+Completes the CJS-consumability fix (0.2.7 bundled only `octokit`).
+
+- **fix(cjs): also bundle `@databricks/*` (`@databricks/lakebase`, `@databricks/appkit`).**
+  They are ESM-only too, so after 0.2.7 the CJS build still threw `ERR_REQUIRE_ESM` on
+  `require("@databricks/lakebase")` in the extension host (traced from `lakebase-scm-extension`'s
+  activation log). tsup `noExternal` now covers `octokit`, `@octokit/*`, AND `@databricks/*`;
+  verified ZERO `require()` of any ESM-only dep remains in the `.cjs` output, so the extension
+  activates cleanly (trees + commands register). Confirmed live in Cursor before release.
+
 ## 0.2.7
 
 CJS-consumability fix + leaner create.
