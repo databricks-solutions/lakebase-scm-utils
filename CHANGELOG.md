@@ -2,6 +2,27 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.6
+
+Central workspace resolution + kit-download UX.
+
+- **fix(central): every `databricks` call now auto-targets the project's workspace.**
+  `buildInvocation` (the one wrapper all CLI calls go through) already read `.env`
+  `DATABRICKS_CONFIG_PROFILE`; it now also reads `.env` `DATABRICKS_HOST` via a single
+  `effectiveHost()` resolver (`opts.host` -> exported `DATABRICKS_HOST` -> `<cwd>/.env`
+  `DATABRICKS_HOST`), threaded into both the child env and the profile host-match. So any
+  in-project call , doctor, tier-cut, drive auth preflight, credential mint, the agents ,
+  targets the project workspace instead of silently falling back to the DEFAULT profile.
+  This closes centrally the class the doctor (0.2.2) and tier-cut (0.2.5) fixes patched
+  pointwise; no caller can regress it by forgetting to thread a host.
+- **feat(lk): plain-language install/refresh + narration.** `--install` / `--refresh`
+  (and `--download`/`--update`/`--reinstall`) alias the old `--warm`/`--rewarm`; the
+  install narrates ("Downloading the Consort toolkit … one-time, ~1-2 min … ready") and
+  runs leaner (`--omit=dev --no-audit --no-fund`).
+- **feat(create): create-project narrates.** An upfront one-time-provisioning plan
+  (repo / Lakebase / files / runner / toolkit [/ tiers]) with the slow steps' durations,
+  and plain "Consort toolkit" wording (was "warm the kit cache").
+
 ## 0.2.5
 
 Tier-cut auth fix + recovery bin.

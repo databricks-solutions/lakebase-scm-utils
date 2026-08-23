@@ -154,12 +154,13 @@ export function warmAndVerifyKit(projectDir: string, timeoutMs = 180_000): Prefl
   return { ok: true };
 }
 
-/** The loud, specific warning for a failed kit warm (W3). */
+/** The loud, specific warning for a failed toolkit download at create time (W3). */
 export function kitWarmWarning(projectDir: string, reason?: string): string {
   return (
-    `Kit could not be warmed at create: ${reason ?? "unknown reason"}. ` +
-    "Commit-time schema diff will be unavailable until the kit warms; run: " +
-    `(cd ${projectDir} && ./scripts/lk --warm). Check network access to github.com / npm.`
+    `The Consort toolkit didn't finish downloading during setup: ${reason ?? "unknown reason"}. ` +
+    "It's a one-time download; commit-time schema diff stays unavailable until it completes. " +
+    `Finish it now: (cd ${projectDir} && ./scripts/lk --refresh). ` +
+    "If it fails again, check network access to github.com / npm."
   );
 }
 

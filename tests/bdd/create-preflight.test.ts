@@ -81,10 +81,12 @@ describe("W3: warmAndVerifyKit", () => {
     expect(res.reason).toMatch(/scripts\/lk shim missing/);
   });
 
-  it("kitWarmWarning is specific + actionable", () => {
+  it("kitWarmWarning is specific + actionable (plain-language remediation)", () => {
     const msg = kitWarmWarning("/p", "network down");
     expect(msg).toMatch(/network down/);
-    expect(msg).toMatch(/\.\/scripts\/lk --warm/);
+    // Plain-language flag (nobody knows "warm"); --refresh is the alias for --rewarm.
+    expect(msg).toMatch(/\.\/scripts\/lk --refresh/);
+    expect(msg).not.toMatch(/--warm\b/);
   });
 });
 

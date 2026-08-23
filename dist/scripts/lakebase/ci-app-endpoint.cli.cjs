@@ -159,6 +159,19 @@ ${detail}`,
 };
 var profileByHost = /* @__PURE__ */ new Map();
 var profileByEnvFile = /* @__PURE__ */ new Map();
+var hostByEnvFile = /* @__PURE__ */ new Map();
+function envFileHost(cwd) {
+  if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
+  const v = readEnvVar((0, import_node_path.join)(cwd, ".env"), "DATABRICKS_HOST");
+  hostByEnvFile.set(cwd, v);
+  return v;
+}
+function effectiveHost(opts) {
+  const base = opts.env ?? process.env;
+  const cwd = opts.cwd ?? process.cwd();
+  const h = opts.host ?? base.DATABRICKS_HOST ?? envFileHost(cwd);
+  return h?.trim() || void 0;
+}
 function isAuthFailure(text) {
   return /refresh token is invalid|auth login|could not be retrieved because|not authenticated|no valid.*(credential|token)|invalid.*(access token|credential)|\b401\b|unauthorized/i.test(
     text
@@ -178,7 +191,7 @@ function resolveProfile(opts) {
     profileByEnvFile.set(cwd, fromEnvFile);
   }
   if (fromEnvFile) return fromEnvFile;
-  const host = opts.host?.trim();
+  const host = effectiveHost(opts);
   if (!host) return void 0;
   if (profileByHost.has(host)) return profileByHost.get(host);
   const resolved = resolveProfileForHostSync(host, opts.timeout);
@@ -187,7 +200,7 @@ function resolveProfile(opts) {
 }
 function buildInvocation(args2, opts) {
   const base = opts.env ?? process.env;
-  const trimmedHost = opts.host?.replace(/\/+$/, "");
+  const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
   const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args2.includes("--profile") ? [...args2, "--profile", profile] : args2;

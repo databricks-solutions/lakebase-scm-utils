@@ -1600,7 +1600,7 @@ declare function databricksAuthPrereqMessage(host?: string, reason?: string): st
  * failure so the create flow can surface it loudly at create time.
  */
 declare function warmAndVerifyKit(projectDir: string, timeoutMs?: number): PreflightResult;
-/** The loud, specific warning for a failed kit warm (W3). */
+/** The loud, specific warning for a failed toolkit download at create time (W3). */
 declare function kitWarmWarning(projectDir: string, reason?: string): string;
 interface RollbackOptions {
     projectId: string;

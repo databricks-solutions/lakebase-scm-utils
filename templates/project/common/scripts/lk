@@ -35,6 +35,16 @@ usage() { echo "usage: lk <bin> [args...]   (e.g. lk lakebase-scm-merge --help)"
 first="${1:-}"
 [ -z "$first" ] && usage
 
+# Plain-language aliases for the toolkit install/refresh commands , "warm"/"rewarm"
+# are insider jargon nobody recognizes. These normalize to the canonical flags so
+# docs + humans can say the obvious word. Old flags still work (back-compat).
+#   --install  / --download            -> --warm    (download the toolkit if needed)
+#   --refresh  / --update / --reinstall -> --rewarm  (force a fresh re-download)
+case "$first" in
+  --install|--download) first="--warm" ;;
+  --refresh|--update|--reinstall) first="--rewarm" ;;
+esac
+
 # Repo root: the ref + recovery hints are always read from the project.
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
@@ -111,13 +121,13 @@ resolve_pkg() {
     # esbuild) , the kit ships prebuilt dist/, so consumers never build; `--no-audit
     # --no-fund` drop registry round-trips. npm's own progress goes to stderr (>&2)
     # so an interactive warm/rewarm narrates instead of going dark.
-    echo "lk: installing ${pkg}@${committish} into the kit cache , one-time for this ref (downloads the kit + runtime deps, ~1-2 min). Later runs are instant." >&2
+    echo "lk: Downloading the Consort toolkit (${pkg}@${committish}) , one-time for this version, ~1-2 min (kit + its dependencies). Later commands are instant." >&2
     if npm install --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" >&2 \
        && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
       rm -rf "$cache"
       if mv "$tmp" "$cache" 2>/dev/null; then
         [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.pkg-sha" 2>/dev/null || true
-        echo "lk: ${pkg}@${committish} ready (cached at ${cache}; subsequent runs are instant)." >&2
+        echo "lk: Consort toolkit ready (${pkg}@${committish}; subsequent commands are instant)." >&2
         return 0
       fi
       rm -rf "$tmp"; return 1

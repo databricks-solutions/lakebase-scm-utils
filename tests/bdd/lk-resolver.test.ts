@@ -197,6 +197,18 @@ describe("lk resolver shim", () => {
     expect(r.stdout).toBe(""); // no bin ran
   });
 
+  it("accepts plain-language flag aliases (--refresh/--install/--update/--download) as the install/refresh path", () => {
+    // "warm"/"rewarm" are jargon; these aliases normalize to them. With dir
+    // overrides they no-op like --warm does (exit 0, no bin runs).
+    const kit = fakeKitDir(join(work, "kit"));
+    const scm = fakeScmUtilsDir(join(work, "scm"));
+    for (const flag of ["--refresh", "--install", "--update", "--download"]) {
+      const r = runLk([flag], { LAKEBASE_KIT_DIR: kit, LAKEBASE_SCM_UTILS_DIR: scm });
+      expect(r.status, `${flag}: ${r.stderr}`).toBe(0);
+      expect(r.stdout).toBe(""); // treated as install/refresh, not a bin
+    }
+  });
+
   it("errors with a usage message when no bin is given", () => {
     const kit = fakeKitDir(join(work, "kit"));
     const r = runLk([], { LAKEBASE_KIT_DIR: kit });

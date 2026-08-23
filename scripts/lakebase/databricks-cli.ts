@@ -69,11 +69,36 @@ export class DatabricksAuthError extends DatabricksCliError {
 const profileByHost = new Map<string, string | undefined>();
 /** Memoized <cwd> -> DATABRICKS_CONFIG_PROFILE from that project's .env. */
 const profileByEnvFile = new Map<string, string | undefined>();
+/** Memoized <cwd> -> DATABRICKS_HOST from that project's .env. */
+const hostByEnvFile = new Map<string, string | undefined>();
 
-/** Clear the per-process profile memos (tests). */
+/** Clear the per-process profile/host memos (tests). */
 export function _resetProfileCache(): void {
   profileByHost.clear();
   profileByEnvFile.clear();
+  hostByEnvFile.clear();
+}
+
+/** DATABRICKS_HOST from `<cwd>/.env`, memoized per cwd. */
+function envFileHost(cwd: string): string | undefined {
+  if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
+  const v = readEnvVar(join(cwd, ".env"), "DATABRICKS_HOST");
+  hostByEnvFile.set(cwd, v);
+  return v;
+}
+
+/**
+ * The workspace host EVERY databricks call should target, resolved centrally so no
+ * caller can silently fall back to the ambient DEFAULT profile's workspace:
+ *   explicit opts.host -> exported DATABRICKS_HOST -> `<cwd>/.env` DATABRICKS_HOST.
+ * When running inside a scaffolded project (its .env records DATABRICKS_HOST), this
+ * pins the project's workspace even if the caller forgot to thread a host.
+ */
+export function effectiveHost(opts: DatabricksCliOptions): string | undefined {
+  const base = opts.env ?? process.env;
+  const cwd = opts.cwd ?? process.cwd();
+  const h = opts.host ?? base.DATABRICKS_HOST ?? envFileHost(cwd);
+  return h?.trim() || undefined;
 }
 
 /** Does this CLI output signal an auth/token failure a human must re-login to fix? */
@@ -84,7 +109,8 @@ function isAuthFailure(text: string): boolean {
 }
 
 /** Resolve the profile: explicit opts.profile -> env DATABRICKS_CONFIG_PROFILE
- *  -> `<cwd>/.env` DATABRICKS_CONFIG_PROFILE -> host-match. File + host reads memoized. */
+ *  -> `<cwd>/.env` DATABRICKS_CONFIG_PROFILE -> the effective host's matching profile
+ *  (opts.host / exported / `<cwd>/.env` DATABRICKS_HOST). File + host reads memoized. */
 function resolveProfile(opts: DatabricksCliOptions): string | undefined {
   const base = opts.env ?? process.env;
   if (opts.profile) return opts.profile;
@@ -101,7 +127,10 @@ function resolveProfile(opts: DatabricksCliOptions): string | undefined {
   }
   if (fromEnvFile) return fromEnvFile;
 
-  const host = opts.host?.trim();
+  // No explicit/pinned profile , match one to the effective workspace host (which
+  // now includes the project's `.env` DATABRICKS_HOST), so an in-project call
+  // resolves the project's profile instead of ambient DEFAULT.
+  const host = effectiveHost(opts);
   if (!host) return undefined;
   if (profileByHost.has(host)) return profileByHost.get(host);
   const resolved = resolveProfileForHostSync(host, opts.timeout);
@@ -116,7 +145,10 @@ export function buildInvocation(args: string[], opts: DatabricksCliOptions): {
   profile: string | undefined;
 } {
   const base = opts.env ?? process.env;
-  const trimmedHost = opts.host?.replace(/\/+$/, "");
+  // Target the effective workspace (opts.host -> exported -> project `.env` host),
+  // so an in-project call pins the project workspace rather than the DEFAULT
+  // profile's default host. Trailing slash stripped for a stable value.
+  const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
   const env: NodeJS.ProcessEnv = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
   const argv =

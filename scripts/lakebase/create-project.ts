@@ -258,6 +258,27 @@ export async function createProject(
     ? `${input.githubOwner}/${input.projectName}`
     : "";
 
+  // Upfront expectation: this is a one-time provision that takes a few minutes and
+  // does a lot. Say so, and name the genuinely-slow steps, so the wait doesn't look
+  // like a hang. (Each step below also reports as it runs.)
+  {
+    const usesGithub = !!input.githubOwner && input.createGithubRepo !== false;
+    const tierCount = input.tiers ?? 1;
+    const bits = [
+      usesGithub ? "GitHub repo" : "local git repo",
+      "Lakebase database",
+      "project files",
+      usesGithub ? "CI service principal + self-hosted runner" : null,
+      "Consort toolkit download",
+      tierCount > 1 ? `${tierCount} tiers (prod${tierCount >= 2 ? " + staging" : ""}${tierCount >= 3 ? " + dev" : ""})` : null,
+    ].filter(Boolean);
+    report(
+      `Setting up "${input.projectName}" , one-time provisioning, usually ~3-6 min. ` +
+        `This creates: ${bits.join(", ")}. ` +
+        `The slowest parts are the runner setup and the toolkit download; that wait is normal. Progress:`,
+    );
+  }
+
   // ── Step 0: Databricks auth precondition (W5) ─────────────────
   // Probe auth up front. Without this, a missing/stale token fails cryptically
   // several steps in (at createLakebaseProject), after a GitHub repo may already
@@ -323,7 +344,7 @@ export async function createProject(
   }
 
   // ── Step 3: Lakebase project ──────────────────────────────────
-  report("Creating Lakebase database...", lakebaseProjectId);
+  report("Creating Lakebase database (provisioning Postgres, ~30-60s)...", lakebaseProjectId);
   await createLakebaseProject({ projectId: lakebaseProjectId, host });
 
   // From here on the Lakebase project EXISTS. If any later step throws, roll it
@@ -427,7 +448,7 @@ export async function createProject(
 
   // ── Step 7: Self-hosted runner (GitHub + self-hosted only) ────
   if (useGithub && runnerType === "self-hosted") {
-    report("Setting up self-hosted runner...");
+    report("Setting up the self-hosted CI runner (downloads + registers it, ~1-2 min , the slow step)...");
     try {
       await setupRunner({
         fullRepoName,
@@ -539,7 +560,7 @@ export async function createProject(
         warnings.push(`Kit ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
       }
     }
-    report("Warming + verifying the kit fast-CLI cache...");
+    report("Downloading the Consort toolkit for this project (one-time, ~1-2 min; later commands are instant)...");
     const warm = warmAndVerifyKit(projectDir);
     if (!warm.ok) {
       const msg = kitWarmWarning(projectDir, warm.reason);

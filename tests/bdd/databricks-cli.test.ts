@@ -64,6 +64,32 @@ describe("buildInvocation: profile resolved one way + threaded explicitly", () =
     expect(argv.slice(-2)).toEqual(["--profile", "fevm-serverless-stable-ecparr"]);
   });
 
+  it("CENTRAL: threads DATABRICKS_HOST from the project's .env when no host is passed (so no caller falls to DEFAULT)", () => {
+    // .env has ONLY the host (no DATABRICKS_CONFIG_PROFILE) , the common scaffold.
+    // Before the central fix, no host was set and the CLI used the DEFAULT profile's
+    // workspace; now every in-project call targets the project workspace.
+    writeFileSync(join(emptyDir, ".env"), "DATABRICKS_HOST=https://ecparr.cloud.databricks.com/\n");
+    const { env } = buildInvocation(["auth", "token", "--force-refresh"], { env: {}, cwd: emptyDir });
+    expect(env.DATABRICKS_HOST).toBe("https://ecparr.cloud.databricks.com"); // trailing slash trimmed
+  });
+
+  it("explicit opts.host and exported DATABRICKS_HOST both win over the project's .env host", () => {
+    writeFileSync(join(emptyDir, ".env"), "DATABRICKS_HOST=https://from-env-file.example.com\n");
+    expect(
+      buildInvocation(["auth", "describe"], { env: {}, cwd: emptyDir, host: "https://explicit.example.com" }).env
+        .DATABRICKS_HOST,
+    ).toBe("https://explicit.example.com");
+    expect(
+      buildInvocation(["auth", "describe"], { env: { DATABRICKS_HOST: "https://exported.example.com" }, cwd: emptyDir })
+        .env.DATABRICKS_HOST,
+    ).toBe("https://exported.example.com");
+  });
+
+  it("sets no DATABRICKS_HOST when there is none anywhere (empty cwd, empty env) , ambient unchanged", () => {
+    const { env } = buildInvocation(["--version"], { env: {}, cwd: emptyDir });
+    expect(env.DATABRICKS_HOST).toBeUndefined();
+  });
+
   it("never double-adds --profile when the caller already passed one", () => {
     const { argv } = buildInvocation(["auth", "describe", "--profile", "explicit"], {
       env: { DATABRICKS_CONFIG_PROFILE: "envprof" },

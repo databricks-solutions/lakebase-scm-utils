@@ -963,6 +963,19 @@ ${detail}`,
 };
 var profileByHost = /* @__PURE__ */ new Map();
 var profileByEnvFile = /* @__PURE__ */ new Map();
+var hostByEnvFile = /* @__PURE__ */ new Map();
+function envFileHost(cwd) {
+  if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
+  const v = readEnvVar((0, import_node_path.join)(cwd, ".env"), "DATABRICKS_HOST");
+  hostByEnvFile.set(cwd, v);
+  return v;
+}
+function effectiveHost(opts) {
+  const base = opts.env ?? process.env;
+  const cwd = opts.cwd ?? process.cwd();
+  const h = opts.host ?? base.DATABRICKS_HOST ?? envFileHost(cwd);
+  return h?.trim() || void 0;
+}
 function isAuthFailure(text) {
   return /refresh token is invalid|auth login|could not be retrieved because|not authenticated|no valid.*(credential|token)|invalid.*(access token|credential)|\b401\b|unauthorized/i.test(
     text
@@ -982,7 +995,7 @@ function resolveProfile(opts) {
     profileByEnvFile.set(cwd, fromEnvFile);
   }
   if (fromEnvFile) return fromEnvFile;
-  const host = opts.host?.trim();
+  const host = effectiveHost(opts);
   if (!host) return void 0;
   if (profileByHost.has(host)) return profileByHost.get(host);
   const resolved = resolveProfileForHostSync(host, opts.timeout);
@@ -991,7 +1004,7 @@ function resolveProfile(opts) {
 }
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
-  const trimmedHost = opts.host?.replace(/\/+$/, "");
+  const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
   const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
@@ -3656,7 +3669,7 @@ function warmAndVerifyKit(projectDir, timeoutMs = 18e4) {
   return { ok: true };
 }
 function kitWarmWarning(projectDir, reason) {
-  return `Kit could not be warmed at create: ${reason ?? "unknown reason"}. Commit-time schema diff will be unavailable until the kit warms; run: (cd ${projectDir} && ./scripts/lk --warm). Check network access to github.com / npm.`;
+  return `The Consort toolkit didn't finish downloading during setup: ${reason ?? "unknown reason"}. It's a one-time download; commit-time schema diff stays unavailable until it completes. Finish it now: (cd ${projectDir} && ./scripts/lk --refresh). If it fails again, check network access to github.com / npm.`;
 }
 async function withLakebaseRollback(opts, fn) {
   try {
@@ -5558,6 +5571,21 @@ async function createProject(input, progress) {
     if (!v.ok) throw new Error(v.reason);
   }
   const fullRepoName = input.githubOwner ? `${input.githubOwner}/${input.projectName}` : "";
+  {
+    const usesGithub = !!input.githubOwner && input.createGithubRepo !== false;
+    const tierCount = input.tiers ?? 1;
+    const bits = [
+      usesGithub ? "GitHub repo" : "local git repo",
+      "Lakebase database",
+      "project files",
+      usesGithub ? "CI service principal + self-hosted runner" : null,
+      "Consort toolkit download",
+      tierCount > 1 ? `${tierCount} tiers (prod${tierCount >= 2 ? " + staging" : ""}${tierCount >= 3 ? " + dev" : ""})` : null
+    ].filter(Boolean);
+    report(
+      `Setting up "${input.projectName}" , one-time provisioning, usually ~3-6 min. This creates: ${bits.join(", ")}. The slowest parts are the runner setup and the toolkit download; that wait is normal. Progress:`
+    );
+  }
   report("Checking Databricks authentication...");
   const auth = await checkDatabricksAuth(host);
   if (!auth.ok) {
@@ -5610,7 +5638,7 @@ Last probe error:
     fs17.mkdirSync(projectDir, { recursive: true });
     await gitInit(projectDir);
   }
-  report("Creating Lakebase database...", lakebaseProjectId);
+  report("Creating Lakebase database (provisioning Postgres, ~30-60s)...", lakebaseProjectId);
   await createLakebaseProject({ projectId: lakebaseProjectId, host });
   return await withLakebaseRollback(
     { projectId: lakebaseProjectId, host, report },
@@ -5685,7 +5713,7 @@ Last probe error:
         }
       }
       if (useGithub && runnerType === "self-hosted") {
-        report("Setting up self-hosted runner...");
+        report("Setting up the self-hosted CI runner (downloads + registers it, ~1-2 min , the slow step)...");
         try {
           await setupRunner({
             fullRepoName,
@@ -5755,7 +5783,7 @@ Last probe error:
             warnings.push(`Kit ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
           }
         }
-        report("Warming + verifying the kit fast-CLI cache...");
+        report("Downloading the Consort toolkit for this project (one-time, ~1-2 min; later commands are instant)...");
         const warm = warmAndVerifyKit(projectDir);
         if (!warm.ok) {
           const msg = kitWarmWarning(projectDir, warm.reason);
