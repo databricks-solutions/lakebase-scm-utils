@@ -2,6 +2,21 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.10
+
+Scaffold fix: `run-tests.sh` no longer reports a hollow pass when client tests can't run.
+
+- **fix(run-tests): fail fast when client test files exist but there is no `client/package.json`.**
+  The client Vitest block runs only when `client/package.json` exists, so a project scaffolded with
+  no client SPA (`uiTrack`/`clientFramework=none`) whose design still authored client-owned ACs , the
+  agents wrote a home-screen `*.test.tsx` / e2e `*.spec.ts` against a client that was never built ,
+  had its entire client suite SILENTLY SKIPPED, greening every client-owned AC with ZERO coverage (a
+  false GREEN that surfaces, if ever, only as "the home screen doesn't exist" at the acceptance gate).
+  `run-tests.sh` now detects, on the authoritative full run, client test files present under `client/`
+  with no `client/package.json` to run them and EXITS NON-ZERO with a loud diagnosis, before any
+  backend/migration work. A genuinely backend-only project authors no client tests, so it never trips.
+  Covered by `tests/bdd/run-tests-client-only.test.ts`.
+
 ## 0.2.9
 
 Makes the `@databricks/*` bundling FORMAT-SPECIFIC , fixes the ESM regression 0.2.8 introduced.

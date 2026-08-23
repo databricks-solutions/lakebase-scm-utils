@@ -41,6 +41,31 @@ if [ -n "${VERIFY_DATABASE_URL:-}" ]; then
   export DATABASE_URL="$VERIFY_DATABASE_URL"
 fi
 
+# FALSE-GREEN GUARD (fail fast, before any backend/migration work): client TEST
+# files can be present with NO client/package.json to run them , a project
+# scaffolded with no client SPA (uiTrack/clientFramework=none) whose design still
+# authored client-owned ACs, so the agents wrote a home-screen *.test.tsx / e2e
+# *.spec.ts against a client that was never built. The client Vitest block far
+# below runs only when client/package.json EXISTS, so those tests would be
+# SILENTLY SKIPPED and every client-owned AC would green with ZERO coverage , a
+# false GREEN that surfaces (if ever) only as "the home screen doesn't exist" at
+# the acceptance gate. Refuse to run at all. A genuinely backend-only project
+# authors no client tests, so this never trips it. Full run only ($# -eq 0); a
+# per-cycle backend-layer invocation (path arg) is not the authoritative verify.
+if [ "$#" -eq 0 ] && [ ! -f "$REPO_ROOT/client/package.json" ] && [ -d "$REPO_ROOT/client" ]; then
+  orphan_client_tests="$(find "$REPO_ROOT/client" -type f \( -name '*.test.tsx' -o -name '*.test.ts' -o -name '*.spec.tsx' -o -name '*.spec.ts' \) 2>/dev/null | head -n 10)"
+  if [ -n "$orphan_client_tests" ]; then
+    echo "ERROR: client tests exist but there is no client/package.json to run them , refusing to report a hollow pass." >&2
+    echo "  Orphaned client test file(s):" >&2
+    printf '%s\n' "$orphan_client_tests" | sed 's/^/    /' >&2
+    echo "  A client SPA scaffold is absent (uiTrack/clientFramework=none) while client-owned tests are present, so they" >&2
+    echo "  would be SILENTLY SKIPPED and every client-owned AC would green with zero coverage (a false GREEN)." >&2
+    echo "  Resolve the mismatch: scaffold the client (enable the UI track), OR do not author client/E2E ACs + tests on a" >&2
+    echo "  backend-only project. This is a real coverage gap, not a flake , do not bypass it." >&2
+    exit 1
+  fi
+fi
+
 # Detect project language and run pending migrations before tests.
 # SFTDD_CLIENT_ONLY (Finding 26): the build's honest-GREEN verify runs the backend
 # via the SFTDD_PYTEST_MARKER two-pass, which exits before the client Vitest block

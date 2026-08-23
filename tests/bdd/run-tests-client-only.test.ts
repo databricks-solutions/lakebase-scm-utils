@@ -81,3 +81,64 @@ describe("run-tests.sh SFTDD_CLIENT_ONLY (Finding 26)", () => {
     expect(ok).toBe(false);
   });
 });
+
+/** Base fixture: run-tests.sh + .env only. Callers add the pieces each case needs.
+ *  The false-GREEN guard runs FAIL-FAST (before language detection / any backend),
+ *  so these cases need no backend tooling to exercise it. */
+function scaffoldBare(): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "run-tests-orphan-"));
+  tmpDirs.push(root);
+  fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
+  fs.copyFileSync(RUN_TESTS_SRC, path.join(root, "scripts", "run-tests.sh"));
+  fs.writeFileSync(path.join(root, ".env"), "LAKEBASE_PROJECT_ID=x\n");
+  return root;
+}
+
+describe("run-tests.sh false-GREEN guard: client tests present with no client scaffold", () => {
+  it("FAILS fast when client test files exist but there is no client/package.json", () => {
+    const root = scaffoldBare();
+    // A client SPA was never scaffolded (no client/package.json), yet a client-owned
+    // test was authored against it , the false-GREEN condition.
+    fs.mkdirSync(path.join(root, "client", "tests", "pages"), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, "client", "tests", "pages", "StockList.test.tsx"),
+      "// orphan client test , no client/package.json exists to run it\n",
+    );
+    const { ok, out } = run(root, {});
+    expect(ok).toBe(false); // refuses to report a hollow pass
+    expect(out).toMatch(/no client\/package\.json to run them/);
+    expect(out).toMatch(/false GREEN/);
+    expect(out).toMatch(/StockList\.test\.tsx/); // names the orphan file
+  });
+
+  it("also catches an orphaned e2e *.spec.ts (not only *.test.tsx)", () => {
+    const root = scaffoldBare();
+    fs.mkdirSync(path.join(root, "client", "tests", "e2e"), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, "client", "tests", "e2e", "S1-file-stock-record.spec.ts"),
+      "// orphan e2e spec, no client scaffold\n",
+    );
+    const { ok, out } = run(root, {});
+    expect(ok).toBe(false);
+    expect(out).toMatch(/no client\/package\.json to run them/);
+  });
+
+  it("does NOT trip a backend-only project (no client/ dir at all)", () => {
+    const root = scaffoldBare();
+    // A valid backend marker so this is a real project; no client/ dir exists.
+    fs.writeFileSync(path.join(root, "pyproject.toml"), "[project]\nname = 'x'\n");
+    const { out } = run(root, {});
+    // The guard must be absent regardless of whether the (untooled) backend then runs.
+    expect(out).not.toMatch(/no client\/package\.json to run them/);
+  });
+
+  it("does NOT trip a real client project (client/package.json present)", () => {
+    const root = scaffoldBare();
+    const client = path.join(root, "client");
+    fs.mkdirSync(path.join(client, "tests"), { recursive: true });
+    fs.writeFileSync(path.join(client, "package.json"), JSON.stringify({ name: "client", scripts: { test: "echo ok" } }) + "\n");
+    fs.writeFileSync(path.join(client, "tests", "x.test.tsx"), "// real client test\n");
+    const { out } = run(root, {});
+    expect(out).not.toMatch(/no client\/package\.json to run them/);
+  });
+});
