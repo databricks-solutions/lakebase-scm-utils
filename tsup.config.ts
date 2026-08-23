@@ -23,6 +23,7 @@ export default defineConfig({
     "scripts/lakebase/collapse-heads.cli": "scripts/lakebase/collapse-heads.cli.ts",
     "scripts/lakebase/infra-runner.cli": "scripts/lakebase/infra-runner.cli.ts",
     "scripts/lakebase/cut-backup.cli": "scripts/lakebase/cut-backup.cli.ts",
+    "scripts/lakebase/cut-tier.cli": "scripts/lakebase/cut-tier.cli.ts",
     "scripts/lakebase/detect-language.cli": "scripts/lakebase/detect-language.cli.ts",
     "scripts/lakebase/resolve-profile.cli": "scripts/lakebase/resolve-profile.cli.ts",
     "scripts/lakebase/ci-app-endpoint.cli": "scripts/lakebase/ci-app-endpoint.cli.ts",

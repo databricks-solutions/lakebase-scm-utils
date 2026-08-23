@@ -2,6 +2,24 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.5
+
+Tier-cut auth fix + recovery bin.
+
+- **fix(tiers): `createLongRunningBranch` now forwards the workspace host to the Lakebase
+  branch create.** The `databricksHost` arg was documented as forwarded but was dropped ,
+  the tier-cut resolved auth ambiently and fell back to the DEFAULT profile (often an
+  unrelated/expired workspace). So a `lakebase-create-project --tiers 2` / `--tiers 3`
+  could silently fail to cut staging/dev and leave the project prod-only. The tier-cut now
+  runs against the SAME workspace the rest of create used.
+- **feat: `lakebase-cut-tier` , recover a missing tier without re-creating.** New bin that
+  cuts a long-running tier (`--name staging --fork-from main`), defaulting instance + host
+  from the project `.env`. Creates both the Lakebase (no-expiry) and git sides. The
+  counterpart when a create-time tier-cut failed. (`lakebase-reconcile-tier` reconciles
+  state; it does NOT cut a branch.)
+- **create-project: a failed tier-cut is now a loud "INCOMPLETE TIERS" warning** that names
+  the exact `lakebase-cut-tier` recovery command instead of a buried message.
+
 ## 0.2.4
 
 Kit-warm UX + speed.

@@ -1,6 +1,6 @@
 {
   "name": "@databricks-solutions/lakebase-scm-utils",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Lakebase SCM + substrate engine: database branching, paired-branch SCM workflows, connection/credential minting, schema migration, project scaffold + deploy primitives, and the git/github utility layer. Extracted from consort for portable, standalone consumption by lakebase-scm-extension and the SFTDD orchestration.",
   "type": "module",
   "private": false,
@@ -82,6 +82,7 @@
     "lakebase-ci-resolve-branch": "./dist/scripts/lakebase/ci-resolve-branch.cli.js",
     "lakebase-collapse-heads": "./dist/scripts/lakebase/collapse-heads.cli.js",
     "lakebase-cut-backup": "./dist/scripts/lakebase/cut-backup.cli.js",
+    "lakebase-cut-tier": "./dist/scripts/lakebase/cut-tier.cli.js",
     "lakebase-detect-language": "./dist/scripts/lakebase/detect-language.cli.js",
     "lakebase-doctor": "./dist/scripts/lakebase/doctor.cli.js",
     "lakebase-get-connection": "./dist/scripts/lakebase/get-connection.cli.js",

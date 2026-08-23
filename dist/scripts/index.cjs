@@ -3389,7 +3389,13 @@ async function createLongRunningBranch(args) {
     // Long-running tiers (staging, uat, perf, ...) are permanent by
     // definition; without this they'd inherit Lakebase's default
     // expiry and silently disappear.
-    noExpiry: true
+    noExpiry: true,
+    // Forward the workspace host so the branch create runs against the SAME
+    // workspace the rest of create used (createLakebaseProject also passes host).
+    // Without this the Lakebase CLI resolved auth ambiently , falling back to the
+    // DEFAULT profile (often an unrelated/expired workspace), so a `--tiers 2`
+    // create would silently fail to cut staging and leave the project prod-only.
+    host: args.databricksHost
   });
   const opts = { cwd: args.workTreeDir, stdio: "pipe" };
   cp2.execSync(`git fetch origin ${args.forkFromBranch}`, opts);
@@ -5782,7 +5788,7 @@ Last probe error:
           });
         } catch (err) {
           warnings.push(
-            `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`
+            `INCOMPLETE TIERS: you requested ${tiers} tiers but cutting 'staging' FAILED , the project is prod-only. Cause: ${err instanceof Error ? err.message : String(err)}. Recover WITHOUT re-creating: from the project dir run \`./scripts/lk lakebase-cut-tier --name staging --fork-from main\` (defaults instance + host from .env), then re-check with \`./scripts/lk lakebase-scm-state\`.`
           );
         }
         if (tiers === 3) {
@@ -5797,7 +5803,7 @@ Last probe error:
             });
           } catch (err) {
             warnings.push(
-              `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`
+              `INCOMPLETE TIERS: you requested 3 tiers but cutting 'dev' FAILED. Cause: ${err instanceof Error ? err.message : String(err)}. Recover WITHOUT re-creating: from the project dir run \`./scripts/lk lakebase-cut-tier --name dev --fork-from staging\`, then re-check with \`./scripts/lk lakebase-scm-state\`.`
             );
           }
         }

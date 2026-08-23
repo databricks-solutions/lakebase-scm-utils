@@ -591,7 +591,11 @@ export async function createProject(
       });
     } catch (err) {
       warnings.push(
-        `tiers === ${tiers} requested but createLongRunningBranch for staging failed: ${err instanceof Error ? err.message : String(err)}.`,
+        `INCOMPLETE TIERS: you requested ${tiers} tiers but cutting 'staging' FAILED , the project is prod-only. ` +
+          `Cause: ${err instanceof Error ? err.message : String(err)}. ` +
+          `Recover WITHOUT re-creating: from the project dir run ` +
+          `\`./scripts/lk lakebase-cut-tier --name staging --fork-from main\` (defaults instance + host from .env), ` +
+          `then re-check with \`./scripts/lk lakebase-scm-state\`.`,
       );
     }
 
@@ -607,7 +611,11 @@ export async function createProject(
         });
       } catch (err) {
         warnings.push(
-          `tiers === 3 requested but createLongRunningBranch for dev failed: ${err instanceof Error ? err.message : String(err)}.`,
+          `INCOMPLETE TIERS: you requested 3 tiers but cutting 'dev' FAILED. ` +
+            `Cause: ${err instanceof Error ? err.message : String(err)}. ` +
+            `Recover WITHOUT re-creating: from the project dir run ` +
+            `\`./scripts/lk lakebase-cut-tier --name dev --fork-from staging\`, ` +
+            `then re-check with \`./scripts/lk lakebase-scm-state\`.`,
         );
       }
     }

@@ -73,6 +73,12 @@ export async function createLongRunningBranch(
     // definition; without this they'd inherit Lakebase's default
     // expiry and silently disappear.
     noExpiry: true,
+    // Forward the workspace host so the branch create runs against the SAME
+    // workspace the rest of create used (createLakebaseProject also passes host).
+    // Without this the Lakebase CLI resolved auth ambiently , falling back to the
+    // DEFAULT profile (often an unrelated/expired workspace), so a `--tiers 2`
+    // create would silently fail to cut staging and leave the project prod-only.
+    host: args.databricksHost,
   });
 
   // Git side: build the new tier off `forkFromBranch` on the remote.
