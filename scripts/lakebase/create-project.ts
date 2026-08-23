@@ -20,8 +20,6 @@ import {
 import {
   checkDatabricksAuth,
   databricksAuthPrereqMessage,
-  warmAndVerifyKit,
-  kitWarmWarning,
   withLakebaseRollback,
   validateCreateInputs,
   dirIsEmpty,
@@ -269,13 +267,12 @@ export async function createProject(
       "Lakebase database",
       "project files",
       usesGithub ? "CI service principal + self-hosted runner" : null,
-      "Consort toolkit download",
       tierCount > 1 ? `${tierCount} tiers (prod${tierCount >= 2 ? " + staging" : ""}${tierCount >= 3 ? " + dev" : ""})` : null,
     ].filter(Boolean);
     report(
-      `Setting up "${input.projectName}" , one-time provisioning, usually ~3-6 min. ` +
-        `This creates: ${bits.join(", ")}. ` +
-        `The slowest parts are the runner setup and the toolkit download; that wait is normal. Progress:`,
+      `Setting up "${input.projectName}" , one-time provisioning, usually ~2-4 min. ` +
+        `This creates: ${bits.join(", ")}. ${usesGithub ? "The slowest part is the runner setup; that wait is normal. " : ""}` +
+        `Then the Consort toolkit downloads on first use (~1-2 min, one-time). Progress:`,
     );
   }
 
@@ -535,20 +532,21 @@ export async function createProject(
     }
   }
 
-  // ── Step 7e: pin the kit ref + warm AND VERIFY the fast-CLI cache (W3) ──
+  // ── Step 7e: pin the kit ref (the toolkit itself downloads on first use) ──
   // The scaffolded scripts/lk runs kit CLIs via `node dist/...` (~0.09s) instead
-  // of npx-from-github (~3.5s/call, re-resolves the ref every time). lk resolves
-  // the kit per ref into a shared cache. Record the ref this project was
-  // scaffolded with WHEN PINNED (LAKEBASE_KIT_REF) so lk resolves it from a file
-  // (a claude -p agent's bash does not inherit env); unset means lk defaults to
-  // "main", matching today's npx default.
+  // of npx-from-github (~3.5s/call). lk resolves the kit per ref into a shared
+  // cache. Record the ref this project was scaffolded with WHEN PINNED
+  // (LAKEBASE_KIT_REF) so lk resolves it from a file (a claude -p agent's bash does
+  // not inherit env); unset means lk defaults to "main".
   //
-  // Then warm the cache AND verify a CLI resolves. A silent warm failure used to
-  // surface later as a mysterious commit-time hang; the commit no longer hangs
-  // (W2), so a failed warm would instead silently skip schema-diff enrichment.
-  // Verifying here and reporting a specific reason + remediation makes the
-  // problem visible AT CREATE TIME, where it can be fixed. The project is still
-  // usable, so this is a loud warning rather than a fatal abort.
+  // We deliberately DO NOT download the toolkit here. It used to be prefetched +
+  // verified at create under a 180s cap , but the toolkit install is a heavy git
+  // dep-tree over the proxy that runs right at that edge, so the prefetch kept
+  // getting killed and then re-downloaded anyway by the post-create
+  // `./scripts/lk --refresh` (or the first `lk` command, which installs a cold
+  // cache). Doing it twice , a fragile capped prefetch AND a reliable redo , was
+  // pure downside (blocked create + a scary warning for work we repeat). So the
+  // toolkit downloads ONCE, at that single reliable point.
   if (enableSftdd) {
     const kitRef = process.env.LAKEBASE_KIT_REF?.trim();
     if (kitRef) {
@@ -560,13 +558,10 @@ export async function createProject(
         warnings.push(`Kit ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
       }
     }
-    report("Downloading the Consort toolkit for this project (one-time, ~1-2 min; later commands are instant)...");
-    const warm = warmAndVerifyKit(projectDir);
-    if (!warm.ok) {
-      const msg = kitWarmWarning(projectDir, warm.reason);
-      warnings.push(msg);
-      report(`Warning: ${msg}`);
-    }
+    report(
+      "Consort toolkit downloads on first use (one-time, ~1-2 min) , run `./scripts/lk --refresh`, " +
+        "or just your first `./scripts/lk` command, and it installs then; instant afterward.",
+    );
   }
 
   // ── Step 8: Initial commit (+ push when GitHub configured) ────

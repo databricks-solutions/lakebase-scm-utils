@@ -2,6 +2,25 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.7
+
+CJS-consumability fix + leaner create.
+
+- **fix(cjs): bundle `octokit` so the CJS build is require-able in a CommonJS host.**
+  octokit v4 is ESM-only (`type: module`, no CJS entry), so the default-externalized
+  `require("octokit")` in `dist/scripts/*.cjs` threw `ERR_REQUIRE_ESM` in a CommonJS
+  runtime , which aborted `lakebase-scm-extension`'s activation (Electron extension
+  host): "failed to load its substrate dependency" -> no tree views, no commands. tsup
+  now `noExternal`s `octokit` + `@octokit/*`, so esbuild inlines its (self-contained)
+  bundle as CJS and the `.cjs` output is self-contained + require-able. Restores the
+  dual-format build's promise that the extension can consume the substrate.
+- **change(create): create no longer prefetches the Consort toolkit.** The 180s-capped
+  create-time warm kept getting killed on a heavy/slow install and was re-downloaded
+  anyway by the post-create `./scripts/lk --refresh` (or first `lk` command, which
+  installs a cold cache). Dropped the fragile double-download; the toolkit downloads
+  ONCE, at that reliable point. create-project pins `kit-ref` + reports where the
+  download happens; the banner drops the toolkit step (provisioning is now ~2-4 min).
+
 ## 0.2.6
 
 Central workspace resolution + kit-download UX.
