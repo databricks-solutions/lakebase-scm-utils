@@ -2,6 +2,23 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.9
+
+Makes the `@databricks/*` bundling FORMAT-SPECIFIC , fixes the ESM regression 0.2.8 introduced.
+
+- **fix(esm): keep `@databricks/*` EXTERNAL in the ESM build; bundle it in CJS only.**
+  0.2.8 added `@databricks/*` to a single `noExternal` that applied to BOTH formats. That
+  fixed the CJS/extension host (ESM-only `@databricks/lakebase` is now inlined + require-able)
+  but BROKE the ESM build: esbuild inlined `@databricks/lakebase` -> `@databricks/sdk-experimental`,
+  whose runtime `require("https")` (a Node built-in) became a `__require` shim that throws
+  `Dynamic require of "https" is not supported` the moment an ESM CONSUMER loads the barrel.
+  consort imports scm-utils as ESM, so its whole suite failed to load (116 suites). tsup is now
+  an ARRAY of two format-specific configs: the ESM (`.js`) build leaves `@databricks/*` external
+  (Node's ESM loader imports it fine), the CJS (`.cjs`) build bundles both `octokit` and
+  `@databricks/*` (zero `require()` of any ESM-only dep). Verified: ESM barrel imports cleanly +
+  consort's full suite is green; CJS barrel require()s clean, so the extension host is unaffected.
+  Purely a build-config fix, no source/API change.
+
 ## 0.2.8
 
 Completes the CJS-consumability fix (0.2.7 bundled only `octokit`).
