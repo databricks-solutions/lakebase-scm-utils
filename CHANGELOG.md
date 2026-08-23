@@ -2,6 +2,20 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.4
+
+Kit-warm UX + speed.
+
+- **feat(lk): the runtime-kit install now narrates instead of going dark.** `install_pkg`
+  (used by `lk --warm` / `--rewarm` and a cold bin run) prints a leading "installing
+  <kit>@<ref> , one-time for this ref (~1-2 min)" line, streams npm's own progress to
+  stderr (was `>/dev/null 2>&1`), and prints a "ready (cached ...)" line on success. A
+  multi-minute first install no longer looks hung.
+- **perf(lk): leaner install , `--omit=dev --no-audit --no-fund`.** The kit ships prebuilt
+  `dist/`, so consumers never build; skipping the build-toolchain devDeps (tsup, vitest,
+  typescript, esbuild) and the audit/fund round-trips trims the warm. Prod postinstalls
+  (`@databricks/appkit`, `protobufjs`) still run.
+
 ## 0.2.3
 
 De-sftdd drift sweep + legacy-alias deprecation.
