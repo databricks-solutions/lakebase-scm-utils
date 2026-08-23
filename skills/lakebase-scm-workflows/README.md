@@ -148,7 +148,7 @@ Four flows – shown as what you'd prompt your agent to do, using a running cart
 
 The agent runs `lakebase-create-project` under the hood. When it returns you have a GitHub repo at `my-org/proj-checkout`, a Lakebase project with `production` as the default branch, a local clone with the language scaffold, `.github/workflows/{pr,merge}.yml`, `.githooks/` (post-checkout + prepare-commit-msg), `.env.example`, and `.sftdd/` (the TDD workflow scaffold). Initial commit pushed, CI auth secrets synced, runner registered.
 
-Add "skip the .sftdd scaffold" to the prompt to opt out for projects that won't use `consort`.
+Add "skip the .consort scaffold" to the prompt to opt out for projects that won't use `consort`.
 
 ### 2. Cut a feature branch and inspect schema-diff against the parent
 

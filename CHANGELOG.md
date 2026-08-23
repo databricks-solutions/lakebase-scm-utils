@@ -2,6 +2,25 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.3
+
+De-sftdd drift sweep + legacy-alias deprecation.
+
+- **deprecate(lk): the scaffolded launcher warns on legacy `lakebase-sftdd-*` /
+  `lakebase-tdd-*` bin aliases.** They still route to the kit and run; the one-line
+  notice points at the `consort-*` / `lakebase-*` names. Scheduled for removal in
+  consort v0.4.0.
+- **docs/chore: swept leftover `sftdd`/`tdd`-era drift** from doc prose, comments, and
+  help/usage text (the kit is Consort). Fixed stale user-facing references to the
+  actual names: `lakebase-sftdd-collapse-heads` -> `lakebase-collapse-heads`,
+  `lakebase-sftdd-new-migration` -> `lakebase-new-migration`, doctor remediation
+  suggestions -> `consort-experiment` / `consort-spike`, scaffolded-template gate/deploy
+  names -> `consort-ux-clean` / `consort-deploy`, and stale `sftdd-config.json` comments
+  -> `consort-config.json` (the file the scaffold actually writes).
+- **Back-compat unchanged:** the `.sftdd` / `.tdd` artifact-root literals + migration,
+  the legacy read of `sftdd-config.json`, and the `--sftdd-dir` CLI alias are all still
+  honored. No behavior change.
+
 ## 0.2.2
 
 Doctor auth fix.

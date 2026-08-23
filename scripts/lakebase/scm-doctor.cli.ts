@@ -13,10 +13,10 @@ import {
   type FixFindingResult,
   type FixableFindingId,
 } from "./scm-doctor.js";
-// The standalone lakebase-scm-utils doctor carries no SFTDD dependency, so it
-// does not inject the SFTDD stale-experiment/spike finder. runDoctor's
+// The standalone lakebase-scm-utils doctor carries no Consort dependency, so it
+// does not inject the Consort stale-experiment/spike finder. runDoctor's
 // findStaleBranches dep is optional (defaults to no stale-branch findings).
-// The SFTDD kit re-adds that finding by injecting its own finder where it
+// The Consort kit re-adds that finding by injecting its own finder where it
 // composes this substrate.
 
 interface ParsedArgs {

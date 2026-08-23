@@ -1950,9 +1950,9 @@ interface DeployLanguageProjectArgs {
 declare function deployLanguageProject(args: DeployLanguageProjectArgs): Promise<void>;
 
 /**
- * Optional SFTDD setup, injected by callers that want a project bootstrapped
- * with the SFTDD (.sftdd/) scaffold + sftdd-config.json. The base substrate
- * does NOT depend on the SFTDD orchestration or its templates; the SFTDD kit
+ * Optional Consort setup, injected by callers that want a project bootstrapped
+ * with the Consort (.sftdd/) scaffold + consort-config.json. The base substrate
+ * does NOT depend on the Consort orchestration or its templates; the Consort kit
  * supplies these hooks. When omitted, createProject
  * creates a plain SCM project with no .sftdd/ artifacts.
  */
@@ -2009,7 +2009,7 @@ interface CreateProjectArgs {
     tiers?: 1 | 2 | 3;
     /**
      * Whether the project has a user-facing UI. This is the SINGLE SOURCE for the
-     * UX track: it is persisted to sftdd-config.json (project.uiTrack), which the
+     * UX track: it is persisted to consort-config.json (project.uiTrack), which the
      * drive reads to run the UX Designer + design-guide/IA + design-adherence gate,
      * AND it drives the e2e scaffolding below (a UI project always gets e2e). There
      * is no separate env/flag door; this input is the one way in. Default: false.
@@ -2021,7 +2021,7 @@ interface CreateProjectArgs {
      * client (server-rendered or pure JSON/CLI backend). When omitted, defaults
      * to "react" for a uiTrack project and "none" otherwise, so a UI project gets
      * a single-page app as the path of least resistance. Persisted to
-     * sftdd-config.json (project.clientFramework).
+     * consort-config.json (project.clientFramework).
      */
     clientFramework?: ClientFramework;
     /** Lay down the .sftdd/ scaffold from templates/sftdd-bootstrap/ (default: true). */
@@ -3291,7 +3291,7 @@ interface DoctorArgs$1 {
     /** Lakebase project id. Required to reach the Lakebase side. */
     instance?: string;
 }
-/** A stale experiment/spike paired branch (the SFTDD-side concept). Declared
+/** A stale experiment/spike paired branch (the Consort-side concept). Declared
  *  locally so SCM core does not import the sftdd module: the caller injects a
  *  finder via RunDoctorDeps. Shape mirrors sftdd/stale-branches.StaleBranchFinding. */
 interface StaleBranchFinding {
@@ -3302,8 +3302,8 @@ interface StaleBranchFinding {
     branch?: string;
     reason: string;
 }
-/** Injected dependencies so SCM-core doctor stays free of any SFTDD import
- *  (the split into lakebase-scm-utils). The SFTDD side (the CLI wiring, and later
+/** Injected dependencies so SCM-core doctor stays free of any Consort import
+ *  (the split into lakebase-scm-utils). The Consort side (the CLI wiring, and later
  *  the kit's doctor wrapper) supplies the stale-branch finder; when absent, the
  *  stale-branch advisory is simply skipped. */
 interface RunDoctorDeps {

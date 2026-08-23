@@ -202,6 +202,14 @@ if [ "$first" = "--warm" ] || [ "$first" = "--rewarm" ]; then
 fi
 
 bin="$first"; shift
+# Deprecation: lakebase-sftdd-* / lakebase-tdd-* are legacy aliases from the
+# pre-Consort skill names. They still run (routed to the kit below), but are
+# scheduled for removal in consort v0.4.0 , prefer the consort-* / lakebase-*
+# names. One notice per invocation; never blocks.
+case "$bin" in
+  lakebase-sftdd-*|lakebase-tdd-*)
+    echo "lk: [deprecated] '${bin}' is a legacy sftdd/tdd-era alias; use the consort-* / lakebase-* name (removed in consort v0.4.0). Still running." >&2 ;;
+esac
 slug="$(pkg_for_bin "$bin")"
 resolve_pkg "$slug" run; rc=$?
 [ "$rc" -eq 97 ] && exit 97

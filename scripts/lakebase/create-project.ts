@@ -40,9 +40,9 @@ import {
 } from "./scm-workflow-state.js";
 
 /**
- * Optional SFTDD setup, injected by callers that want a project bootstrapped
- * with the SFTDD (.sftdd/) scaffold + sftdd-config.json. The base substrate
- * does NOT depend on the SFTDD orchestration or its templates; the SFTDD kit
+ * Optional Consort setup, injected by callers that want a project bootstrapped
+ * with the Consort (.sftdd/) scaffold + consort-config.json. The base substrate
+ * does NOT depend on the Consort orchestration or its templates; the Consort kit
  * supplies these hooks. When omitted, createProject
  * creates a plain SCM project with no .sftdd/ artifacts.
  */
@@ -104,7 +104,7 @@ export interface CreateProjectArgs {
   tiers?: 1 | 2 | 3;
   /**
    * Whether the project has a user-facing UI. This is the SINGLE SOURCE for the
-   * UX track: it is persisted to sftdd-config.json (project.uiTrack), which the
+   * UX track: it is persisted to consort-config.json (project.uiTrack), which the
    * drive reads to run the UX Designer + design-guide/IA + design-adherence gate,
    * AND it drives the e2e scaffolding below (a UI project always gets e2e). There
    * is no separate env/flag door; this input is the one way in. Default: false.
@@ -116,7 +116,7 @@ export interface CreateProjectArgs {
    * client (server-rendered or pure JSON/CLI backend). When omitted, defaults
    * to "react" for a uiTrack project and "none" otherwise, so a UI project gets
    * a single-page app as the path of least resistance. Persisted to
-   * sftdd-config.json (project.clientFramework).
+   * consort-config.json (project.clientFramework).
    */
   clientFramework?: ClientFramework;
   /** Lay down the .sftdd/ scaffold from templates/sftdd-bootstrap/ (default: true). */
@@ -210,7 +210,7 @@ export async function createProject(
   const runnerType = input.runnerType ?? "self-hosted";
   const enableSftdd = input.enableSftdd !== false;
   // uiTrack is the SINGLE SOURCE for "this project has a UI": it is persisted to
-  // sftdd-config.json below (project.uiTrack, which the drive reads to run the UX
+  // consort-config.json below (project.uiTrack, which the drive reads to run the UX
   // Designer + design-guide/IA + adherence gate) AND it drives e2e here. A UI
   // project ALWAYS gets the e2e harness; e2e may still be enabled independently
   // for a non-UI Node backend. Deriving e2e from uiTrack makes the old
@@ -469,7 +469,7 @@ export async function createProject(
   }
 
   // ── Step 7d: unified TDD run config ──────────
-  // Seed .lakebase/sftdd-config.json, the one declarative source for the per-role
+  // Seed .lakebase/consort-config.json, the one declarative source for the per-role
   // + per-turn model/effort matrix and the build/plan/project knobs (the
   // orchestrator resolves file -> default; the file is the SINGLE source, no env
   // override). Seeded with each role's recommended model + any HIL model overrides
@@ -486,7 +486,7 @@ export async function createProject(
       });
     } catch (err) {
       warnings.push(
-        `SFTDD config seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. The role defaults still apply.`,
+        `Consort config seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. The role defaults still apply.`,
       );
     }
   }
@@ -497,7 +497,7 @@ export async function createProject(
   // it to the version that scaffolded this project so runtime lk resolves the
   // SAME substrate the CI fallback (v{{LAKEBASE_SCM_UTILS_VERSION}}) pins, rather
   // than chasing a moving `main`. An explicit LAKEBASE_SCM_UTILS_REF wins (a
-  // capture pins a working ref). Applies to EVERY project (SCM-only or SFTDD):
+  // capture pins a working ref). Applies to EVERY project (SCM-only or Consort):
   // the substrate is always in play, so this is not gated on enableSftdd.
   {
     const envRef = process.env.LAKEBASE_SCM_UTILS_REF?.trim();

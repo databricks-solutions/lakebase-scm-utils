@@ -6,7 +6,7 @@
  * browser-default HTML). Built entirely from var(--token) in theme.css , no
  * hardcoded hex/px here except the token DEFINITIONS (which live in theme.css).
  *
- * The kit's UX gate (lakebase-sftdd-ux-clean) checks that feature pages reference
+ * The kit's UX gate (consort-ux-clean) checks that feature pages reference
  * this vocabulary; extend these classes as the design guide grows, but keep every
  * value a var(--token).
  */

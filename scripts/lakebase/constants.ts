@@ -31,7 +31,7 @@ export const DEFAULT_DATABASE = "databricks_postgres";
  * Runtime artifact + metadata directories the SCM working-tree guards tolerate
  * as uncommitted "not code" (the fork-clean check and the open-PR dirty check).
  * These are the kit's own runtime dirs , SCM workflow state (`.lakebase/`), the
- * SFTDD orchestration churn (`.sftdd/`, legacy `.tdd/`), and per-agent memory ,
+ * Consort orchestration churn (`.sftdd/`, legacy `.tdd/`), and per-agent memory ,
  * not project source. Passed as the `isDirty({ ignore })` list. Centralized here
  * so the SCM guards reference ONE named constant instead of inlining the runtime
  * dir names at each callsite; the extracted lakebase-scm-utils package owns this

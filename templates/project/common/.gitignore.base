@@ -20,7 +20,7 @@ application-local.properties
 .tdd/run-config.json
 
 # The RUN PINs: WORKSPACE-local, checkout-proof overrides of the committed
-# `.lakebase/kit-ref` (SFTDD kit) and `.lakebase/scm-utils-ref` (substrate). The
+# `.lakebase/kit-ref` (Consort kit) and `.lakebase/scm-utils-ref` (substrate). The
 # drive writes them at launch to pin the run's versions for the whole run; they
 # MUST stay gitignored so a branch checkout/reset (which forks from
 # origin/<parent>) can never restore a branch-committed ref out from under the run

@@ -5718,7 +5718,7 @@ Last probe error:
           });
         } catch (err) {
           warnings.push(
-            `SFTDD config seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. The role defaults still apply.`
+            `Consort config seed failed (advisory): ${err instanceof Error ? err.message : String(err)}. The role defaults still apply.`
           );
         }
       }
@@ -8587,7 +8587,7 @@ async function runDoctor(args, deps = {}) {
       id: `stale-${stale.kind}`,
       severity: "warn",
       message: `Stale ${stale.kind}${where} "${stale.slug}"${stale.branch ? ` (branch ${stale.branch})` : ""}: ${stale.reason}.`,
-      suggestion: stale.kind === "experiment" ? `lakebase-sftdd-experiment discard --feature ${stale.feature_id} --story ${stale.story_id} --slug ${stale.slug} --instance <id> --approver <you> --reason "doctor: stale experiment"` : "lakebase-sftdd-spike teardown (or delete the spike's paired branch) once its learning has carried forward"
+      suggestion: stale.kind === "experiment" ? `consort-experiment discard --feature ${stale.feature_id} --story ${stale.story_id} --slug ${stale.slug} --instance <id> --approver <you> --reason "doctor: stale experiment"` : "consort-spike teardown (or delete the spike's paired branch) once its learning has carried forward"
     });
   }
   if (!workflowStatePresent) {
@@ -8748,7 +8748,7 @@ async function runDoctor(args, deps = {}) {
         id: "multiple-migration-heads",
         severity: "fail",
         message: `Migrations have ${heads.headsBefore.length} heads (${heads.headsBefore.join(", ")}); a sibling-feature merge left them un-collapsed. \`upgrade head\` will refuse until they are unified.`,
-        suggestion: "lakebase-sftdd-collapse-heads"
+        suggestion: "lakebase-collapse-heads"
       });
     }
   } catch {

@@ -55,7 +55,7 @@ export interface DoctorArgs {
   instance?: string;
 }
 
-/** A stale experiment/spike paired branch (the SFTDD-side concept). Declared
+/** A stale experiment/spike paired branch (the Consort-side concept). Declared
  *  locally so SCM core does not import the sftdd module: the caller injects a
  *  finder via RunDoctorDeps. Shape mirrors sftdd/stale-branches.StaleBranchFinding. */
 export interface StaleBranchFinding {
@@ -67,8 +67,8 @@ export interface StaleBranchFinding {
   reason: string;
 }
 
-/** Injected dependencies so SCM-core doctor stays free of any SFTDD import
- *  (the split into lakebase-scm-utils). The SFTDD side (the CLI wiring, and later
+/** Injected dependencies so SCM-core doctor stays free of any Consort import
+ *  (the split into lakebase-scm-utils). The Consort side (the CLI wiring, and later
  *  the kit's doctor wrapper) supplies the stale-branch finder; when absent, the
  *  stale-branch advisory is simply skipped. */
 export interface RunDoctorDeps {
@@ -131,7 +131,7 @@ export async function runDoctor(args: DoctorArgs, deps: RunDoctorDeps = {}): Pro
   const workflowStatePresent = state !== null;
 
   // 0. Stale spikes + experiments, named distinctly. Hermetic (reads the
-  // SFTDD records), so it runs even without a Lakebase instance. Provided by an
+  // Consort records), so it runs even without a Lakebase instance. Provided by an
   // INJECTED finder (deps.findStaleBranches) so SCM core carries no sftdd import;
   // skipped when no finder is supplied.
   for (const stale of deps.findStaleBranches?.() ?? []) {
@@ -142,8 +142,8 @@ export async function runDoctor(args: DoctorArgs, deps: RunDoctorDeps = {}): Pro
       message: `Stale ${stale.kind}${where} "${stale.slug}"${stale.branch ? ` (branch ${stale.branch})` : ""}: ${stale.reason}.`,
       suggestion:
         stale.kind === "experiment"
-          ? `lakebase-sftdd-experiment discard --feature ${stale.feature_id} --story ${stale.story_id} --slug ${stale.slug} --instance <id> --approver <you> --reason "doctor: stale experiment"`
-          : "lakebase-sftdd-spike teardown (or delete the spike's paired branch) once its learning has carried forward",
+          ? `consort-experiment discard --feature ${stale.feature_id} --story ${stale.story_id} --slug ${stale.slug} --instance <id> --approver <you> --reason "doctor: stale experiment"`
+          : "consort-spike teardown (or delete the spike's paired branch) once its learning has carried forward",
     });
   }
 
@@ -383,7 +383,7 @@ export async function runDoctor(args: DoctorArgs, deps: RunDoctorDeps = {}): Pro
         id: "multiple-migration-heads",
         severity: "fail",
         message: `Migrations have ${heads.headsBefore.length} heads (${heads.headsBefore.join(", ")}); a sibling-feature merge left them un-collapsed. \`upgrade head\` will refuse until they are unified.`,
-        suggestion: "lakebase-sftdd-collapse-heads",
+        suggestion: "lakebase-collapse-heads",
       });
     }
   } catch {

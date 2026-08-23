@@ -1445,7 +1445,7 @@ function parseArgs(argv) {
   }
   return out;
 }
-var BIN_NAME = "lakebase-sftdd-new-migration";
+var BIN_NAME = "lakebase-new-migration";
 function help() {
   return `${BIN_NAME} (create a tool-native, sequentially-named migration)
 

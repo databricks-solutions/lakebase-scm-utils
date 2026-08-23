@@ -7,7 +7,7 @@ primitives, and the shared git / github / util layer.
 
 It ships two consumption surfaces:
 
-- **Library API** (for the VS Code extension `lakebase-scm-extension` and the SFTDD
+- **Library API** (for the VS Code extension `lakebase-scm-extension` and the Consort
   orchestration in `consort`): import the substrate from the package barrel
   or a sub-path.
   ```ts
@@ -20,9 +20,9 @@ It ships two consumption surfaces:
 ## Why this exists
 
 The SCM workflows and their supporting substrate were originally embedded in
-`consort` alongside the SFTDD orchestration. They are extracted here so both
-the IDE extension and the SFTDD kit can depend on a single, versioned engine, for easier
-consumption and portability. The SFTDD orchestration stays in `consort` and
+`consort` alongside the Consort orchestration. They are extracted here so both
+the IDE extension and the Consort kit can depend on a single, versioned engine, for easier
+consumption and portability. The Consort orchestration stays in `consort` and
 depends back on this package.
 
 ## Install

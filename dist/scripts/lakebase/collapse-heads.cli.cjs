@@ -1422,7 +1422,7 @@ function parseArgs(argv) {
   }
   return out;
 }
-var BIN_NAME = "lakebase-sftdd-collapse-heads";
+var BIN_NAME = "lakebase-collapse-heads";
 function help() {
   return `${BIN_NAME} (unify multiple migration heads at a sibling-merge boundary)
 

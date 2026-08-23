@@ -6,7 +6,7 @@ import { AboutPage } from "./pages/AboutPage";
 // for data; components and hooks never wire routes themselves. EVERY feature
 // page MUST be (a) added to <Routes> below and (b) reachable from a nav
 // affordance (the navbar links) , an unrouted page is dead to the user, which
-// the kit's UX gate (lakebase-sftdd-ux-clean) flags. Model new pages on the
+// the kit's UX gate (consort-ux-clean) flags. Model new pages on the
 // AboutPage example: routed here + linked in the navbar + styled via global.css.
 export function App() {
   return (

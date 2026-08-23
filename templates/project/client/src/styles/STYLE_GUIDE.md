@@ -24,7 +24,7 @@ value, so a re-theme changes `theme.css` and nothing else.
 
 `global.css` builds a small set of reusable component classes from the tokens,
 so every feature page COMPOSES them instead of hand-rolling markup (and thereby
-consumes the design system). The kit's UX gate (`lakebase-sftdd-ux-clean`) checks
+consumes the design system). The kit's UX gate (`consort-ux-clean`) checks
 that feature pages reference this vocabulary and are reachable from `App.tsx`:
 
 - `page` (+ `page__header`, `page__title`, `page__title-icon`) , the centered
