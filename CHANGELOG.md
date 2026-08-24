@@ -2,6 +2,22 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.11
+
+Deploy pre-serve migrate + gitignore hygiene (scaffold templates).
+
+- **fix(deploy): the `local` deploy target now ships a `migrate:` command.** `deploy.ts`'s
+  pre-serve forward-migrate is gated on `cfg.migrate`; the scaffold's `deploy-targets.yaml`
+  (the source scaffolded into projects) had no `migrate:` entry, so the gate served the
+  experiment branch UNMIGRATED , DB-backed routes 500'd with `relation "..." does not exist`
+  even though honest-GREEN verify (which migrates a disposable child) passed. The v0.3.8 fix
+  had landed only in the consort copy of the template, not this scaffold source. Added
+  `migrate: ./scripts/flyway-migrate.sh` (language-dispatches: Python→alembic, Node→knex,
+  Java→flyway) + a `scaffold-output-contract` guard so it can't drift again.
+- **chore(gitignore): exclude transient `.consort/drive-live.log` + `.consort/diagnostics/`.**
+  The backgrounded drive's live log and the `consort-diagnose` bundles are per-run artifacts;
+  a stray `git add -A` from a build commit must not carry them into history. Guarded.
+
 ## 0.2.10
 
 Scaffold fix: `run-tests.sh` no longer reports a hollow pass when client tests can't run.

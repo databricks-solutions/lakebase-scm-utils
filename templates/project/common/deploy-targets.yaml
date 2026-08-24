@@ -25,6 +25,14 @@ targets:
     # teeth for BOTH the deploy gate AND per-cycle honest GREEN , without it the
     # substrate cannot confirm working software and a build correctly escalates.
     verify: ./scripts/run-tests.sh
+    # Forward-only migrate applied to the DEPLOYED branch BEFORE the app starts
+    # (per-story gate deploy only). Honest-GREEN verify migrates a DISPOSABLE
+    # CHILD branch to isolate reversibility up/down fixtures, so the experiment
+    # branch the PO reviews is otherwise never upgraded , its write path 500s
+    # ("relation does not exist") even though every test passed. This is the
+    # language-agnostic migrate entrypoint (Python: alembic upgrade head; Node:
+    # knex migrate:latest; Java: flyway:migrate) , forward-only + idempotent.
+    migrate: ./scripts/flyway-migrate.sh
 
   # Remote target (Databricks Apps). Declared for the type discriminator;
   # NOT yet implemented by /deploy. Deploy via the extension / app-deploy skill.

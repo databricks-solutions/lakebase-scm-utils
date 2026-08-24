@@ -131,3 +131,25 @@ describe("scaffold output contract: refresh-token.sh", () => {
     expect(sh).not.toMatch(/generate-database-credential/);
   });
 });
+
+describe("scaffold output contract: .gitignore.base", () => {
+  it("excludes transient .consort artifacts (drive-live.log + diagnostics/) so they never enter git", () => {
+    // A stray `git add -A` from a build commit must not carry one run's live log or a
+    // diagnostic bundle (which, though redacted, is transient noise) into history.
+    const gi = readTemplate("common/.gitignore.base");
+    expect(gi).toMatch(/^\.consort\/drive-live\.log$/m);
+    expect(gi).toMatch(/^\.consort\/diagnostics\/$/m);
+  });
+});
+
+describe("scaffold output contract: deploy-targets.yaml", () => {
+  it("the local target ships a `migrate:` command , the deploy's pre-serve forward-migrate", () => {
+    // Without a `migrate:` entry, deploy.ts's pre-serve forward-migrate (gated on
+    // cfg.migrate) is SKIPPED, so the gate serves the experiment branch UNMIGRATED
+    // and the DB-backed routes 500 ("relation does not exist") even though the
+    // honest-GREEN verify (which migrates a disposable child) passed. This drifted
+    // once , the fix lived only in consort/templates, not this scaffold source.
+    const y = readTemplate("common/deploy-targets.yaml");
+    expect(y).toMatch(/migrate:\s*\.\/scripts\/flyway-migrate\.sh/);
+  });
+});

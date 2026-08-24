@@ -14,6 +14,8 @@ application-local.properties
 # legacy roots (.sftdd/.tdd) are kept for projects created before the rename.
 .consort/agent-log.jsonl
 .consort/run-config.json
+.consort/drive-live.log
+.consort/diagnostics/
 .sftdd/agent-log.jsonl
 .sftdd/run-config.json
 .tdd/agent-log.jsonl
