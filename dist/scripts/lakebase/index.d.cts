@@ -2375,10 +2375,12 @@ interface AddE2eToRunTestsScriptResult {
     inserted: boolean;
 }
 /**
- * Idempotently append a Playwright invocation to scripts/run-tests.sh.
- * The block only fires when playwright.config.ts is present at the
- * project root, so retrofits land safely (the existing run-tests.sh
- * continues to behave for projects without E2E).
+ * Idempotently ensure scripts/run-tests.sh runs the Playwright E2E suite (both the
+ * project-root layout AND the client-workspace layout). The block only fires when a
+ * playwright config is present, so it lands safely on projects without E2E. When an
+ * OLDER block (RUN_TESTS_E2E_MARKER present, CLIENT_E2E_MARKER absent) is found, it is
+ * UPGRADED in place , truncate from the marker to EOF and re-append the current block ,
+ * so a project retrofits to the client-workspace branch without a duplicate block.
  */
 declare function addE2eToRunTestsScript(args: AddE2eToRunTestsScriptArgs): AddE2eToRunTestsScriptResult;
 interface EnableE2eForProjectArgs {

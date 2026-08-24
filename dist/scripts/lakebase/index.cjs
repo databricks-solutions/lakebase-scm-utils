@@ -91188,17 +91188,9 @@ function ensurePythonBddDeps(args) {
   return addPythonDevDep(args.projectDir, "pytest-bdd", args.versionRange ?? PYTEST_BDD_VERSION_RANGE);
 }
 var RUN_TESTS_E2E_MARKER = "# run Playwright E2E suite when configured";
-function addE2eToRunTestsScript(args) {
-  const scriptPath = path11.join(args.projectDir, "scripts", "run-tests.sh");
-  if (!fs14.existsSync(scriptPath)) {
-    return { patched: false, inserted: false };
-  }
-  const original = fs14.readFileSync(scriptPath, "utf8");
-  if (original.includes(RUN_TESTS_E2E_MARKER)) {
-    return { patched: true, inserted: false };
-  }
-  const trimmed = original.replace(/\n+$/, "\n");
-  const block = [
+var CLIENT_E2E_MARKER = "# run client Playwright E2E suite when configured";
+function runTestsE2eBlock() {
+  return [
     "",
     RUN_TESTS_E2E_MARKER,
     'if [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; then',
@@ -91229,9 +91221,41 @@ function addE2eToRunTestsScript(args) {
     "  set -e",
     '  if [ "$e2e_rc" -ne 0 ] && [ "$e2e_rc" -ne 5 ]; then exit "$e2e_rc"; fi',
     "fi",
+    "",
+    CLIENT_E2E_MARKER,
+    // A full-stack project keeps its SPA's Playwright under client/ (config +
+    // client/tests/e2e/*.spec.ts), which CI runs as its OWN client-gated step. The
+    // project-root block above never matches that layout, so without this branch the
+    // local deploy-verify SKIPPED the client E2E entirely and failures (a stale
+    // scaffold spec, an undeclared `uuid` import) surfaced only in CI, never at the
+    // per-story gate. Mirror CI here so local acceptance has E2E parity. A SEPARATE
+    // `if` (not elif): a Python/React full-stack app can have BOTH a root/Python E2E
+    // AND the client Playwright. reuseExistingServer (the client config: !CI) reuses
+    // the app the deploy gate already serves, so there is no rebuild; the browser
+    // install is idempotent + cached. --pass-with-no-tests keeps an early story that
+    // ships the config but no specs yet from failing on "no tests found".
+    'if [ -f "$REPO_ROOT/client/playwright.config.ts" ] || [ -f "$REPO_ROOT/client/playwright.config.js" ] || [ -f "$REPO_ROOT/client/playwright.config.mjs" ]; then',
+    '  echo "Running client Playwright E2E tests..."',
+    '  (cd "$REPO_ROOT/client" && npx --yes playwright install chromium)',
+    '  (cd "$REPO_ROOT/client" && npx --yes playwright test --pass-with-no-tests)',
+    "fi",
     ""
   ].join("\n");
-  fs14.writeFileSync(scriptPath, trimmed + block, "utf8");
+}
+function addE2eToRunTestsScript(args) {
+  const scriptPath = path11.join(args.projectDir, "scripts", "run-tests.sh");
+  if (!fs14.existsSync(scriptPath)) {
+    return { patched: false, inserted: false };
+  }
+  const original = fs14.readFileSync(scriptPath, "utf8");
+  const hasBase = original.includes(RUN_TESTS_E2E_MARKER);
+  const hasClient = original.includes(CLIENT_E2E_MARKER);
+  if (hasBase && hasClient) {
+    return { patched: true, inserted: false };
+  }
+  const cut = hasBase ? original.slice(0, original.indexOf(RUN_TESTS_E2E_MARKER)) : original;
+  const base = cut.replace(/\n+$/, "\n");
+  fs14.writeFileSync(scriptPath, base + runTestsE2eBlock(), "utf8");
   return { patched: true, inserted: true };
 }
 function enableE2eForProject(args) {
