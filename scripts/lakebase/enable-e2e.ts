@@ -194,27 +194,19 @@ export interface AddE2eToRunTestsScriptResult {
 const RUN_TESTS_E2E_MARKER = "# run Playwright E2E suite when configured";
 
 /**
- * Idempotently append a Playwright invocation to scripts/run-tests.sh.
- * The block only fires when playwright.config.ts is present at the
- * project root, so retrofits land safely (the existing run-tests.sh
- * continues to behave for projects without E2E).
+ * Marker for the client-workspace Playwright branch (a full-stack project keeps
+ * its SPA's Playwright under `client/`). Its ABSENCE in a script that already has
+ * RUN_TESTS_E2E_MARKER identifies an OLD block that predates client-workspace E2E,
+ * so the appender UPGRADES it in place instead of no-oping (the local/CI E2E-parity
+ * fix reaches a project on the next scaffolder/retrofit run without a duplicate block).
  */
-export function addE2eToRunTestsScript(
-  args: AddE2eToRunTestsScriptArgs
-): AddE2eToRunTestsScriptResult {
-  const scriptPath = path.join(args.projectDir, "scripts", "run-tests.sh");
-  if (!fs.existsSync(scriptPath)) {
-    return { patched: false, inserted: false };
-  }
-  const original = fs.readFileSync(scriptPath, "utf8");
-  if (original.includes(RUN_TESTS_E2E_MARKER)) {
-    return { patched: true, inserted: false };
-  }
-  // Append at the end so the block runs AFTER the language-specific test
-  // suite. Strip a single trailing newline so the join is clean, then
-  // restore one.
-  const trimmed = original.replace(/\n+$/, "\n");
-  const block = [
+const CLIENT_E2E_MARKER = "# run client Playwright E2E suite when configured";
+
+/** The full E2E block appended to run-tests.sh (project-root layout + Python +
+ *  the client-workspace layout). Built once so the fresh-insert and the in-place
+ *  upgrade write byte-identical content. */
+function runTestsE2eBlock(): string {
+  return [
     "",
     RUN_TESTS_E2E_MARKER,
     'if [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; then',
@@ -246,8 +238,53 @@ export function addE2eToRunTestsScript(
     '  if [ "$e2e_rc" -ne 0 ] && [ "$e2e_rc" -ne 5 ]; then exit "$e2e_rc"; fi',
     "fi",
     "",
+    CLIENT_E2E_MARKER,
+    // A full-stack project keeps its SPA's Playwright under client/ (config +
+    // client/tests/e2e/*.spec.ts), which CI runs as its OWN client-gated step. The
+    // project-root block above never matches that layout, so without this branch the
+    // local deploy-verify SKIPPED the client E2E entirely and failures (a stale
+    // scaffold spec, an undeclared `uuid` import) surfaced only in CI, never at the
+    // per-story gate. Mirror CI here so local acceptance has E2E parity. A SEPARATE
+    // `if` (not elif): a Python/React full-stack app can have BOTH a root/Python E2E
+    // AND the client Playwright. reuseExistingServer (the client config: !CI) reuses
+    // the app the deploy gate already serves, so there is no rebuild; the browser
+    // install is idempotent + cached. --pass-with-no-tests keeps an early story that
+    // ships the config but no specs yet from failing on "no tests found".
+    'if [ -f "$REPO_ROOT/client/playwright.config.ts" ] || [ -f "$REPO_ROOT/client/playwright.config.js" ] || [ -f "$REPO_ROOT/client/playwright.config.mjs" ]; then',
+    '  echo "Running client Playwright E2E tests..."',
+    '  (cd "$REPO_ROOT/client" && npx --yes playwright install chromium)',
+    '  (cd "$REPO_ROOT/client" && npx --yes playwright test --pass-with-no-tests)',
+    "fi",
+    "",
   ].join("\n");
-  fs.writeFileSync(scriptPath, trimmed + block, "utf8");
+}
+
+/**
+ * Idempotently ensure scripts/run-tests.sh runs the Playwright E2E suite (both the
+ * project-root layout AND the client-workspace layout). The block only fires when a
+ * playwright config is present, so it lands safely on projects without E2E. When an
+ * OLDER block (RUN_TESTS_E2E_MARKER present, CLIENT_E2E_MARKER absent) is found, it is
+ * UPGRADED in place , truncate from the marker to EOF and re-append the current block ,
+ * so a project retrofits to the client-workspace branch without a duplicate block.
+ */
+export function addE2eToRunTestsScript(
+  args: AddE2eToRunTestsScriptArgs
+): AddE2eToRunTestsScriptResult {
+  const scriptPath = path.join(args.projectDir, "scripts", "run-tests.sh");
+  if (!fs.existsSync(scriptPath)) {
+    return { patched: false, inserted: false };
+  }
+  const original = fs.readFileSync(scriptPath, "utf8");
+  const hasBase = original.includes(RUN_TESTS_E2E_MARKER);
+  const hasClient = original.includes(CLIENT_E2E_MARKER);
+  if (hasBase && hasClient) {
+    return { patched: true, inserted: false }; // already the current block
+  }
+  // Truncate an OLD block (base marker present, client branch missing) so we replace
+  // rather than duplicate; else append to the end after the language-specific suite.
+  const cut = hasBase ? original.slice(0, original.indexOf(RUN_TESTS_E2E_MARKER)) : original;
+  const base = cut.replace(/\n+$/, "\n");
+  fs.writeFileSync(scriptPath, base + runTestsE2eBlock(), "utf8");
   return { patched: true, inserted: true };
 }
 

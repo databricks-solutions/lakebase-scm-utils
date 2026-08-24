@@ -155,6 +155,42 @@ describe("addE2eToRunTestsScript", () => {
     expect(after).toMatch(/e2e_rc=\$\?/);
     expect(after).toMatch(/if \[ "\$e2e_rc" -ne 0 \] && \[ "\$e2e_rc" -ne 5 \]; then exit "\$e2e_rc"; fi/);
   });
+
+  it("runs the CLIENT-workspace Playwright too (client/playwright.config.ts) , the local/CI E2E-parity fix", () => {
+    // A full-stack project keeps its SPA's Playwright under client/, which CI runs as
+    // its own client-gated step. Without this branch the local deploy-verify skipped
+    // the client E2E entirely and failures only surfaced in CI.
+    seedRunTestsScript(projectDir);
+    addE2eToRunTestsScript({ projectDir });
+    const after = fs.readFileSync(path.join(projectDir, "scripts", "run-tests.sh"), "utf8");
+    expect(after).toMatch(/Running client Playwright E2E tests/);
+    expect(after).toMatch(/REPO_ROOT\/client\/playwright\.config\.ts/);
+    expect(after).toMatch(/cd "\$REPO_ROOT\/client" && npx --yes playwright test --pass-with-no-tests/);
+    // Browser install runs from the client workspace, mirroring CI's client step.
+    expect(after).toMatch(/cd "\$REPO_ROOT\/client" && npx --yes playwright install chromium/);
+  });
+
+  it("UPGRADES an old block (no client branch) in place , no duplicate", () => {
+    // A project scaffolded before the client-workspace branch carries the base marker
+    // but not the client one. The appender must REPLACE the old block, not no-op and
+    // not append a second one, so the parity fix retrofits cleanly.
+    seedRunTestsScript(projectDir);
+    const scriptPath = path.join(projectDir, "scripts", "run-tests.sh");
+    // Simulate the OLD block: the base marker + a root-only invocation, no client branch.
+    const oldBlock =
+      '\n# run Playwright E2E suite when configured\n' +
+      'if [ -f "$REPO_ROOT/playwright.config.ts" ]; then\n  (cd "$REPO_ROOT" && npm run test:e2e)\nfi\n';
+    fs.appendFileSync(scriptPath, oldBlock);
+    const result = addE2eToRunTestsScript({ projectDir });
+    expect(result).toEqual({ patched: true, inserted: true });
+    const after = fs.readFileSync(scriptPath, "utf8");
+    // Exactly ONE base-marker occurrence (replaced, not duplicated) + the client branch now present.
+    expect(after.match(/# run Playwright E2E suite when configured/g)).toHaveLength(1);
+    expect(after).toMatch(/# run client Playwright E2E suite when configured/);
+    expect(after).toMatch(/Running client Playwright E2E tests/);
+    // A second call is now a no-op (base + client markers both present).
+    expect(addE2eToRunTestsScript({ projectDir })).toEqual({ patched: true, inserted: false });
+  });
 });
 
 describe("ensurePythonE2eDeps (pyproject dev-extras patch)", () => {
