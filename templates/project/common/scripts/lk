@@ -122,19 +122,32 @@ resolve_pkg() {
     # --no-fund` drop registry round-trips. npm's own progress goes to stderr (>&2)
     # so an interactive warm/rewarm narrates instead of going dark.
     echo "lk: Downloading the Consort toolkit (${pkg}@${committish}) , one-time for this version, ~1-2 min (kit + its dependencies). Later commands are instant." >&2
-    # HEARTBEAT: npm's progress bar is suppressed when stderr is NOT a TTY , which is
-    # exactly a backgrounded `--refresh` whose output is redirected to a log (the
-    # relay pattern). Without a heartbeat that log sits silent for the whole install
-    # and looks hung. Run npm in the background and print an elapsed-time line every
-    # 15s until it exits, so a tailing relay shows liveness regardless of TTY.
-    npm install --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" >&2 &
-    local npm_pid=$! start
-    start=$(date +%s)
+    # SHOW WHAT IS BEING INSTALLED , not just a clock. npm's progress bar is TTY-only
+    # (silent when piped to a log for the relay), but `--loglevel=http` prints one line
+    # per package fetched (`npm http fetch GET 200 …/<pkg>/-/<pkg>-<ver>.tgz`) , exactly
+    # "what is being installed". We run npm to a temp log and FORWARD its new lines
+    # (prefixed `lk:` so the narrator relays them) every few seconds as they land; only
+    # when npm is briefly between fetches (e.g. the initial git clone) do we print an
+    # elapsed-time line. So the relay never goes silent and never looks like a timeout.
+    local npmlog; npmlog="$(mktemp)"
+    npm install --loglevel=http --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" > "$npmlog" 2>&1 &
+    local npm_pid=$! start last cur
+    start=$(date +%s); last=0
     while kill -0 "$npm_pid" 2>/dev/null; do
-      sleep 15
-      kill -0 "$npm_pid" 2>/dev/null || break
-      echo "lk: … still downloading the Consort toolkit ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
+      sleep 5
+      cur=$(wc -c < "$npmlog" 2>/dev/null || echo 0)
+      if [ "$cur" -gt "$last" ]; then
+        tail -c "+$((last + 1))" "$npmlog" | sed 's/^/lk: /' >&2   # forward the real npm progress
+        last="$cur"
+      else
+        echo "lk: … installing the Consort toolkit ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
+      fi
     done
+    # Flush any final lines npm wrote between the last poll and exit, then drop the log
+    # (all branches below are covered , no leaked temp on success OR failure).
+    cur=$(wc -c < "$npmlog" 2>/dev/null || echo 0)
+    [ "$cur" -gt "$last" ] && tail -c "+$((last + 1))" "$npmlog" | sed 's/^/lk: /' >&2
+    rm -f "$npmlog"
     if wait "$npm_pid" && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
       rm -rf "$cache"
       if mv "$tmp" "$cache" 2>/dev/null; then
@@ -225,6 +238,24 @@ bin_rel() { node -e 'const m=require(process.argv[1]+"/package.json").bin||{};co
 # this project uses SFTDD (a kit ref is pinned or a .sftdd/ dir exists).
 if [ "$first" = "--warm" ] || [ "$first" = "--rewarm" ]; then
   mode="${first#--}"
+  # --detach (pass it AFTER --refresh/--install): re-launch this toolkit install in its
+  # OWN session and return at once, so the ~1-2 min download NEVER hits the harness's
+  # ~2min bash timeout and survives the turn ending. Its `lk:` progress lines (what is
+  # being installed) stream to a log the caller relays POLL-ONCE with consort-watch
+  # --since. macOS has no `setsid`, so node does the detach (spawn detached + unref).
+  for _a in "$@"; do
+    [ "$_a" = "--detach" ] || continue
+    _log="$(mktemp "${TMPDIR:-/tmp}/consort-refresh.XXXXXX" 2>/dev/null || echo "/tmp/consort-refresh.$$")"
+    _pid="$(LK_REFRESH_LOG="$_log" node -e 'const{spawn}=require("child_process"),fs=require("fs");const fd=fs.openSync(process.env.LK_REFRESH_LOG,"a");const c=spawn("bash",[process.argv[1],process.argv[2]],{detached:true,stdio:["ignore",fd,fd],env:process.env});c.unref();process.stdout.write(String(c.pid||""));' "$0" "$first" 2>/dev/null)"
+    if [ -n "$_pid" ]; then
+      echo "lk: toolkit install detached into its own session as pid ${_pid} (survives this turn + the ~2min bash timeout)." >&2
+      echo "lk:   live log: ${_log}" >&2
+      echo "lk:   relay it POLL-ONCE: consort-watch --since 0 --log \"${_log}\" --pid ${_pid}  (re-poll with the printed cursor until status=done)" >&2
+      exit 0
+    fi
+    echo "lk: detach re-spawn failed , running the install in-process instead." >&2
+    break
+  done
   resolve_pkg scm-utils "$mode" || exit 1
   if project_uses_kit; then
     resolve_pkg kit "$mode" || exit 1

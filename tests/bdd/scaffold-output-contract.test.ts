@@ -133,14 +133,28 @@ describe("scaffold output contract: refresh-token.sh", () => {
 });
 
 describe("scaffold output contract: lk toolkit-install heartbeat", () => {
-  it("install_pkg emits a heartbeat during npm install (npm's progress is TTY-gated)", () => {
-    // A backgrounded `--refresh` redirects stderr to a log; npm suppresses its
-    // progress bar off a TTY, so without a heartbeat the log sits silent for the
-    // whole 1-2 min install and looks hung. install_pkg must print elapsed-time
-    // liveness while npm runs.
+  it("install_pkg FORWARDS npm's per-package progress + falls back to an elapsed heartbeat", () => {
+    // A backgrounded `--refresh` redirects output to a log; npm suppresses its progress
+    // bar off a TTY, so the log would sit silent for the whole 1-2 min install and look
+    // hung. install_pkg must show WHAT IS BEING INSTALLED: run npm with --loglevel=http
+    // (one line per package fetched) and forward its new lines (prefixed `lk:` so the
+    // narrator relays them); only when npm is briefly between fetches does it print an
+    // elapsed-time line. So the relay is never silent and shows real package progress.
     const lk = readTemplate("common/scripts/lk");
-    expect(lk).toMatch(/still downloading the Consort toolkit/);
-    expect(lk).toMatch(/kill -0 "\$npm_pid"/); // the background+heartbeat loop
+    expect(lk).toMatch(/--loglevel=http/); // per-package fetch lines (what is installing)
+    expect(lk).toMatch(/sed 's\/\^\/lk: \//); // forward npm's lines, prefixed for the relay
+    expect(lk).toMatch(/installing the Consort toolkit .*elapsed/); // fallback liveness line
+    expect(lk).toMatch(/kill -0 "\$npm_pid"/); // the background progress-forwarding loop
+  });
+
+  it("`lk --refresh --detach` re-launches the install in its own session (no timeout, survives the turn)", () => {
+    // A ~1-2 min install run foreground risks the harness ~2min bash timeout, and a
+    // plain `&` is reaped at turn-end. --detach re-spawns via node (setsid: new session)
+    // and returns at once, streaming progress to a log the caller relays poll-once.
+    const lk = readTemplate("common/scripts/lk");
+    expect(lk).toMatch(/--detach/);
+    expect(lk).toMatch(/detached:true/); // node spawn(detached) = setsid, escapes the group SIGTERM
+    expect(lk).toMatch(/toolkit install detached into its own session/);
   });
 });
 
