@@ -2,6 +2,18 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.12
+
+Toolkit-install liveness (scaffolded `lk`).
+
+- **fix(lk): heartbeat during the toolkit install so a backgrounded `--refresh` shows
+  progress.** `install_pkg` printed one "Downloading…" line then ran `npm install >&2`;
+  npm's progress bar is suppressed when stderr is not a TTY (exactly a backgrounded
+  `--refresh` whose output is a redirected log), so the log sat silent for the whole
+  1-2 min install and looked hung. `install_pkg` now runs npm in the background and
+  prints an elapsed-time line every 15s until it exits, so a tailing relay shows
+  liveness regardless of TTY. + a scaffold-output-contract guard.
+
 ## 0.2.11
 
 Deploy pre-serve migrate + gitignore hygiene (scaffold templates).

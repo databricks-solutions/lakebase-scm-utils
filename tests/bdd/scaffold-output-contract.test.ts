@@ -132,6 +132,18 @@ describe("scaffold output contract: refresh-token.sh", () => {
   });
 });
 
+describe("scaffold output contract: lk toolkit-install heartbeat", () => {
+  it("install_pkg emits a heartbeat during npm install (npm's progress is TTY-gated)", () => {
+    // A backgrounded `--refresh` redirects stderr to a log; npm suppresses its
+    // progress bar off a TTY, so without a heartbeat the log sits silent for the
+    // whole 1-2 min install and looks hung. install_pkg must print elapsed-time
+    // liveness while npm runs.
+    const lk = readTemplate("common/scripts/lk");
+    expect(lk).toMatch(/still downloading the Consort toolkit/);
+    expect(lk).toMatch(/kill -0 "\$npm_pid"/); // the background+heartbeat loop
+  });
+});
+
 describe("scaffold output contract: .gitignore.base", () => {
   it("excludes transient .consort artifacts (drive-live.log + diagnostics/) so they never enter git", () => {
     // A stray `git add -A` from a build commit must not carry one run's live log or a

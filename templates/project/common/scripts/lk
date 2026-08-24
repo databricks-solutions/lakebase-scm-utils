@@ -122,8 +122,20 @@ resolve_pkg() {
     # --no-fund` drop registry round-trips. npm's own progress goes to stderr (>&2)
     # so an interactive warm/rewarm narrates instead of going dark.
     echo "lk: Downloading the Consort toolkit (${pkg}@${committish}) , one-time for this version, ~1-2 min (kit + its dependencies). Later commands are instant." >&2
-    if npm install --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" >&2 \
-       && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
+    # HEARTBEAT: npm's progress bar is suppressed when stderr is NOT a TTY , which is
+    # exactly a backgrounded `--refresh` whose output is redirected to a log (the
+    # relay pattern). Without a heartbeat that log sits silent for the whole install
+    # and looks hung. Run npm in the background and print an elapsed-time line every
+    # 15s until it exits, so a tailing relay shows liveness regardless of TTY.
+    npm install --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" >&2 &
+    local npm_pid=$! start
+    start=$(date +%s)
+    while kill -0 "$npm_pid" 2>/dev/null; do
+      sleep 15
+      kill -0 "$npm_pid" 2>/dev/null || break
+      echo "lk: … still downloading the Consort toolkit ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
+    done
+    if wait "$npm_pid" && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
       rm -rf "$cache"
       if mv "$tmp" "$cache" 2>/dev/null; then
         [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.pkg-sha" 2>/dev/null || true
