@@ -2,6 +2,22 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.15
+
+Doctor enforces the documented Python **3.10** floor (was major-only).
+
+- **fix(doctor): the prereq check now gates on the minor version, so a 3.9 interpreter no longer
+  reports `[doctor] environment ok`.** The `python` prereq was `minMajor: 3`, which can only express
+  "some Python 3", so macOS's system `python3` (3.9.6) passed the doctor while the hint promised
+  3.10+ , observed directly: `lakebase-create-project` printed `[doctor] environment ok` on a 3.9.6
+  machine. `parseVersion` already extracts `{major, minor}`, so the minor was parsed but never
+  compared. Added an optional `minMinor` field to `PrereqSpec` (the floor becomes `minMajor.minMinor`
+  when set) and set the python prereq to `minMajor: 3, minMinor: 10`; `checkPrereq` now warns when the
+  major matches but the minor is short, and the messages read `3.10+`. Only `python` sets a minor
+  floor; the other prereqs keep their major-line floors unchanged. Pairs with the consort `bootstrap.sh`
+  fix for the same class (a present-but-below-floor tool reporting green). Test: `doctor-prereqs.test.ts`
+  (+1, plus the previously-silent 3.9 case now asserted).
+
 ## 0.2.12
 
 Toolkit-install liveness (scaffolded `lk`).

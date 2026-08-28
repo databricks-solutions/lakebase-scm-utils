@@ -47,7 +47,7 @@ describe("checkPrerequisites (cold-start Node/Python/JDK/gh/npm)", () => {
     const run = fakeRunner({
       node: "v18.19.0", // below 20
       npm: "9.6.7",
-      python3: "Python 3.9.6", // below 3.10 major line is still 3, so ok on major
+      python3: "Python 3.9.6", // major 3 is met but minor 9 is below the 3.10 floor
       java: 'openjdk version "11.0.21"', // below 17
       gh: "gh version 2.40.1",
     });
@@ -58,9 +58,34 @@ describe("checkPrerequisites (cold-start Node/Python/JDK/gh/npm)", () => {
     expect(byName.node.message).toContain("20+");
     expect(byName.node.hint).toBeTruthy();
 
+    // Python 3.9.6 is below the documented 3.10 floor. Before the minMinor gate this
+    // passed as ok (major 3 satisfied minMajor:3) despite the hint promising 3.10+ ,
+    // the [doctor] environment ok on a 3.9 machine. It must WARN now.
+    expect(byName.python.status).toBe("warn");
+    expect(byName.python.message).toContain("3.10+");
+    expect(byName.python.hint).toBeTruthy();
+
     expect(byName.jdk.status).toBe("warn");
     expect(byName.jdk.message).toContain("17+");
     expect(byName.jdk.hint).toBeTruthy();
+  });
+
+  it("enforces the Python 3.10 MINOR floor at the boundary (3.9 warns, 3.10 ok)", async () => {
+    const ok = ["node", "npm", "jdk", "gh"];
+    const base = { node: "v20.11.0", npm: "10.2.4", java: 'openjdk version "17.0.9"', gh: "gh version 2.40.1" };
+
+    // Exactly at the floor: 3.10.0 is ok.
+    const at = await checkPrerequisites(fakeRunner({ ...base, python3: "Python 3.10.0" }));
+    expect(at.find((r) => r.name === "python")!.status).toBe("ok");
+    for (const n of ok) expect(at.find((r) => r.name === n)!.status).toBe("ok");
+
+    // Just below: 3.9.18 warns.
+    const below = await checkPrerequisites(fakeRunner({ ...base, python3: "Python 3.9.18" }));
+    expect(below.find((r) => r.name === "python")!.status).toBe("warn");
+
+    // A higher major clears it regardless of minor (4.0 is not "below 3.10").
+    const higher = await checkPrerequisites(fakeRunner({ ...base, python3: "Python 4.0.0" }));
+    expect(higher.find((r) => r.name === "python")!.status).toBe("ok");
   });
 
   it("fails with a fix hint when a required tool is missing from PATH", async () => {

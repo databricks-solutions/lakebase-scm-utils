@@ -1695,6 +1695,7 @@ var PREREQS = [
     cmd: "python3",
     versionArgs: ["--version"],
     minMajor: 3,
+    minMinor: 10,
     label: "Python",
     hint: "Install Python 3.10+ (e.g. `brew install python@3.11` or https://www.python.org/downloads)."
   },
@@ -1737,21 +1738,23 @@ async function checkPrereq(spec, run) {
   const trimmed = raw.trim().split("\n")[0]?.trim() ?? raw.trim();
   const version = parseVersion(trimmed);
   if (spec.minMajor !== null) {
+    const floor = spec.minMinor != null ? `${spec.minMajor}.${spec.minMinor}` : `${spec.minMajor}`;
     if (!version) {
       return {
         name: spec.name,
         status: "warn",
-        message: `${spec.label} present but version unreadable - kit expects ${spec.minMajor}+`,
-        detail: { version: trimmed, minMajor: spec.minMajor },
+        message: `${spec.label} present but version unreadable - kit expects ${floor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor, minMinor: spec.minMinor ?? null },
         hint: spec.hint
       };
     }
-    if (version.major < spec.minMajor) {
+    const belowFloor = version.major < spec.minMajor || spec.minMinor != null && version.major === spec.minMajor && version.minor < spec.minMinor;
+    if (belowFloor) {
       return {
         name: spec.name,
         status: "warn",
-        message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
-        detail: { version: trimmed, minMajor: spec.minMajor },
+        message: `${spec.label} ${trimmed} - kit expects ${floor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor, minMinor: spec.minMinor ?? null },
         hint: spec.hint
       };
     }

@@ -150,6 +150,10 @@ interface PrereqSpec {
   versionArgs: string[];
   /** Minimum major version the kit requires, or null for presence-only. */
   minMajor: number | null;
+  /** Minimum MINOR version required WHEN the major equals `minMajor` (the floor is
+   *  then `minMajor.minMinor`, e.g. Python 3.10). Omit/null when the major line alone
+   *  is the floor. Only consulted when `minMajor` is set. */
+  minMinor?: number | null;
   /** Human label for messages (e.g. "Node.js"). */
   label: string;
   /** Remediation hint when missing or too old. */
@@ -178,6 +182,7 @@ const PREREQS: PrereqSpec[] = [
     cmd: "python3",
     versionArgs: ["--version"],
     minMajor: 3,
+    minMinor: 10,
     label: "Python",
     hint: "Install Python 3.10+ (e.g. `brew install python@3.11` or https://www.python.org/downloads).",
   },
@@ -200,13 +205,17 @@ const PREREQS: PrereqSpec[] = [
 ];
 
 /**
- * Presence + version check for one cold-start prerequisite. Python 3.10 is the
- * documented floor, but the kit only hard-requires major 3 (3.10 vs 3.11 is not
- * something we can reliably gate cross-distro), so minMajor is the major-line
- * floor. The default runner captures stdout+stderr (some tools, e.g. `java
- * -version`, print the version to stderr and exit 0), so the happy path parses
- * either stream. If the tool is genuinely absent the runner rejects, and we still
- * parse the error text for a version before concluding it is missing.
+ * Presence + version check for one cold-start prerequisite. The floor is
+ * `minMajor` and, when `minMinor` is set, `minMajor.minMinor` (e.g. Python's
+ * documented 3.10 floor: `minMajor:3, minMinor:10`). `parseVersion` already
+ * extracts `{major, minor}` from the version string, so gating on the minor is
+ * reliable for a tool that prints one (python3 prints `Python 3.9.6`); a below-floor
+ * minor previously slipped through because only the major was compared, so a 3.9
+ * interpreter reported `[doctor] environment ok` despite the hint promising 3.10+.
+ * The default runner captures stdout+stderr (some tools, e.g. `java -version`, print
+ * the version to stderr and exit 0), so the happy path parses either stream. If the
+ * tool is genuinely absent the runner rejects, and we still parse the error text for
+ * a version before concluding it is missing.
  */
 async function checkPrereq(
   spec: PrereqSpec,
@@ -239,6 +248,8 @@ async function checkPrereq(
   const trimmed = raw.trim().split("\n")[0]?.trim() ?? raw.trim();
   const version = parseVersion(trimmed);
   if (spec.minMajor !== null) {
+    // The human-readable floor: "3.10+" when a minor floor is set, else "3+".
+    const floor = spec.minMinor != null ? `${spec.minMajor}.${spec.minMinor}` : `${spec.minMajor}`;
     if (!version) {
       // Present but no version could be parsed (empty / garbled output). Do NOT
       // fall through to "ok" — that fails OPEN and lets any version past the floor.
@@ -246,17 +257,22 @@ async function checkPrereq(
       return {
         name: spec.name,
         status: "warn",
-        message: `${spec.label} present but version unreadable - kit expects ${spec.minMajor}+`,
-        detail: { version: trimmed, minMajor: spec.minMajor },
+        message: `${spec.label} present but version unreadable - kit expects ${floor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor, minMinor: spec.minMinor ?? null },
         hint: spec.hint,
       };
     }
-    if (version.major < spec.minMajor) {
+    // Below the floor if the major is short, OR the major matches and the minor is
+    // short (the minMinor gate: Python 3.9 fails a 3.10 floor even though major 3 is met).
+    const belowFloor =
+      version.major < spec.minMajor ||
+      (spec.minMinor != null && version.major === spec.minMajor && version.minor < spec.minMinor);
+    if (belowFloor) {
       return {
         name: spec.name,
         status: "warn",
-        message: `${spec.label} ${trimmed} - kit expects ${spec.minMajor}+`,
-        detail: { version: trimmed, minMajor: spec.minMajor },
+        message: `${spec.label} ${trimmed} - kit expects ${floor}+`,
+        detail: { version: trimmed, minMajor: spec.minMajor, minMinor: spec.minMinor ?? null },
         hint: spec.hint,
       };
     }
