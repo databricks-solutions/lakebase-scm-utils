@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./scripts/run-tests.sh)",
+      "Bash(./scripts/run-tests.sh *)",
+      "Bash(uv run alembic *)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run --extra dev pytest *)",
+      "Bash(uv run --extra dev playwright install *)",
+      "Bash(npm test)",
+      "Bash(npm run test:e2e)",
+      "Bash(npm --prefix client test)",
+      "Bash(npm --prefix client run test:e2e)",
+      "Bash(npx --yes playwright install *)",
+      "Bash(npx --yes playwright test *)"
+    ]
+  }
+}

@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.19
+
+Ship a scaffolded `.claude/settings.json` so a headless drive can self-verify.
+
+- **feat(scaffold): pre-allowlist the project's verify commands in a committed `.claude/settings.json`.** A scaffolded project is driven by the deterministic orchestrator, which spawns each role agent HEADLESSLY (`claude --agent <role>`), with no human present to answer an interactive permission prompt. Its role agents must run the project's real-branch-DB verify (`./scripts/run-tests.sh`, `uv run alembic`/`pytest`, the client `test`/`test:e2e`, `playwright install`), but a scaffolded project shipped no permission allowlist, so every one of those invocations was gated pending an approval no one could grant , the drive could not self-confirm GREEN and re-raised a stale escalation instead. The scaffolder now deploys `.claude/settings.json` (new `deployClaudeSettings`, wired into `scaffoldStaticAll`) carrying exactly those verify commands, skip-if-exists so it never clobbers a user's own settings. **Why `settings.json` (the committed *project* source) and NOT `settings.local.json` (the *local* source):** the drive spawns each agent with `claude -p --setting-sources project`, which loads ONLY `.claude/settings.json`; `settings.local.json` is never sourced by the spawned agent, so an allowlist placed there is invisible to the drive (the observed wall , the allowlist "wasn't honored" because it was in the local source). A committed `settings.json` also travels with the project, so every teammate's drive inherits it. Test: `scaffold.test.ts` (+2 guards , ships the verify allowlist; never clobbers an existing settings.json).
+
 ## 0.2.18
 
 Complete the migrate-before-serve e2e fix: pin the served DB into the Playwright webServer env.

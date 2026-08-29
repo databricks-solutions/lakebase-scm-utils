@@ -194,6 +194,37 @@ export async function deployClaudeCommands(
 }
 
 /**
+ * Deploy `.claude/settings.json` from `common/.claude/settings.json`. This ships
+ * the project's own verify commands (`run-tests.sh`, `uv run alembic`/`pytest`, the
+ * client test/e2e, `playwright install`) PRE-ALLOWLISTED, so the deterministic
+ * drive , which spawns its role agents headlessly (`claude --agent <role>`), with
+ * no human present to approve an interactive permission prompt , can actually RUN
+ * the real-branch-DB verify and self-confirm GREEN. Without this a scaffolded
+ * project's headless drive is blocked pending approval on every `uv run pytest` /
+ * `npm run test:e2e`, cannot self-verify, and re-raises a stale escalation instead.
+ * A COMMITTED settings.json (not settings.local.json) so the allowlist travels
+ * with the project and every teammate's drive inherits it. Skips an existing
+ * settings.json (never clobbers a user's own permissions) unless `force: true`.
+ */
+export async function deployClaudeSettings(
+  targetDir: string,
+  opts?: DeployClaudeCommandsOptions
+): Promise<DeployClaudeCommandsResult> {
+  const src = path.join(commonDir(opts), ".claude", "settings.json");
+  if (!fs.existsSync(src)) {
+    return { written: [], skipped: [] };
+  }
+  const relDest = path.join(".claude", "settings.json");
+  const destPath = path.join(targetDir, relDest);
+  if (fs.existsSync(destPath) && !opts?.force) {
+    return { written: [], skipped: [relDest] };
+  }
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.copyFileSync(src, destPath);
+  return { written: [relDest], skipped: [] };
+}
+
+/**
  * Deploy the role agent definitions a scaffolded project needs into its
  * `.claude/agents/` so Claude Code can discover + spawn them. The substrate does
  * not know which skill owns them: it discovers each skill's `agents/` subtree
@@ -611,6 +642,9 @@ export interface ScaffoldStaticAllResult {
   claudeAgents: string[];
   /** `.claude/skills/*` skill dirs written this run. Empty when skipped. */
   claudeSkills: string[];
+  /** `.claude/settings.json` (the verify-command allowlist) if written this run;
+   *  empty when skipped (already present) or commands were skipped. */
+  claudeSettings: string[];
   /** `client/*` files written when the React SPA client was scaffolded
    *  (clientFramework="react"); empty/omitted otherwise. */
   client?: string[];
@@ -668,6 +702,7 @@ export async function scaffoldStaticAll(args: ScaffoldStaticAllArgs): Promise<Sc
   let claudeCommands: string[] = [];
   let claudeAgents: string[] = [];
   let claudeSkills: string[] = [];
+  let claudeSettings: string[] = [];
   if (!args.skipCommands) {
     report("Deploying .claude/commands/");
     const cmd = await deployClaudeCommands(args.targetDir, opts);
@@ -678,9 +713,13 @@ export async function scaffoldStaticAll(args: ScaffoldStaticAllArgs): Promise<Sc
     const skills = await deployClaudeSkills(args.targetDir, opts);
     claudeSkills = skills.written;
     report(`Deploying .claude/skills/ (${claudeSkills.length} skills)`);
+    // Pre-allowlist the project's verify commands so the headless drive can self-verify.
+    const settings = await deployClaudeSettings(args.targetDir, opts);
+    claudeSettings = settings.written;
+    if (claudeSettings.length) report("Deploying .claude/settings.json (verify-command allowlist)");
   }
 
-  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills };
+  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills, claudeSettings };
 }
 
 /**

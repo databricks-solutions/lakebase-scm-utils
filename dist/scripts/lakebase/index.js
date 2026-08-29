@@ -11725,6 +11725,20 @@ async function deployClaudeCommands(targetDir, opts) {
   }
   return { written, skipped };
 }
+async function deployClaudeSettings(targetDir, opts) {
+  const src = path11.join(commonDir(opts), ".claude", "settings.json");
+  if (!fs12.existsSync(src)) {
+    return { written: [], skipped: [] };
+  }
+  const relDest = path11.join(".claude", "settings.json");
+  const destPath = path11.join(targetDir, relDest);
+  if (fs12.existsSync(destPath) && !opts?.force) {
+    return { written: [], skipped: [relDest] };
+  }
+  fs12.mkdirSync(path11.dirname(destPath), { recursive: true });
+  fs12.copyFileSync(src, destPath);
+  return { written: [relDest], skipped: [] };
+}
 async function deployClaudeAgents(targetDir, opts) {
   const skillsRoot = path11.join(path11.dirname(path11.dirname(templatesRoot(opts))), "skills");
   if (!fs12.existsSync(skillsRoot)) {
@@ -11972,6 +11986,7 @@ async function scaffoldStaticAll(args) {
   let claudeCommands = [];
   let claudeAgents = [];
   let claudeSkills = [];
+  let claudeSettings = [];
   if (!args.skipCommands) {
     report("Deploying .claude/commands/");
     const cmd = await deployClaudeCommands(args.targetDir, opts);
@@ -11982,8 +11997,11 @@ async function scaffoldStaticAll(args) {
     const skills = await deployClaudeSkills(args.targetDir, opts);
     claudeSkills = skills.written;
     report(`Deploying .claude/skills/ (${claudeSkills.length} skills)`);
+    const settings = await deployClaudeSettings(args.targetDir, opts);
+    claudeSettings = settings.written;
+    if (claudeSettings.length) report("Deploying .claude/settings.json (verify-command allowlist)");
   }
-  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills };
+  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills, claudeSettings };
 }
 async function scaffoldAll(args) {
   const report = args.report ?? (() => {
@@ -17550,6 +17568,7 @@ export {
   deletePairedBranch,
   deployClaudeAgents,
   deployClaudeCommands,
+  deployClaudeSettings,
   deployClaudeSkills,
   deployClientProject,
   deployDeployTargets,

@@ -78997,6 +78997,7 @@ __export(lakebase_exports, {
   deletePairedBranch: () => deletePairedBranch,
   deployClaudeAgents: () => deployClaudeAgents,
   deployClaudeCommands: () => deployClaudeCommands,
+  deployClaudeSettings: () => deployClaudeSettings,
   deployClaudeSkills: () => deployClaudeSkills,
   deployClientProject: () => deployClientProject,
   deployDeployTargets: () => deployDeployTargets,
@@ -90789,6 +90790,20 @@ async function deployClaudeCommands(targetDir, opts) {
   }
   return { written, skipped };
 }
+async function deployClaudeSettings(targetDir, opts) {
+  const src = path10.join(commonDir(opts), ".claude", "settings.json");
+  if (!fs13.existsSync(src)) {
+    return { written: [], skipped: [] };
+  }
+  const relDest = path10.join(".claude", "settings.json");
+  const destPath = path10.join(targetDir, relDest);
+  if (fs13.existsSync(destPath) && !opts?.force) {
+    return { written: [], skipped: [relDest] };
+  }
+  fs13.mkdirSync(path10.dirname(destPath), { recursive: true });
+  fs13.copyFileSync(src, destPath);
+  return { written: [relDest], skipped: [] };
+}
 async function deployClaudeAgents(targetDir, opts) {
   const skillsRoot = path10.join(path10.dirname(path10.dirname(templatesRoot(opts))), "skills");
   if (!fs13.existsSync(skillsRoot)) {
@@ -91036,6 +91051,7 @@ async function scaffoldStaticAll(args) {
   let claudeCommands = [];
   let claudeAgents = [];
   let claudeSkills = [];
+  let claudeSettings = [];
   if (!args.skipCommands) {
     report("Deploying .claude/commands/");
     const cmd = await deployClaudeCommands(args.targetDir, opts);
@@ -91046,8 +91062,11 @@ async function scaffoldStaticAll(args) {
     const skills = await deployClaudeSkills(args.targetDir, opts);
     claudeSkills = skills.written;
     report(`Deploying .claude/skills/ (${claudeSkills.length} skills)`);
+    const settings = await deployClaudeSettings(args.targetDir, opts);
+    claudeSettings = settings.written;
+    if (claudeSettings.length) report("Deploying .claude/settings.json (verify-command allowlist)");
   }
-  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills };
+  return { scripts, workflows, hooksInstalled, claudeCommands, claudeAgents, claudeSkills, claudeSettings };
 }
 async function scaffoldAll(args) {
   const report = args.report ?? (() => {
@@ -96615,6 +96634,7 @@ function isUcMissingError(msg) {
   deletePairedBranch,
   deployClaudeAgents,
   deployClaudeCommands,
+  deployClaudeSettings,
   deployClaudeSkills,
   deployClientProject,
   deployDeployTargets,

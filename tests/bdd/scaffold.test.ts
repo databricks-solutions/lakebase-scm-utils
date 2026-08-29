@@ -24,6 +24,7 @@ import {
   patchWorkflowsForRunnerType,
   scaffoldStaticAll,
   deployClaudeSkills,
+  deployClaudeSettings,
 } from "../../scripts/lakebase/scaffold.js";
 
 const tmpDirs: string[] = [];
@@ -106,6 +107,39 @@ describe("deployVscodeSettings", () => {
     const settingsPath = path.join(dir, ".vscode", "settings.json");
     expect(fs.existsSync(settingsPath)).toBe(true);
     expect(JSON.parse(fs.readFileSync(settingsPath, "utf-8"))).toBeTypeOf("object");
+  });
+});
+
+describe("deployClaudeSettings", () => {
+  it("ships .claude/settings.json pre-allowlisting the verify commands (headless drive can self-verify)", async () => {
+    const dir = mkTmp();
+    const res = await deployClaudeSettings(dir);
+    const settingsPath = path.join(dir, ".claude", "settings.json");
+    expect(fs.existsSync(settingsPath)).toBe(true);
+    expect(res.written).toContain(path.join(".claude", "settings.json"));
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as {
+      permissions: { allow: string[] };
+    };
+    const allow = settings.permissions.allow;
+    // The verify entry point + the drive's per-cycle real-DB commands must be allowlisted,
+    // or a headless `claude --agent driver` is blocked pending approval and cannot confirm GREEN.
+    expect(allow).toContain("Bash(./scripts/run-tests.sh *)");
+    expect(allow.some((a) => a.startsWith("Bash(uv run pytest"))).toBe(true);
+    expect(allow).toContain("Bash(npm run test:e2e)");
+    expect(allow.some((a) => a.includes("playwright"))).toBe(true);
+  });
+
+  it("does NOT clobber an existing project settings.json (skips unless force)", async () => {
+    const dir = mkTmp();
+    const settingsPath = path.join(dir, ".claude", "settings.json");
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    fs.writeFileSync(settingsPath, JSON.stringify({ permissions: { allow: ["Bash(my own rule)"] } }));
+    const res = await deployClaudeSettings(dir);
+    expect(res.written).toEqual([]);
+    expect(res.skipped).toContain(path.join(".claude", "settings.json"));
+    // The user's own settings survive untouched.
+    const kept = JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as { permissions: { allow: string[] } };
+    expect(kept.permissions.allow).toEqual(["Bash(my own rule)"]);
   });
 });
 
