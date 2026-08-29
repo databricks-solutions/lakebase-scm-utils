@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.18
+
+Complete the migrate-before-serve e2e fix: pin the served DB into the Playwright webServer env.
+
+- **fix(e2e): forward `DATABASE_URL` (and `VERIFY_DATABASE_URL`) into the scaffolded Playwright backend `webServer` env.** v0.2.17 made the backend `webServer` run `alembic upgrade head && uvicorn …` (migrate-before-serve, no reuse), but the `webServer` command does NOT inherit the shell's `DATABASE_URL`, so `alembic` could migrate a different database than `uvicorn` served , leaving the served schema missing a story's new table (the reconcile 500). `client/playwright.config.ts` (and the `client-reference`) now forward `DATABASE_URL` and `VERIFY_DATABASE_URL` into that `env` when set, so the migrate step and the served app resolve the SAME DB (run-tests.sh exports the ephemeral `VERIFY_DATABASE_URL` when the substrate provides an isolated child, else the branch DB). Only forwarded when set, to keep the env clean. Test: `scaffold-client.test.ts` (+1 guard asserting both keys are forwarded).
+
 ## 0.2.17
 
 Two connection/e2e-harness fixes.

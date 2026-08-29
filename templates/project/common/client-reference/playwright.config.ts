@@ -71,6 +71,12 @@ export default defineConfig({
         // warnings 30+ minutes into a run.
         DATABRICKS_HOST: process.env.DATABRICKS_HOST ?? '',
         DATABRICKS_TOKEN: process.env.DATABRICKS_TOKEN ?? '',
+        // Pin the served DB so `alembic upgrade head` (migrate-before-serve) and the server
+        // resolve the SAME database , otherwise the migrate can hit a different DB than the
+        // one served, leaving a story's new table missing on the served schema (-> 500). Only
+        // forward when set.
+        ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+        ...(process.env.VERIFY_DATABASE_URL ? { VERIFY_DATABASE_URL: process.env.VERIFY_DATABASE_URL } : {}),
       },
     },
     // Frontend – proxies `/api/*` to the backend.

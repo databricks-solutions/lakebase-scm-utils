@@ -50,6 +50,14 @@ export default defineConfig({
       env: {
         DATABRICKS_HOST: process.env.DATABRICKS_HOST ?? "",
         DATABRICKS_TOKEN: process.env.DATABRICKS_TOKEN ?? "",
+        // Pin the served DB so `alembic upgrade head` (migrate-before-serve) and uvicorn
+        // resolve the SAME database. run-tests.sh exports DATABASE_URL (the ephemeral
+        // VERIFY_DATABASE_URL when the substrate provides one, else the branch DB); the
+        // Playwright webServer command does NOT inherit it unless set here, so alembic could
+        // migrate a different DB than uvicorn serves , leaving the served schema missing a
+        // story's new table (-> the reconcile 500). Only forward when set (keep the env clean).
+        ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+        ...(process.env.VERIFY_DATABASE_URL ? { VERIFY_DATABASE_URL: process.env.VERIFY_DATABASE_URL } : {}),
       },
     },
     {

@@ -207,6 +207,11 @@ describe("deployClientProject", () => {
     const cfg = read(target, "client/playwright.config.ts");
     expect(cfg).toMatch(/alembic upgrade head\s*&&\s*uv run --project \.\. uvicorn app\.main:app/);
     expect(cfg).toMatch(/reuseExistingServer:\s*false/); // the backend entry , always restart + re-migrate
+    // The migrate + the serve must hit the SAME DB: forward DATABASE_URL (else `alembic
+    // upgrade head` migrates a different DB than uvicorn serves, and the served schema is
+    // missing a story's new table -> 500). Live-confirmed on the run.
+    expect(cfg).toMatch(/DATABASE_URL:\s*process\.env\.DATABASE_URL/);
+    expect(cfg).toMatch(/VERIFY_DATABASE_URL:\s*process\.env\.VERIFY_DATABASE_URL/);
     // The frontend still reuses locally for speed (has no schema to go stale).
     expect(cfg).toMatch(/reuseExistingServer:\s*!process\.env\.CI/);
   });
