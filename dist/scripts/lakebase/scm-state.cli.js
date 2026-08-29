@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // scripts/lakebase/scm-state.cli.ts
-import * as path5 from "path";
+import * as path6 from "path";
 
 // scripts/util/cli-entry.ts
 import { realpathSync } from "fs";
@@ -248,8 +248,8 @@ function invariantsForState(state, forState) {
 }
 
 // scripts/lakebase/scm-claim-feature.ts
-import * as fs5 from "fs";
-import * as path4 from "path";
+import * as fs6 from "fs";
+import * as path5 from "path";
 
 // scripts/lakebase/kit-config.ts
 function intFromEnv(name, fallback) {
@@ -295,8 +295,8 @@ var KIT_REGISTRIES = {
 };
 
 // scripts/lakebase/paired-branch.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs5 from "fs";
+import * as path4 from "path";
 import { execFileSync as execFileSync3 } from "child_process";
 
 // scripts/lakebase/databricks-cli.ts
@@ -329,6 +329,11 @@ function sanitizeBranchName(gitBranch) {
 // scripts/lakebase/get-connection.ts
 import { createLakebasePool } from "@databricks/lakebase";
 import { Client } from "pg";
+
+// scripts/lakebase/self-version.ts
+import * as fs4 from "fs";
+import * as path3 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
 
 // scripts/lakebase/convention-branches.ts
 var CONVENTION_TIER_DEFAULTS = {
@@ -412,7 +417,7 @@ Exit codes:
   2 = state file present but invalid
 `;
 function buildReport(projectDir) {
-  const stateFile = path5.join(projectDir, ".lakebase/workflow-state.json");
+  const stateFile = path6.join(projectDir, ".lakebase/workflow-state.json");
   try {
     const state = readWorkflowState(projectDir);
     if (!state) {
@@ -535,7 +540,7 @@ function main(argv) {
 `);
     return 0;
   }
-  const projectDir = path5.resolve(args.projectDir ?? process.cwd());
+  const projectDir = path6.resolve(args.projectDir ?? process.cwd());
   const report = buildReport(projectDir);
   if (args.json) {
     const indent = args.pretty ? 2 : 0;

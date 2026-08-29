@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 // scripts/lakebase/scm-recover-orphans.cli.ts
-import * as fs5 from "fs";
-import * as path4 from "path";
+import * as fs6 from "fs";
+import * as path5 from "path";
 
 // scripts/util/cli-entry.ts
 import { realpathSync } from "fs";
@@ -366,9 +366,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path5) {
-  if (!path5.includes("/branches/")) return null;
-  const leaf = path5.split("/branches/").pop();
+function branchNameFromResourcePath(path6) {
+  if (!path6.includes("/branches/")) return null;
+  const leaf = path6.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -546,8 +546,8 @@ function dbcli(args, host) {
 }
 
 // scripts/lakebase/paired-branch.ts
-import * as fs3 from "fs";
-import * as path2 from "path";
+import * as fs4 from "fs";
+import * as path3 from "path";
 import { execFileSync as execFileSync3 } from "child_process";
 
 // scripts/util/delay.ts
@@ -814,6 +814,11 @@ var RUNTIME_ARTIFACT_IGNORE = [
 ];
 var DEFAULT_ENDPOINT = "primary";
 
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+
 // scripts/lakebase/get-connection.ts
 async function mintCredential(endpointPath2) {
   const raw = dbcli4(["postgres", "generate-database-credential", endpointPath2, "-o", "json"]);
@@ -1044,7 +1049,7 @@ async function createPairedBranch(args) {
         timeoutMs: args.readyTimeoutMs ?? KIT_TIMEOUTS.readyWait
       });
       const { email } = await mintCredential(endpointPath(args.instance, sanitized));
-      const envPath = path2.join(args.cwd, ".env");
+      const envPath = path3.join(args.cwd, ".env");
       updateEnvConnection({
         envPath,
         projectId: args.instance,
@@ -1133,8 +1138,8 @@ async function listLocalBranches(args) {
 }
 
 // scripts/lakebase/scm-workflow-state.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs5 from "fs";
+import * as path4 from "path";
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -1148,12 +1153,12 @@ var STATE_INDEX = SCM_STATES.reduce(
 );
 var STATE_FILE_REL = ".lakebase/workflow-state.json";
 function stateFilePath(projectDir) {
-  return path3.join(projectDir, STATE_FILE_REL);
+  return path4.join(projectDir, STATE_FILE_REL);
 }
 function readWorkflowState(projectDir) {
   const p = stateFilePath(projectDir);
-  if (!fs4.existsSync(p)) return null;
-  const raw = fs4.readFileSync(p, "utf8");
+  if (!fs5.existsSync(p)) return null;
+  const raw = fs5.readFileSync(p, "utf8");
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -1181,14 +1186,14 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
-  const dir = path3.join(projectDir, ".lakebase");
-  fs4.mkdirSync(dir, { recursive: true });
+  const dir = path4.join(projectDir, ".lakebase");
+  fs5.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
   const tmp = `${target}.tmp`;
   const ordered = orderForOutput(result.value);
-  fs4.writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}
+  fs5.writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}
 `, "utf8");
-  fs4.renameSync(tmp, target);
+  fs5.renameSync(tmp, target);
 }
 function validateWorkflowState(value) {
   const errors = [];
@@ -1569,9 +1574,9 @@ Exit codes:
   3 = substrate failure during claim
 `;
 function readEnvProjectId(projectDir) {
-  const envPath = path4.join(projectDir, ".env");
-  if (!fs5.existsSync(envPath)) return void 0;
-  const lines = fs5.readFileSync(envPath, "utf8").split("\n");
+  const envPath = path5.join(projectDir, ".env");
+  if (!fs6.existsSync(envPath)) return void 0;
+  const lines = fs6.readFileSync(envPath, "utf8").split("\n");
   for (const line of lines) {
     const m = line.match(/^\s*LAKEBASE_PROJECT_ID\s*=\s*(.+?)\s*$/);
     if (m) return m[1].replace(/^["']|["']$/g, "");
@@ -1633,7 +1638,7 @@ async function runScmRecoverOrphansCli(argv) {
 `);
     return 0;
   }
-  const projectDir = path4.resolve(args.projectDir ?? process.cwd());
+  const projectDir = path5.resolve(args.projectDir ?? process.cwd());
   const instance = args.instance ?? readEnvProjectId(projectDir);
   try {
     if (!instance) {

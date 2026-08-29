@@ -17,8 +17,34 @@ import { runDatabricksSync } from "./databricks-cli.js";
 import { createLakebasePool } from "@databricks/lakebase";
 import { Client, type Pool } from "pg";
 import { resolveBranchId } from "./branch-utils.js";
-import { DEFAULT_DATABASE, DEFAULT_ENDPOINT, POSTGRES_PORT } from "./constants.js";
+import {
+  CONSORT_APPLICATION_NAME,
+  CONSORT_VERSION_ENV,
+  DEFAULT_DATABASE,
+  DEFAULT_ENDPOINT,
+  POSTGRES_PORT,
+  SCM_UTILS_APPLICATION_NAME,
+} from "./constants.js";
+import { substrateSelfVersion } from "./self-version.js";
 import { KIT_TIMEOUTS } from "./kit-config.js";
+
+/**
+ * The `application_name` stamped on the substrate's Postgres connections , `<brand>/<version>`,
+ * reflecting which tool opened the connection:
+ *   - `consort/<consort-version>` when made UNDER a Consort run (Consort exports its version in
+ *     CONSORT_VERSION_ENV; we read it here);
+ *   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY (the VS Code extension, a
+ *     bare `lakebase-*` CLI) , no env, so it falls back to this package's own brand + SemVer.
+ * A TRANSPARENT label visible to the database owner in their own `pg_stat_activity`. Never
+ * throws (an unreadable scm-utils version falls back to `scm-utils/unknown`; a blank env is
+ * ignored), so labelling can never break a connection.
+ */
+export function connectionApplicationName(): string {
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion
+    ? `${CONSORT_APPLICATION_NAME}/${consortVersion}`
+    : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+}
 // AppKit / @databricks/lakebase re-exports a WorkspaceClient type that
 // matches what createLakebasePool expects. We accept `unknown` at the API
 // boundary so this module doesn't have to take a hard SDK dep just to type
@@ -232,7 +258,7 @@ export async function waitForBranchAuthReady(
         database: args.database,
         output: "dsn",
       });
-      client = new Client({ connectionString: dsn.url });
+      client = new Client({ connectionString: dsn.url, application_name: connectionApplicationName() });
       await client.connect();
       await client.query("SELECT 1");
       await client.end();

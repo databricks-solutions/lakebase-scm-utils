@@ -2,6 +2,23 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.16
+
+Stamp a transparent `application_name` on the substrate's Postgres connections.
+
+- **feat(connection): set `application_name` on the pg connections this package opens , `consort/<version>`
+  under a Consort run, `scm-utils/<version>` when used directly.** A transparent connection label
+  (standard practice; visible to the database OWNER in their own `pg_stat_activity`) that identifies
+  which tool connected and which build, reading no table contents. New `connectionApplicationName()`
+  (get-connection.ts) resolves the label: it reads the `CONSORT_VERSION` env (which Consort exports from
+  its own version) and returns `consort/<that>`; with no env , the VS Code extension or a bare `lakebase-*`
+  CLI , it falls back to this package's own brand + SemVer via a new leaf `self-version.ts`
+  (`substrateSelfVersion()`, a dist-safe package.json read that never throws). Applied at both direct
+  `pg.Client` sites (get-connection ping, branch-schema diff). Brands + the env-var contract are named
+  constants in `constants.ts`. Never breaks a connection (an unresolved version → `scm-utils/unknown`;
+  a blank env is ignored) and stays within Postgres's 63-byte `application_name` limit. Test:
+  `application-name.test.ts` (5).
+
 ## 0.2.15
 
 Doctor enforces the documented Python **3.10** floor (was major-only).

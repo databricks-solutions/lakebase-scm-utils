@@ -12,7 +12,7 @@
 import { Client } from "pg";
 import { getEndpoint, endpointPath as buildEndpointPath } from "./branch-endpoint.js";
 import { resolveBranchId } from "./branch-utils.js";
-import { mintCredential } from "./get-connection.js";
+import { mintCredential, connectionApplicationName } from "./get-connection.js";
 import { DEFAULT_DATABASE, POSTGRES_PORT } from "./constants.js";
 import { KIT_TIMEOUTS } from "./kit-config.js";
 
@@ -135,6 +135,7 @@ export async function queryBranchSchema(args: QueryBranchSchemaArgs): Promise<Ta
     database,
     user: email,
     password: token,
+    application_name: connectionApplicationName(), // transparent consort/<v> or scm-utils/<v> label (see get-connection.ts)
     ssl: { rejectUnauthorized: false }, // Lakebase managed cert
     connectionTimeoutMillis: KIT_TIMEOUTS.pgConnect,
     statement_timeout: KIT_TIMEOUTS.pgStatement,

@@ -341,9 +341,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path3) {
-  if (!path3.includes("/branches/")) return null;
-  const leaf = path3.split("/branches/").pop();
+function branchNameFromResourcePath(path4) {
+  if (!path4.includes("/branches/")) return null;
+  const leaf = path4.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -809,8 +809,8 @@ function dbcli4(args, host) {
 }
 
 // scripts/lakebase/paired-branch.ts
-import * as fs3 from "fs";
-import * as path2 from "path";
+import * as fs4 from "fs";
+import * as path3 from "path";
 import { execFileSync as execFileSync3 } from "child_process";
 
 // scripts/lakebase/get-connection.ts
@@ -828,6 +828,11 @@ var RUNTIME_ARTIFACT_IGNORE = [
   ".claude/agent-memory/"
 ];
 var DEFAULT_ENDPOINT = "primary";
+
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath } from "url";
 
 // scripts/lakebase/get-connection.ts
 async function mintCredential(endpointPath2) {
@@ -1046,8 +1051,8 @@ function gitDeleteRemoteBranch(cwd, remote, branch) {
   });
 }
 function readEnvVar2(envPath, key) {
-  if (!fs3.existsSync(envPath)) return void 0;
-  const content = fs3.readFileSync(envPath, "utf-8");
+  if (!fs4.existsSync(envPath)) return void 0;
+  const content = fs4.readFileSync(envPath, "utf-8");
   const match = content.match(new RegExp(`^${key}=(.*)$`, "m"));
   if (!match) return void 0;
   return match[1].trim().replace(/^["']|["']$/g, "");
@@ -1115,7 +1120,7 @@ async function createPairedBranch(args) {
         timeoutMs: args.readyTimeoutMs ?? KIT_TIMEOUTS.readyWait
       });
       const { email } = await mintCredential(endpointPath(args.instance, sanitized));
-      const envPath = path2.join(args.cwd, ".env");
+      const envPath = path3.join(args.cwd, ".env");
       updateEnvConnection({
         envPath,
         projectId: args.instance,
@@ -1190,7 +1195,7 @@ async function deletePairedBranch(args) {
   return { lakebaseDeleted, gitLocalDeleted, gitRemoteDeleted, warnings };
 }
 async function syncEnvToCurrentBranch(args) {
-  const envPath = path2.join(args.cwd, ".env");
+  const envPath = path3.join(args.cwd, ".env");
   const instance = args.instance ?? readEnvVar2(envPath, "LAKEBASE_PROJECT_ID");
   if (!instance) {
     throw new Error(
@@ -1234,7 +1239,7 @@ async function syncEnvToCurrentBranch(args) {
 }
 async function checkoutPaired(args) {
   const warnings = [];
-  const envPath = path2.join(args.cwd, ".env");
+  const envPath = path3.join(args.cwd, ".env");
   const instance = args.instance ?? readEnvVar2(envPath, "LAKEBASE_PROJECT_ID");
   if (!instance) {
     throw new Error(
@@ -1582,8 +1587,8 @@ async function main() {
 `);
           return 1;
         }
-        const path3 = await resolveBranchPath(args.branch, lookup);
-        printJson({ ...b, projectPath: path3 }, pretty);
+        const path4 = await resolveBranchPath(args.branch, lookup);
+        printJson({ ...b, projectPath: path4 }, pretty);
         return 0;
       }
       case "create": {

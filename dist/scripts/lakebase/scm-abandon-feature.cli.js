@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // scripts/lakebase/scm-abandon-feature.cli.ts
-import * as path4 from "path";
+import * as path5 from "path";
 
 // scripts/util/cli-entry.ts
 import { realpathSync } from "fs";
@@ -25,8 +25,8 @@ function isCliEntry(importMetaUrl) {
 }
 
 // scripts/lakebase/paired-branch.ts
-import * as fs3 from "fs";
-import * as path2 from "path";
+import * as fs4 from "fs";
+import * as path3 from "path";
 import { execFileSync as execFileSync3 } from "child_process";
 
 // scripts/lakebase/databricks-cli.ts
@@ -299,9 +299,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path5) {
-  if (!path5.includes("/branches/")) return null;
-  const leaf = path5.split("/branches/").pop();
+function branchNameFromResourcePath(path6) {
+  if (!path6.includes("/branches/")) return null;
+  const leaf = path6.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -422,6 +422,11 @@ function dbcli2(args, host) {
 import { createLakebasePool } from "@databricks/lakebase";
 import { Client } from "pg";
 
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+
 // scripts/git/status.ts
 async function isDirty(args) {
   try {
@@ -538,8 +543,8 @@ async function deletePairedBranch(args) {
 }
 
 // scripts/lakebase/scm-workflow-state.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs5 from "fs";
+import * as path4 from "path";
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -553,12 +558,12 @@ var STATE_INDEX = SCM_STATES.reduce(
 );
 var STATE_FILE_REL = ".lakebase/workflow-state.json";
 function stateFilePath(projectDir) {
-  return path3.join(projectDir, STATE_FILE_REL);
+  return path4.join(projectDir, STATE_FILE_REL);
 }
 function readWorkflowState(projectDir) {
   const p = stateFilePath(projectDir);
-  if (!fs4.existsSync(p)) return null;
-  const raw = fs4.readFileSync(p, "utf8");
+  if (!fs5.existsSync(p)) return null;
+  const raw = fs5.readFileSync(p, "utf8");
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -586,14 +591,14 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
-  const dir = path3.join(projectDir, ".lakebase");
-  fs4.mkdirSync(dir, { recursive: true });
+  const dir = path4.join(projectDir, ".lakebase");
+  fs5.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
   const tmp = `${target}.tmp`;
   const ordered = orderForOutput(result.value);
-  fs4.writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}
+  fs5.writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}
 `, "utf8");
-  fs4.renameSync(tmp, target);
+  fs5.renameSync(tmp, target);
 }
 function validateWorkflowState(value) {
   const errors = [];
@@ -924,7 +929,7 @@ async function runScmAbandonFeatureCli(argv) {
 `);
     return 0;
   }
-  const projectDir = path4.resolve(args.projectDir ?? process.cwd());
+  const projectDir = path5.resolve(args.projectDir ?? process.cwd());
   try {
     const result = await abandonFeatureBranch({
       projectDir,

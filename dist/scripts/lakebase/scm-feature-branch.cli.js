@@ -22,8 +22,8 @@ function isCliEntry(importMetaUrl) {
 }
 
 // scripts/lakebase/scm-claim-feature.ts
-import * as fs5 from "fs";
-import * as path4 from "path";
+import * as fs6 from "fs";
+import * as path5 from "path";
 
 // scripts/lakebase/kit-config.ts
 function intFromEnv(name, fallback) {
@@ -69,8 +69,8 @@ var KIT_REGISTRIES = {
 };
 
 // scripts/lakebase/paired-branch.ts
-import * as fs3 from "fs";
-import * as path2 from "path";
+import * as fs4 from "fs";
+import * as path3 from "path";
 import { execFileSync as execFileSync3 } from "child_process";
 
 // scripts/lakebase/databricks-cli.ts
@@ -104,6 +104,11 @@ function sanitizeBranchName(gitBranch) {
 import { createLakebasePool } from "@databricks/lakebase";
 import { Client } from "pg";
 
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+
 // scripts/lakebase/convention-branches.ts
 var CONVENTION_TIER_DEFAULTS = {
   feature: { ttl: formatLakebaseTtl(KIT_TIMEOUTS.featureBranchTtlMs), parentBranch: "staging" },
@@ -113,8 +118,8 @@ var CONVENTION_TIER_DEFAULTS = {
 };
 
 // scripts/lakebase/scm-workflow-state.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs5 from "fs";
+import * as path4 from "path";
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",

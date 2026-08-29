@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 // scripts/lakebase/schema-migrate.ts
-import * as fs8 from "fs";
-import * as path8 from "path";
+import * as fs9 from "fs";
+import * as path9 from "path";
 
 // scripts/lakebase/databricks-cli.ts
 import { execFile, execFileSync as execFileSync2 } from "child_process";
@@ -261,9 +261,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path9) {
-  if (!path9.includes("/branches/")) return null;
-  const leaf = path9.split("/branches/").pop();
+function branchNameFromResourcePath(path10) {
+  if (!path10.includes("/branches/")) return null;
+  const leaf = path10.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -362,6 +362,11 @@ var POSTGRES_PORT = 5432;
 var DEFAULT_DATABASE = "databricks_postgres";
 var DEFAULT_ENDPOINT = "primary";
 
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath } from "url";
+
 // scripts/lakebase/get-connection.ts
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
@@ -430,21 +435,21 @@ function dbcli2(args) {
 }
 
 // scripts/lakebase/adapters/alembic-adapter.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs5 from "fs";
+import * as path4 from "path";
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 import { spawn } from "child_process";
-import * as fs3 from "fs";
-import * as path2 from "path";
+import * as fs4 from "fs";
+import * as path3 from "path";
 function resolveAlembicBin(projectDir) {
   const candidates = [
-    path2.join(projectDir, ".venv", "bin", "alembic"),
-    path2.join(projectDir, "venv", "bin", "alembic")
+    path3.join(projectDir, ".venv", "bin", "alembic"),
+    path3.join(projectDir, "venv", "bin", "alembic")
   ];
   for (const candidate of candidates) {
     try {
-      if (fs3.existsSync(candidate)) return candidate;
+      if (fs4.existsSync(candidate)) return candidate;
     } catch {
     }
   }
@@ -454,7 +459,7 @@ function spawnAlembic(projectDir, args, dsn) {
   return new Promise((resolve, reject) => {
     const bin = resolveAlembicBin(projectDir);
     const env = { ...process.env };
-    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path2.delimiter);
+    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path3.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
     const child = spawn(bin, args, {
       cwd: projectDir,
@@ -502,10 +507,10 @@ async function createAlembicRevision(opts) {
   const m = stdout.match(/Generating\s+(\S+\.py)/);
   if (m) return m[1].trim();
   for (const rel of ["migrations/versions", "alembic/versions"]) {
-    const dir = path2.join(opts.projectDir, rel);
-    if (!fs3.existsSync(dir)) continue;
-    const hit = fs3.readdirSync(dir).find((f) => f.startsWith(`${opts.revId}_`) && f.endsWith(".py"));
-    if (hit) return path2.join(dir, hit);
+    const dir = path3.join(opts.projectDir, rel);
+    if (!fs4.existsSync(dir)) continue;
+    const hit = fs4.readdirSync(dir).find((f) => f.startsWith(`${opts.revId}_`) && f.endsWith(".py"));
+    if (hit) return path3.join(dir, hit);
   }
   throw new SchemaMigrationError(
     `alembic revision succeeded but the created file could not be located.
@@ -639,15 +644,15 @@ async function buildDsn(args) {
 }
 function findVersionsDir(projectDir) {
   const candidates = [
-    path3.join(projectDir, "migrations", "versions"),
-    path3.join(projectDir, "alembic", "versions")
+    path4.join(projectDir, "migrations", "versions"),
+    path4.join(projectDir, "alembic", "versions")
   ];
-  return candidates.find((p) => fs4.existsSync(p));
+  return candidates.find((p) => fs5.existsSync(p));
 }
 function listAlembicFiles(projectDir) {
   const dir = findVersionsDir(projectDir);
   if (!dir) return [];
-  const files = fs4.readdirSync(dir).filter((f) => f.endsWith(".py") && !f.startsWith("__"));
+  const files = fs5.readdirSync(dir).filter((f) => f.endsWith(".py") && !f.startsWith("__"));
   return files.map((filename) => {
     const stem = filename.replace(/\.py$/, "");
     const sep = stem.indexOf("_");
@@ -672,9 +677,9 @@ var AlembicAdapter = {
    * here. Callers can still force-select via project.yaml#migration_tool.
    */
   detect(projectDir) {
-    if (fs4.existsSync(path3.join(projectDir, "alembic.ini"))) return true;
-    if (fs4.existsSync(path3.join(projectDir, "migrations", "env.py"))) return true;
-    if (fs4.existsSync(path3.join(projectDir, "alembic", "env.py"))) return true;
+    if (fs5.existsSync(path4.join(projectDir, "alembic.ini"))) return true;
+    if (fs5.existsSync(path4.join(projectDir, "migrations", "env.py"))) return true;
+    if (fs5.existsSync(path4.join(projectDir, "alembic", "env.py"))) return true;
     return false;
   },
   async apply(args) {
@@ -780,7 +785,7 @@ var AlembicAdapter = {
         autogenerate: !!args.autogenerate,
         dsn
       });
-      return { status: "ok", version: revId, filename: path3.basename(created), path: created };
+      return { status: "ok", version: revId, filename: path4.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",
@@ -797,7 +802,7 @@ var AlembicAdapter = {
       if (heads.length <= 1) return { status: "noop", headsBefore: heads };
       if (args.dryRun) return { status: "ok", headsBefore: heads };
       const created = await mergeAlembicHeads(args.projectDir, args.message ?? "merge heads");
-      const mergeRevision = path3.basename(created).replace(/\.py$/, "").split("_")[0];
+      const mergeRevision = path4.basename(created).replace(/\.py$/, "").split("_")[0];
       return { status: "ok", headsBefore: heads, mergeRevision, path: created };
     } catch (err) {
       return {
@@ -811,12 +816,12 @@ var AlembicAdapter = {
 registerSchemaMigrationAdapter(AlembicAdapter);
 
 // scripts/lakebase/adapters/flyway-adapter.ts
-import * as fs5 from "fs";
-import * as path5 from "path";
+import * as fs6 from "fs";
+import * as path6 from "path";
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 import { spawn as spawn2 } from "child_process";
-import * as path4 from "path";
+import * as path5 from "path";
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
   const user = decodeURIComponent(u.username);
@@ -826,7 +831,7 @@ function dsnToFlywayEnv(dsn) {
   return { url, user, password };
 }
 function migrationsLocation(projectDir) {
-  return `filesystem:${path4.join(projectDir, "src", "main", "resources", "db", "migration")}`;
+  return `filesystem:${path5.join(projectDir, "src", "main", "resources", "db", "migration")}`;
 }
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
@@ -927,7 +932,7 @@ async function statusFlyway(ctx) {
     if (state === "SUCCESS" || state === "BASELINE") {
       current = m.version;
     } else if (state === "PENDING") {
-      const filename = m.filepath ? path4.basename(m.filepath) : `V${m.version}__migration.sql`;
+      const filename = m.filepath ? path5.basename(m.filepath) : `V${m.version}__migration.sql`;
       pending.push({
         version: m.version,
         filename,
@@ -950,9 +955,9 @@ async function buildDsn2(args) {
   return result.url;
 }
 function listFlywayFiles(projectDir) {
-  const dir = path5.join(projectDir, "src", "main", "resources", "db", "migration");
-  if (!fs5.existsSync(dir)) return [];
-  const files = fs5.readdirSync(dir).filter((f) => /^V\d+(\.\d+)*__.+\.sql$/.test(f));
+  const dir = path6.join(projectDir, "src", "main", "resources", "db", "migration");
+  if (!fs6.existsSync(dir)) return [];
+  const files = fs6.readdirSync(dir).filter((f) => /^V\d+(\.\d+)*__.+\.sql$/.test(f));
   return files.map((filename) => {
     const m = filename.match(/^V(\d+(?:\.\d+)*)__(.+)\.sql$/);
     const version = m[1];
@@ -975,7 +980,7 @@ var FlywayAdapter = {
   id: "flyway",
   languages: ["java", "kotlin"],
   detect(projectDir) {
-    return fs5.existsSync(path5.join(projectDir, "pom.xml"));
+    return fs6.existsSync(path6.join(projectDir, "pom.xml"));
   },
   async apply(args) {
     const dsn = await buildDsn2(args);
@@ -1033,14 +1038,14 @@ var FlywayAdapter = {
   // optional-protocol shape makes this additive.
   async newMigration(args) {
     try {
-      const dir = path5.join(args.projectDir, "src", "main", "resources", "db", "migration");
-      fs5.mkdirSync(dir, { recursive: true });
+      const dir = path6.join(args.projectDir, "src", "main", "resources", "db", "migration");
+      fs6.mkdirSync(dir, { recursive: true });
       const version = migrationTimestamp();
       const slug = migrationSlug2(args.slug);
       const filename = `V${version}__${slug}.sql`;
-      const full = path5.join(dir, filename);
-      if (fs5.existsSync(full)) throw new Error(`${filename} already exists`);
-      fs5.writeFileSync(
+      const full = path6.join(dir, filename);
+      if (fs6.existsSync(full)) throw new Error(`${filename} already exists`);
+      fs6.writeFileSync(
         full,
         `-- V${version}: ${args.slug}
 -- Flyway migration (write your DDL/DML below).
@@ -1062,18 +1067,18 @@ var FlywayAdapter = {
 registerSchemaMigrationAdapter(FlywayAdapter);
 
 // scripts/lakebase/adapters/knex-adapter.ts
-import * as fs7 from "fs";
-import * as path7 from "path";
+import * as fs8 from "fs";
+import * as path8 from "path";
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 import { spawn as spawn3 } from "child_process";
-import * as fs6 from "fs";
-import * as path6 from "path";
+import * as fs7 from "fs";
+import * as path7 from "path";
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function findKnexfile(projectDir) {
   for (const name of KNEXFILE_VARIANTS) {
-    const p = path6.join(projectDir, name);
-    if (fs6.existsSync(p)) return p;
+    const p = path7.join(projectDir, name);
+    if (fs7.existsSync(p)) return p;
   }
   return void 0;
 }
@@ -1225,9 +1230,9 @@ async function buildDsn3(args) {
 }
 var KNEXFILE_VARIANTS2 = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function listKnexFiles(projectDir) {
-  const dir = path7.join(projectDir, "migrations");
-  if (!fs7.existsSync(dir)) return [];
-  const files = fs7.readdirSync(dir).filter((f) => (f.endsWith(".js") || f.endsWith(".ts")) && !f.startsWith("."));
+  const dir = path8.join(projectDir, "migrations");
+  if (!fs8.existsSync(dir)) return [];
+  const files = fs8.readdirSync(dir).filter((f) => (f.endsWith(".js") || f.endsWith(".ts")) && !f.startsWith("."));
   return files.map((filename) => {
     const stem = filename.replace(/\.(js|ts)$/, "");
     const m = stem.match(/^(\d{14})_(.+)$/);
@@ -1247,7 +1252,7 @@ var KnexAdapter = {
    * project.yaml#migration_tool.
    */
   detect(projectDir) {
-    return KNEXFILE_VARIANTS2.some((name) => fs7.existsSync(path7.join(projectDir, name)));
+    return KNEXFILE_VARIANTS2.some((name) => fs8.existsSync(path8.join(projectDir, name)));
   },
   async apply(args) {
     const dsn = await buildDsn3(args);
@@ -1320,9 +1325,9 @@ var KnexAdapter = {
   async newMigration(args) {
     try {
       const created = await createKnexMigration({ projectDir: args.projectDir, slug: migrationSlug2(args.slug) });
-      const stem = path7.basename(created).replace(/\.(js|ts)$/, "");
+      const stem = path8.basename(created).replace(/\.(js|ts)$/, "");
       const version = stem.match(/^(\d{14})_/)?.[1] ?? stem;
-      return { status: "ok", version, filename: path7.basename(created), path: created };
+      return { status: "ok", version, filename: path8.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",

@@ -257,9 +257,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path2) {
-  if (!path2.includes("/branches/")) return null;
-  const leaf = path2.split("/branches/").pop();
+function branchNameFromResourcePath(path3) {
+  if (!path3.includes("/branches/")) return null;
+  const leaf = path3.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -357,6 +357,11 @@ function dbcli(args, host) {
 var POSTGRES_PORT = 5432;
 var DEFAULT_DATABASE = "databricks_postgres";
 var DEFAULT_ENDPOINT = "primary";
+
+// scripts/lakebase/self-version.ts
+import * as fs3 from "fs";
+import * as path2 from "path";
+import { fileURLToPath } from "url";
 
 // scripts/lakebase/get-connection.ts
 async function getConnection(args) {

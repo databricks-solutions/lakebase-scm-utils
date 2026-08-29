@@ -53,3 +53,30 @@ export const RUNTIME_ARTIFACT_IGNORE = [
  * "primary" (the default behavior) and callers opt into the new name.
  */
 export const DEFAULT_ENDPOINT = "primary";
+
+// The `application_name` stamped on the substrate's own Postgres connections (the
+// branch/schema/ping connections this package opens). The full label is
+// `<brand>/<version>` , see `connectionApplicationName()` in get-connection.ts , and it
+// reflects WHICH tool opened the connection:
+//   - `consort/<consort-version>` when the connection is made UNDER a Consort run (Consort
+//     exports its version via CONSORT_VERSION_ENV; scm-utils reads it);
+//   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY (the VS Code extension,
+//     a bare `lakebase-*` CLI) , no env set, so the label falls back to this package's brand.
+// A TRANSPARENT label , standard practice (psql, ORMs set one) , visible to the database OWNER
+// in their own `pg_stat_activity`, so support + the owner's own diagnostics can tell which
+// tooling connected versus their application. Reads no table contents; carries only brand + version.
+
+/** Brand when the connection is made under a Consort run (CONSORT_VERSION_ENV set). */
+export const CONSORT_APPLICATION_NAME = "consort";
+
+/** Brand when scm-utils is used directly (extension / bare CLI); the default. */
+export const SCM_UTILS_APPLICATION_NAME = "scm-utils";
+
+/**
+ * Env var Consort sets to its OWN version so a connection opened under a Consort run is
+ * labelled `consort/<consort-version>` rather than `scm-utils/<scm-utils-version>`. This is
+ * the one cross-package contract: Consort writes it (from its `kitVersion()`), scm-utils
+ * reads it here. Anything that is NOT Consort simply leaves it unset and gets the scm-utils
+ * brand. Kept as a named constant so both the reader and the contract are greppable.
+ */
+export const CONSORT_VERSION_ENV = "CONSORT_VERSION";
