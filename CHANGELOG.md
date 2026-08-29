@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.20
+
+Fix the v0.2.19 verify-allowlist patterns so they actually MATCH the driver's command forms.
+
+- **fix(scaffold): widen the `.claude/settings.json` allow patterns to command-family prefixes with a trailing `*`.** v0.2.19's patterns were too narrow: only the backend forms matched (`Bash(uv run pytest *)`), while the driver's real e2e + kit-shim commands were still denied , `Bash(npm run test:e2e)` (no `*`) missed `npm run test:e2e -- <spec>`; `Bash(npm --prefix client run test:e2e)` missed `npm --prefix /abs/client run test:e2e …` (a literal middle token can't match a variable path); `Bash(npx --yes playwright test *)` missed `npx playwright test …` (a literal `--yes` rejects a command without it); and `./scripts/lk consort-log …` was absent. Live runs confirmed the matching rule: only a trailing ` *` (allow-any-suffix) matches; an exact pattern rejects args, and a literal token can't match a variable one. The patterns are now command-family prefixes with end-`*` , `Bash(npm run *)`, `Bash(npm --prefix *)`, `Bash(npx playwright *)`, `Bash(./scripts/lk *)`, `Bash(uv run *)` , which cover every observed driver form without whack-a-mole. The guard test was rewritten to assert the allowlist COVERS the real driver command forms (via a matcher mirroring Claude Code's `Bash(prefix *)` semantics), instead of asserting a literal string , the prior test codified the bug by asserting the exact `Bash(npm run test:e2e)`. Test: `scaffold.test.ts`.
+
 ## 0.2.19
 
 Ship a scaffolded `.claude/settings.json` so a headless drive can self-verify.

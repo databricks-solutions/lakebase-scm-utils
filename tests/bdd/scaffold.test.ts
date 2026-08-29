@@ -111,22 +111,49 @@ describe("deployVscodeSettings", () => {
 });
 
 describe("deployClaudeSettings", () => {
-  it("ships .claude/settings.json pre-allowlisting the verify commands (headless drive can self-verify)", async () => {
+  // Mirror Claude Code's Bash permission matching for a `Bash(...)` allow rule: the
+  // inside is a prefix; a trailing ` *` (or a bare `*`) allows any suffix, otherwise the
+  // command must match exactly. This lets the test assert the allowlist actually COVERS
+  // the command FORMS the headless driver runs , not just that some literal string is
+  // present (the original test asserted the exact `Bash(npm run test:e2e)` and so PASSED
+  // while the driver's real `npm run test:e2e -- <spec>` was denied for the trailing args).
+  function allows(rules: string[], cmd: string): boolean {
+    return rules.some((rule) => {
+      const m = rule.match(/^Bash\((.*)\)$/);
+      if (!m) return false;
+      const pat = m[1];
+      if (pat.endsWith("*")) return cmd.startsWith(pat.slice(0, -1)); // prefix (keeps trailing space)
+      return cmd === pat;
+    });
+  }
+
+  it("ships .claude/settings.json that COVERS the real driver verify command forms (not just literals)", async () => {
     const dir = mkTmp();
     const res = await deployClaudeSettings(dir);
     const settingsPath = path.join(dir, ".claude", "settings.json");
     expect(fs.existsSync(settingsPath)).toBe(true);
     expect(res.written).toContain(path.join(".claude", "settings.json"));
-    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as {
-      permissions: { allow: string[] };
-    };
-    const allow = settings.permissions.allow;
-    // The verify entry point + the drive's per-cycle real-DB commands must be allowlisted,
-    // or a headless `claude --agent driver` is blocked pending approval and cannot confirm GREEN.
-    expect(allow).toContain("Bash(./scripts/run-tests.sh *)");
-    expect(allow.some((a) => a.startsWith("Bash(uv run pytest"))).toBe(true);
-    expect(allow).toContain("Bash(npm run test:e2e)");
-    expect(allow.some((a) => a.includes("playwright"))).toBe(true);
+    const allow = (JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as { permissions: { allow: string[] } })
+      .permissions.allow;
+    // Every command form the deterministic drive's role agents actually invoke (observed in
+    // real runs) MUST be covered , else a headless `claude --agent <role>` is blocked pending
+    // an approval no one can grant and cannot self-confirm GREEN. Regression guard for the
+    // too-narrow patterns that denied the e2e + lk-shim commands (only the backend matched).
+    for (const cmd of [
+      "./scripts/run-tests.sh",
+      "./scripts/lk consort-log --kind green --story S2",
+      "uv run pytest tests/e2e/S2.py",
+      "uv run alembic upgrade head",
+      "uv run --extra dev pytest -m 'not migration'",
+      "npm run test:e2e -- S2-reconcile",
+      "npm --prefix /abs/proj/client run test:e2e -- S2-reconcile",
+      "npm --prefix /abs/proj/client test",
+      "npm --prefix /abs/proj/client run typecheck",
+      "npx playwright test S2-reconcile --reporter=list",
+      "npx --yes playwright install chromium",
+    ]) {
+      expect(allows(allow, cmd), `settings.json must allow: ${cmd}`).toBe(true);
+    }
   });
 
   it("does NOT clobber an existing project settings.json (skips unless force)", async () => {
