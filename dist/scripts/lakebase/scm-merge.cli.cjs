@@ -5562,9 +5562,9 @@ var require_range = __commonJS({
       parseRange(range) {
         const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
         const memoKey = memoOpts + ":" + range;
-        const cached = cache.get(memoKey);
-        if (cached) {
-          return cached;
+        const cached2 = cache.get(memoKey);
+        if (cached2) {
+          return cached2;
         }
         const loose = this.options.loose;
         const hr = loose ? re2[t2.HYPHENRANGELOOSE] : re2[t2.HYPHENRANGE];
@@ -88140,14 +88140,48 @@ init_cjs_shims();
 var POSTGRES_PORT = 5432;
 var DEFAULT_DATABASE = "databricks_postgres";
 var DEFAULT_ENDPOINT = "primary";
+var CONSORT_APPLICATION_NAME = "consort";
+var SCM_UTILS_APPLICATION_NAME = "scm-utils";
+var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
 init_cjs_shims();
 var fs5 = __toESM(require("fs"), 1);
 var path3 = __toESM(require("path"), 1);
 var import_node_url3 = require("url");
+var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
+var cached;
+function substrateSelfVersion() {
+  if (cached !== void 0) return cached;
+  cached = "unknown";
+  try {
+    let dir = path3.dirname((0, import_node_url3.fileURLToPath)(importMetaUrl));
+    for (let i2 = 0; i2 < 8; i2++) {
+      const pkgPath = path3.join(dir, "package.json");
+      if (fs5.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs5.readFileSync(pkgPath, "utf8"));
+          if (pkg.name === PKG_NAME && typeof pkg.version === "string" && pkg.version.length > 0) {
+            cached = pkg.version;
+            return cached;
+          }
+        } catch {
+        }
+      }
+      const parent = path3.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch {
+  }
+  return cached;
+}
 
 // scripts/lakebase/get-connection.ts
+function connectionApplicationName() {
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+}
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
   const database = args.database ?? process.env.PGDATABASE ?? DEFAULT_DATABASE;
@@ -88161,6 +88195,7 @@ async function getConnection(args) {
   }
   const host = await resolveEndpointHost(args.instance, branchId);
   const email = await resolveCurrentUser();
+  process.env.PGAPPNAME = connectionApplicationName();
   return createLakebasePool({
     endpoint: endpointPath,
     host,

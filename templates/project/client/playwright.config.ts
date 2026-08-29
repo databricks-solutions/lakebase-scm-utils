@@ -32,13 +32,20 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      // Python/FastAPI backend. For other stacks:
-      //   Node.js:     npm --prefix .. run start   (poll your /health)
-      //   Java/Spring: ../mvnw -q spring-boot:run  (poll /actuator/health)
-      command: `uv run --project .. uvicorn app.main:app --port ${BACKEND_PORT}`,
+      // Python/FastAPI backend. Apply migrations BEFORE serving (`alembic upgrade head &&`),
+      // so the e2e always runs against the CURRENT schema , the write paths a new story adds
+      // (e.g. a fresh table) exist. For other stacks run the migration step then the server:
+      //   Node.js:     npm --prefix .. run migrate && npm --prefix .. run start   (poll your /health)
+      //   Java/Spring: ../mvnw -q flyway:migrate && ../mvnw -q spring-boot:run     (poll /actuator/health)
+      command: `uv run --project .. alembic upgrade head && uv run --project .. uvicorn app.main:app --port ${BACKEND_PORT}`,
       url: `${BACKEND_URL}/health`,
       cwd: "..",
-      reuseExistingServer: !process.env.CI,
+      // NEVER reuse the backend across e2e runs: a server started before a later story's
+      // migration serves a STALE schema (GET succeeds against the old table; a write to the
+      // new table 500s), and reuse skips the `alembic upgrade head` above. Always restart so
+      // the command re-migrates + serves the current schema. The frontend has no schema, so it
+      // keeps reuse for local speed.
+      reuseExistingServer: false,
       timeout: 120_000,
       env: {
         DATABRICKS_HOST: process.env.DATABRICKS_HOST ?? "",

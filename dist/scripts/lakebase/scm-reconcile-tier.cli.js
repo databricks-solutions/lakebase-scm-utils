@@ -357,13 +357,47 @@ function dbcli(args, host) {
 var POSTGRES_PORT = 5432;
 var DEFAULT_DATABASE = "databricks_postgres";
 var DEFAULT_ENDPOINT = "primary";
+var CONSORT_APPLICATION_NAME = "consort";
+var SCM_UTILS_APPLICATION_NAME = "scm-utils";
+var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
 import * as fs3 from "fs";
 import * as path2 from "path";
 import { fileURLToPath } from "url";
+var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
+var cached;
+function substrateSelfVersion() {
+  if (cached !== void 0) return cached;
+  cached = "unknown";
+  try {
+    let dir = path2.dirname(fileURLToPath(import.meta.url));
+    for (let i = 0; i < 8; i++) {
+      const pkgPath = path2.join(dir, "package.json");
+      if (fs3.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs3.readFileSync(pkgPath, "utf8"));
+          if (pkg.name === PKG_NAME && typeof pkg.version === "string" && pkg.version.length > 0) {
+            cached = pkg.version;
+            return cached;
+          }
+        } catch {
+        }
+      }
+      const parent = path2.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch {
+  }
+  return cached;
+}
 
 // scripts/lakebase/get-connection.ts
+function connectionApplicationName() {
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+}
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
   const database = args.database ?? process.env.PGDATABASE ?? DEFAULT_DATABASE;
@@ -377,6 +411,7 @@ async function getConnection(args) {
   }
   const host = await resolveEndpointHost(args.instance, branchId);
   const email = await resolveCurrentUser();
+  process.env.PGAPPNAME = connectionApplicationName();
   return createLakebasePool({
     endpoint: endpointPath,
     host,

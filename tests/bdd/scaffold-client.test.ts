@@ -196,4 +196,18 @@ describe("deployClientProject", () => {
     // The Vite dev proxy is pointed at the resolved backend so /api still reaches it.
     expect(cfg).toMatch(/VITE_PROXY_TARGET:\s*BACKEND_URL/);
   });
+
+  it("backend webServer migrates before serving + never reuses a stale server (stale-schema guard)", () => {
+    // Regression guard for the stale-schema e2e bug: a backend reused across runs (or started
+    // before a later story's migration) serves the OLD schema , GET ok, a write to the new
+    // table 500s. The backend command must `alembic upgrade head` THEN serve, and must NOT
+    // reuse (so the migrate step always runs). The frontend keeps reuse (no schema).
+    const target = mkTarget();
+    deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });
+    const cfg = read(target, "client/playwright.config.ts");
+    expect(cfg).toMatch(/alembic upgrade head\s*&&\s*uv run --project \.\. uvicorn app\.main:app/);
+    expect(cfg).toMatch(/reuseExistingServer:\s*false/); // the backend entry , always restart + re-migrate
+    // The frontend still reuses locally for speed (has no schema to go stale).
+    expect(cfg).toMatch(/reuseExistingServer:\s*!process\.env\.CI/);
+  });
 });

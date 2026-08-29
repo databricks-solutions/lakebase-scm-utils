@@ -123,6 +123,14 @@ export async function getConnection(args: ConnectionArgs): Promise<DsnResult | P
   // output === "pool"
   const host = await resolveEndpointHost(args.instance, branchId);
   const email = await resolveCurrentUser();
+  // Label the POOLED path too , it is the PRIMARY one (schema-diff, reconcile-tier). Passing
+  // application_name in createLakebasePool's config does NOT work: it builds its own pg
+  // PoolConfig and drops the field (verified live , the pooled connection came back with an
+  // empty application_name). node-postgres DOES honor the PGAPPNAME env as the connection's
+  // application_name, and createLakebasePool doesn't override it, so set PGAPPNAME here. Set at
+  // call time (not import) so CONSORT_VERSION , which Consort exports at its entry point , is
+  // already in the env when connectionApplicationName() reads it.
+  process.env.PGAPPNAME = connectionApplicationName();
   return createLakebasePool({
     endpoint: endpointPath,
     host,

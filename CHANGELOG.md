@@ -2,6 +2,13 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.17
+
+Two connection/e2e-harness fixes.
+
+- **fix(connection): the `application_name` label now reaches the POOLED path too (`PGAPPNAME`).** v0.2.16 stamped `application_name` on the two direct `pg.Client` sites, but the PRIMARY path , `createLakebasePool` (used by `schema-diff`, `reconcile-tier`) , came back with an EMPTY `application_name`: `createLakebasePool` builds its own pg config and drops a passed `application_name` (accepted by the type since `LakebasePoolConfig extends PoolConfig`, but ignored at runtime). node-postgres honors the `PGAPPNAME` env as the connection's `application_name` and `createLakebasePool` doesn't override it, so `getConnection`'s pool branch now sets `process.env.PGAPPNAME = connectionApplicationName()` before creating the pool. Live-verified: the pooled connection lands in `pg_stat_activity` as `consort/<version>` (under a Consort run) / `scm-utils/<version>` (direct).
+- **fix(e2e): the scaffolded Playwright backend migrates before serving + never reuses a stale server.** `client/playwright.config.ts` (and the `client-reference`) started the backend with plain `uvicorn` and `reuseExistingServer: !process.env.CI`. Locally that reused a uvicorn started BEFORE a later story's migration , GET hit the old table (ok), a write to the new table 500'd , and the reuse skipped any migration step. The backend `webServer` now runs `alembic upgrade head && uvicorn …` with `reuseExistingServer: false`, so every e2e run gets a fresh, migrated backend against the current schema. The frontend keeps reuse (no schema). Test: `scaffold-client.test.ts` (+1 guard).
+
 ## 0.2.16
 
 Stamp a transparent `application_name` on the substrate's Postgres connections.

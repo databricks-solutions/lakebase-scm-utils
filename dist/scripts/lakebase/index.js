@@ -2520,6 +2520,7 @@ async function getConnection(args) {
   }
   const host = await resolveEndpointHost(args.instance, branchId);
   const email = await resolveCurrentUser();
+  process.env.PGAPPNAME = connectionApplicationName();
   return createLakebasePool({
     endpoint: endpointPath2,
     host,

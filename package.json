@@ -1,6 +1,6 @@
 {
   "name": "@databricks-solutions/lakebase-scm-utils",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Lakebase SCM + substrate engine: database branching, paired-branch SCM workflows, connection/credential minting, schema migration, project scaffold + deploy primitives, and the git/github utility layer. Extracted from consort for portable, standalone consumption by lakebase-scm-extension and the SFTDD orchestration.",
   "type": "module",
   "private": false,
