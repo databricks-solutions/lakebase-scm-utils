@@ -4,8 +4,14 @@ All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented
 
 ## 0.2.20
 
-Fix the v0.2.19 verify-allowlist patterns so they actually MATCH the driver's command forms.
+`application_name = consort/<version>` on EVERY Lakebase connection; fix the v0.2.19 verify-allowlist patterns.
 
+- **feat(connection): stamp `consort/<version>` on every connection this kit opens or hands out , one uniform, versioned identity.** Previously only three direct `pg.Client`/pool sites were labeled; the DSN, the scaffolded app's runtime, migrations, tests, and the kit's own psql probes connected UNLABELED. Now:
+  - `connectionApplicationName()` always returns `consort/<version>` , the running Consort version (`CONSORT_VERSION`) under a drive, else this package's own SemVer when used directly , dropping the version-less `scm-utils/` variant so there is one brand everywhere.
+  - `buildPostgresUrl()` puts `application_name` IN the DSN (a libpq + node-postgres URI parameter), so every DSN consumer , the app's uvicorn/psycopg runtime, `alembic`, `pytest`, `knex`, `psql` , is labeled by the connection string it is handed.
+  - The scaffolded app (`python/app/database.py` single-door `_normalize_url`, `nodejs/knexfile.js`) preserves an incoming consort-labeled DSN and otherwise defaults to `consort/<version>`.
+  - The scaffolded scripts (`post-checkout.sh`, `setup-federation.sh`) export `PGAPPNAME=consort/<version>` (from `CONSORT_VERSION` / the pinned `.lakebase/kit-ref`) and write it into `.env`, so the psql readiness probes, the Spring `jdbc` `ApplicationName`, and every `.env`-sourcing tool inherit the same label.
+  Tests: `application-name.test.ts`, `dsn-application-name.test.ts`.
 - **fix(scaffold): widen the `.claude/settings.json` allow patterns to command-family prefixes with a trailing `*`.** v0.2.19's patterns were too narrow: only the backend forms matched (`Bash(uv run pytest *)`), while the driver's real e2e + kit-shim commands were still denied , `Bash(npm run test:e2e)` (no `*`) missed `npm run test:e2e -- <spec>`; `Bash(npm --prefix client run test:e2e)` missed `npm --prefix /abs/client run test:e2e …` (a literal middle token can't match a variable path); `Bash(npx --yes playwright test *)` missed `npx playwright test …` (a literal `--yes` rejects a command without it); and `./scripts/lk consort-log …` was absent. Live runs confirmed the matching rule: only a trailing ` *` (allow-any-suffix) matches; an exact pattern rejects args, and a literal token can't match a variable one. The patterns are now command-family prefixes with end-`*` , `Bash(npm run *)`, `Bash(npm --prefix *)`, `Bash(npx playwright *)`, `Bash(./scripts/lk *)`, `Bash(uv run *)` , which cover every observed driver form without whack-a-mole. The guard test was rewritten to assert the allowlist COVERS the real driver command forms (via a matcher mirroring Claude Code's `Bash(prefix *)` semantics), instead of asserting a literal string , the prior test codified the bug by asserting the exact `Bash(npm run test:e2e)`. Test: `scaffold.test.ts`.
 
 ## 0.2.19

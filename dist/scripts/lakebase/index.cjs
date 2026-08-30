@@ -78970,6 +78970,7 @@ __export(lakebase_exports, {
   assertAdoptionPreflight: () => assertAdoptionPreflight,
   assertCleanForFork: () => assertCleanForFork,
   assertCommitTargetNotProtected: () => assertCommitTargetNotProtected,
+  buildPostgresUrl: () => buildPostgresUrl,
   buildSchemaQuery: () => buildSchemaQuery,
   cacheProjectRetention: () => cacheProjectRetention,
   catalogExists: () => catalogExists,
@@ -81531,7 +81532,6 @@ var RUNTIME_ARTIFACT_IGNORE = [
 ];
 var DEFAULT_ENDPOINT = "primary";
 var CONSORT_APPLICATION_NAME = "consort";
-var SCM_UTILS_APPLICATION_NAME = "scm-utils";
 var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
@@ -81569,8 +81569,8 @@ function substrateSelfVersion() {
 
 // scripts/lakebase/get-connection.ts
 function connectionApplicationName() {
-  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
-  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  const version = process.env[CONSORT_VERSION_ENV]?.trim() || substrateSelfVersion();
+  return `${CONSORT_APPLICATION_NAME}/${version}`;
 }
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
@@ -81633,6 +81633,7 @@ function buildPostgresUrl(parts) {
   u.username = encodeURIComponent(parts.user);
   u.password = encodeURIComponent(parts.password);
   u.searchParams.set("sslmode", "require");
+  u.searchParams.set("application_name", connectionApplicationName());
   return u.toString();
 }
 function dbcli5(args) {
@@ -96607,6 +96608,7 @@ function isUcMissingError(msg) {
   assertAdoptionPreflight,
   assertCleanForFork,
   assertCommitTargetNotProtected,
+  buildPostgresUrl,
   buildSchemaQuery,
   cacheProjectRetention,
   catalogExists,

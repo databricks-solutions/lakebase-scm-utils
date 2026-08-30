@@ -29,21 +29,18 @@ import { substrateSelfVersion } from "./self-version.js";
 import { KIT_TIMEOUTS } from "./kit-config.js";
 
 /**
- * The `application_name` stamped on the substrate's Postgres connections , `<brand>/<version>`,
- * reflecting which tool opened the connection:
- *   - `consort/<consort-version>` when made UNDER a Consort run (Consort exports its version in
- *     CONSORT_VERSION_ENV; we read it here);
- *   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY (the VS Code extension, a
- *     bare `lakebase-*` CLI) , no env, so it falls back to this package's own brand + SemVer.
- * A TRANSPARENT label visible to the database owner in their own `pg_stat_activity`. Never
- * throws (an unreadable scm-utils version falls back to `scm-utils/unknown`; a blank env is
- * ignored), so labelling can never break a connection.
+ * The `application_name` stamped on the substrate's Postgres connections: ALWAYS
+ * `consort/<version>` , one uniform product brand + a version, never empty, never bare.
+ * The version is the running Consort version (Consort exports it in CONSORT_VERSION_ENV,
+ * read here) when under a Consort run, else this package's own SemVer when used directly
+ * (the VS Code extension, a bare `lakebase-*` CLI) , still branded `consort` so a Lakebase
+ * owner sees a single identity in their own `pg_stat_activity`. A TRANSPARENT label. Never
+ * throws (an unreadable version falls back to `consort/unknown`), so labelling can never
+ * break a connection.
  */
 export function connectionApplicationName(): string {
-  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
-  return consortVersion
-    ? `${CONSORT_APPLICATION_NAME}/${consortVersion}`
-    : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  const version = process.env[CONSORT_VERSION_ENV]?.trim() || substrateSelfVersion();
+  return `${CONSORT_APPLICATION_NAME}/${version}`;
 }
 // AppKit / @databricks/lakebase re-exports a WorkspaceClient type that
 // matches what createLakebasePool expects. We accept `unknown` at the API
@@ -200,7 +197,7 @@ export async function resolveCurrentUser(): Promise<string> {
   return email;
 }
 
-function buildPostgresUrl(parts: {
+export function buildPostgresUrl(parts: {
   host: string;
   port: number;
   database: string;
@@ -211,6 +208,14 @@ function buildPostgresUrl(parts: {
   u.username = encodeURIComponent(parts.user);
   u.password = encodeURIComponent(parts.password);
   u.searchParams.set("sslmode", "require");
+  // Label EVERY connection this DSN opens. The DSN is the single door for all non-pool
+  // consumers , the scaffolded app's runtime (uvicorn/psycopg), alembic, pytest, knex, psql ,
+  // and each opens its OWN connection, so stamping application_name on the three direct
+  // pg.Client/pool sites is not enough; the DSN itself must carry it. Both libpq (psql,
+  // psycopg -> alembic/uvicorn) and node-postgres honor `application_name` as a connection-URI
+  // parameter, so this one line makes every DSN consumer land in pg_stat_activity as
+  // consort/<version> (under a Consort run) or scm-utils/<version> (direct).
+  u.searchParams.set("application_name", connectionApplicationName());
   return u.toString();
 }
 

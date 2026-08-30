@@ -17,6 +17,12 @@ function getConnection() {
   const port = Number(process.env.DB_PORT || '5432');
   const database = process.env.DB_NAME || 'databricks_postgres';
   const user = process.env.DB_USERNAME || '';
+  // Label every connection this app opens in pg_stat_activity as consort/<version>. The
+  // DATABASE_URL path above carries its own application_name (the consort-provided DSN is
+  // labeled consort/<version>), so it is left untouched; these self-built paths use
+  // PGAPPNAME (the post-checkout hook writes consort/<kit-version> into .env), else the
+  // running Consort version, else consort/unknown , always the consort brand + a version.
+  const appName = process.env.PGAPPNAME || ('consort/' + (process.env.CONSORT_VERSION || 'unknown'));
 
   // Metadata present => mint at runtime. pg calls the async password function on
   // every new physical connection, so each gets a fresh short-lived token.
@@ -27,12 +33,13 @@ function getConnection() {
       database,
       user: user || currentUser(),
       password: async () => mintToken(),
+      application_name: appName,
       ssl: { rejectUnauthorized: false },
     };
   }
 
   // Local fallback: no Lakebase metadata and no explicit URL.
-  return { connectionString: `postgresql://${host}:${port}/${database}`, ssl: false };
+  return { connectionString: `postgresql://${host}:${port}/${database}`, application_name: appName, ssl: false };
 }
 
 module.exports = {

@@ -35,11 +35,25 @@ _POOL_RECYCLE_SECONDS = 30 * 60
 
 
 def _normalize_url(url: str) -> str:
-    """Force the psycopg driver + sslmode=require on a postgresql URL."""
+    """The single door for every connection URL this app builds: force the psycopg
+    driver + sslmode=require + a non-empty application_name.
+
+    application_name is PRESERVED when the incoming URL already carries one , the
+    consort-provided DATABASE_URL / ephemeral-verify DSN is labeled `consort/<version>`
+    (or `scm-utils/<version>`), so a connection opened under a Consort operation stays
+    identifiable in pg_stat_activity. A bare app URL (the app's own runtime-mint path)
+    falls back to PGAPPNAME, else the app's DB name , so EVERY connection this app opens
+    is labeled, never empty."""
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+psycopg://", 1)
     if "sslmode" not in url:
         url += "?sslmode=require" if "?" not in url else "&sslmode=require"
+    if "application_name" not in url:
+        # consort/<version>: PGAPPNAME (the post-checkout hook writes consort/<kit-version>
+        # into .env) wins; else the running Consort version; else `consort/unknown` , always
+        # the consort brand + a version, never empty.
+        app_name = os.getenv("PGAPPNAME") or f"consort/{os.getenv('CONSORT_VERSION') or 'unknown'}"
+        url += ("?" if "?" not in url else "&") + "application_name=" + quote_plus(app_name)
     return url
 
 
@@ -53,7 +67,7 @@ def resolved_url() -> str:
     host = os.getenv("LAKEBASE_HOST") or os.getenv("DB_HOST") or "localhost"
     user = os.getenv("DB_USERNAME", "")
     userpart = f"{quote_plus(user)}@" if user else ""
-    return f"postgresql+psycopg://{userpart}{host}:5432/{DB_NAME}?sslmode=require"
+    return _normalize_url(f"postgresql+psycopg://{userpart}{host}:5432/{DB_NAME}")
 
 
 def make_engine(**kwargs) -> Engine:
@@ -73,7 +87,8 @@ def make_engine(**kwargs) -> Engine:
     if host and endpoint:
         user = os.getenv("DB_USERNAME") or lakebase_credentials.current_user()
         # Password-less URL; do_connect injects a freshly-minted token per connect.
-        url = f"postgresql+psycopg://{quote_plus(user)}@{host}:5432/{DB_NAME}?sslmode=require"
+        # Through _normalize_url so this runtime-mint connection is labeled too.
+        url = _normalize_url(f"postgresql+psycopg://{quote_plus(user)}@{host}:5432/{DB_NAME}")
         engine = create_engine(
             url, pool_pre_ping=True, pool_recycle=_POOL_RECYCLE_SECONDS, **kwargs
         )
