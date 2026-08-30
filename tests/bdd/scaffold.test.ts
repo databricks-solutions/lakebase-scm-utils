@@ -221,6 +221,20 @@ describe("deployScripts + deployWorkflows", () => {
     expect(workflows).toContain("pr.yml");
     expect(workflows).toContain("merge.yml");
   });
+
+  it("substitutes {{LAKEBASE_SCM_UTILS_VERSION}} in the scripts (scm-utils/<version> connection label)", async () => {
+    // post-checkout.sh / setup-federation.sh label their psql connections
+    // `scm-utils/<version>` when NOT run under a Consort drive. The version is stamped at
+    // scaffold time (runtime shell can't know this package's version), so the literal
+    // placeholder must NOT survive , shipping it would make the label `scm-utils/{{...}}`.
+    const dir = mkTmp();
+    await deployScripts(dir);
+    for (const name of ["post-checkout.sh", "setup-federation.sh"]) {
+      const content = fs.readFileSync(path.join(dir, "scripts", name), "utf-8");
+      expect(content, `${name} must not ship the literal placeholder`).not.toContain("{{LAKEBASE_SCM_UTILS_VERSION}}");
+      expect(content, `${name} must carry a scm-utils/<version> label`).toMatch(/scm-utils\/\d+\.\d+\.\d+/);
+    }
+  });
 });
 
 describe("deployWorkflows: {{LAKEBASE_SCM_UTILS_VERSION}} substitution", () => {

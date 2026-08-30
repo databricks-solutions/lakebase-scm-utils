@@ -32,9 +32,9 @@ describe("buildPostgresUrl stamps application_name into the DSN (every consumer 
     expect(appName).toBe("consort/0.3.99");
   });
 
-  it("labels the DSN consort/<version> when used directly (no CONSORT_VERSION) , consort brand always", () => {
+  it("labels the DSN scm-utils/<version> when used directly (no CONSORT_VERSION)", () => {
     delete process.env.CONSORT_VERSION;
     const appName = new URL(buildPostgresUrl(parts)).searchParams.get("application_name") ?? "";
-    expect(appName.startsWith("consort/")).toBe(true);
+    expect(appName.startsWith("scm-utils/")).toBe(true);
   });
 });

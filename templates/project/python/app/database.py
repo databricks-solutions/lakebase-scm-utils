@@ -49,10 +49,11 @@ def _normalize_url(url: str) -> str:
     if "sslmode" not in url:
         url += "?sslmode=require" if "?" not in url else "&sslmode=require"
     if "application_name" not in url:
-        # consort/<version>: PGAPPNAME (the post-checkout hook writes consort/<kit-version>
-        # into .env) wins; else the running Consort version; else `consort/unknown` , always
-        # the consort brand + a version, never empty.
-        app_name = os.getenv("PGAPPNAME") or f"consort/{os.getenv('CONSORT_VERSION') or 'unknown'}"
+        # Label reflecting WHO opened it: PGAPPNAME (the post-checkout hook writes the resolved
+        # consort/<v> or scm-utils/<v> into .env) wins; else consort/<consort-version> when run
+        # under a Consort drive; else scm-utils/unknown (a standalone app with no .env label).
+        _cv = os.getenv("CONSORT_VERSION")
+        app_name = os.getenv("PGAPPNAME") or (f"consort/{_cv}" if _cv else "scm-utils/unknown")
         url += ("?" if "?" not in url else "&") + "application_name=" + quote_plus(app_name)
     return url
 

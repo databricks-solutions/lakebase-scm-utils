@@ -1,10 +1,10 @@
-// The Postgres `application_name` the substrate stamps on its connections is ALWAYS
-// `consort/<version>` , one uniform product brand + a version (visible to the instance
-// owner in their own pg_stat_activity). The version is the running Consort version
-// (CONSORT_VERSION) under a Consort run, else this package's own SemVer when used directly
-// (extension / bare CLI) , still branded `consort`. These assert the brand is always
-// consort + that the direct-use version resolves from the real package.json (never
-// `consort/unknown` in-tree).
+// The Postgres `application_name` the substrate stamps on its connections is
+// `<brand>/<version>` , a transparent label (visible to the instance owner in their own
+// pg_stat_activity) reflecting WHO opened the connection:
+//   - `consort/<consort-version>` when the work comes from Consort (CONSORT_VERSION set);
+//   - `scm-utils/<scm-utils-version>` when scm-utils is invoked directly (extension / bare CLI).
+// Each carries its OWN version. These assert both branches + that the direct-use version
+// resolves from the real package.json (so a shipped build is never `scm-utils/unknown`).
 
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,9 +27,9 @@ describe("connection application_name label", () => {
     expect(substrateSelfVersion()).not.toBe("unknown");
   });
 
-  it("direct use (no CONSORT_VERSION) => `consort/<package-version>` (consort brand, own version)", () => {
+  it("direct use (no CONSORT_VERSION) => `scm-utils/<scm-utils-version>`", () => {
     delete process.env.CONSORT_VERSION;
-    expect(connectionApplicationName()).toBe(`consort/${PKG_VERSION}`);
+    expect(connectionApplicationName()).toBe(`scm-utils/${PKG_VERSION}`);
   });
 
   it("under a Consort run (CONSORT_VERSION set) => `consort/<consort-version>`", () => {
@@ -37,9 +37,9 @@ describe("connection application_name label", () => {
     expect(connectionApplicationName()).toBe("consort/0.3.59");
   });
 
-  it("a blank/whitespace CONSORT_VERSION is ignored (falls back to the package version, still consort)", () => {
+  it("a blank/whitespace CONSORT_VERSION is ignored (falls back to scm-utils brand)", () => {
     process.env.CONSORT_VERSION = "   ";
-    expect(connectionApplicationName()).toBe(`consort/${PKG_VERSION}`);
+    expect(connectionApplicationName()).toBe(`scm-utils/${PKG_VERSION}`);
   });
 
   it("stays within Postgres's 63-byte application_name limit", () => {

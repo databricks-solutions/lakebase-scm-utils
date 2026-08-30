@@ -2466,6 +2466,7 @@ var RUNTIME_ARTIFACT_IGNORE = [
 ];
 var DEFAULT_ENDPOINT = "primary";
 var CONSORT_APPLICATION_NAME = "consort";
+var SCM_UTILS_APPLICATION_NAME = "scm-utils";
 var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
@@ -2503,8 +2504,8 @@ function substrateSelfVersion() {
 
 // scripts/lakebase/get-connection.ts
 function connectionApplicationName() {
-  const version = process.env[CONSORT_VERSION_ENV]?.trim() || substrateSelfVersion();
-  return `${CONSORT_APPLICATION_NAME}/${version}`;
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
@@ -11687,7 +11688,27 @@ function copyDir(srcDir, destDir, makeExecutable, relPrefix = "") {
   return out;
 }
 async function deployScripts(targetDir, opts) {
-  return copyDir(path11.join(commonDir(opts), "scripts"), path11.join(targetDir, "scripts"), true);
+  const scriptsDir = path11.join(targetDir, "scripts");
+  const written = await copyDir(path11.join(commonDir(opts), "scripts"), scriptsDir, true);
+  substituteScmUtilsVersion(scriptsDir, opts);
+  return written;
+}
+function substituteScmUtilsVersion(dir, opts) {
+  if (!fs12.existsSync(dir)) return;
+  const version = substrateVersion(opts);
+  const walk = (d) => {
+    for (const entry of fs12.readdirSync(d, { withFileTypes: true })) {
+      const p = path11.join(d, entry.name);
+      if (entry.isDirectory()) {
+        walk(p);
+        continue;
+      }
+      const before = fs12.readFileSync(p, "utf-8");
+      const after = before.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
+      if (after !== before) fs12.writeFileSync(p, after);
+    }
+  };
+  walk(dir);
 }
 function deployClientProject(targetDir, projectName, opts) {
   const src = clientTemplateDir(opts);
@@ -17697,6 +17718,7 @@ export {
   setupRunner,
   stateFilePath,
   stopRunner,
+  substituteScmUtilsVersion,
   substrateVersion,
   syncEnvToCurrentBranch,
   tierBranchNames,

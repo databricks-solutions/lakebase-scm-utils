@@ -29,18 +29,21 @@ import { substrateSelfVersion } from "./self-version.js";
 import { KIT_TIMEOUTS } from "./kit-config.js";
 
 /**
- * The `application_name` stamped on the substrate's Postgres connections: ALWAYS
- * `consort/<version>` , one uniform product brand + a version, never empty, never bare.
- * The version is the running Consort version (Consort exports it in CONSORT_VERSION_ENV,
- * read here) when under a Consort run, else this package's own SemVer when used directly
- * (the VS Code extension, a bare `lakebase-*` CLI) , still branded `consort` so a Lakebase
- * owner sees a single identity in their own `pg_stat_activity`. A TRANSPARENT label. Never
- * throws (an unreadable version falls back to `consort/unknown`), so labelling can never
- * break a connection.
+ * The `application_name` stamped on the substrate's Postgres connections , `<brand>/<version>`,
+ * reflecting WHO opened the connection:
+ *   - `consort/<consort-version>` when the work comes FROM Consort (Consort exports its version
+ *     in CONSORT_VERSION_ENV; we read it here);
+ *   - `scm-utils/<scm-utils-version>` when scm-utils is invoked DIRECTLY (the VS Code extension,
+ *     a bare `lakebase-*` CLI) , no env, so it falls back to this package's own brand + SemVer.
+ * Each carries its OWN version. A TRANSPARENT label visible to the database owner in their own
+ * `pg_stat_activity`. Never throws (an unreadable scm-utils version -> `scm-utils/unknown`; a
+ * blank env is ignored), so labelling can never break a connection.
  */
 export function connectionApplicationName(): string {
-  const version = process.env[CONSORT_VERSION_ENV]?.trim() || substrateSelfVersion();
-  return `${CONSORT_APPLICATION_NAME}/${version}`;
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion
+    ? `${CONSORT_APPLICATION_NAME}/${consortVersion}`
+    : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 // AppKit / @databricks/lakebase re-exports a WorkspaceClient type that
 // matches what createLakebasePool expects. We accept `unknown` at the API

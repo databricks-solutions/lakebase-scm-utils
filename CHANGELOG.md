@@ -2,6 +2,13 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.21
+
+Correct the v0.2.20 `application_name` brand: `consort/<v>` from Consort, `scm-utils/<v>` when direct , each with its OWN version.
+
+- **fix(connection): restore the two-brand `application_name` scheme.** v0.2.20 wrongly branded EVERY connection `consort/<version>`; `connectionApplicationName()` now again returns `consort/<consort-version>` when the work comes from Consort (`CONSORT_VERSION` set) and `scm-utils/<scm-utils-version>` when scm-utils is invoked directly (the VS Code extension / bare CLI) , each carrying its respective version. This flows through the DSN (`buildPostgresUrl`) to the app runtime, `alembic`, `pytest`, `knex`, and `psql`.
+- **fix(scaffold): the scaffolded scripts + app resolve the same two-brand label.** `post-checkout.sh` / `setup-federation.sh` export `PGAPPNAME=consort/<consort-version>` under a drive, else `scm-utils/<scm-utils-version>` , the scm-utils version is **stamped at scaffold time** (`deployScripts` now substitutes `{{LAKEBASE_SCM_UTILS_VERSION}}`, as the workflows already do; runtime shell cannot know this package's version). The scaffolded app (`python/app/database.py`, `nodejs/knexfile.js`) inherits the label from `.env`/`PGAPPNAME`, else `consort/<CONSORT_VERSION>` under a drive. Tests: `application-name.test.ts`, `dsn-application-name.test.ts`, `scaffold.test.ts` (asserts no literal placeholder ships).
+
 ## 0.2.20
 
 `application_name = consort/<version>` on EVERY Lakebase connection; fix the v0.2.19 verify-allowlist patterns.

@@ -111,7 +111,32 @@ function copyDir(srcDir: string, destDir: string, makeExecutable: boolean, relPr
 
 /** Deploy all scripts from common/scripts/. Files become executable. */
 export async function deployScripts(targetDir: string, opts?: ScaffoldOptions): Promise<string[]> {
-  return copyDir(path.join(commonDir(opts), "scripts"), path.join(targetDir, "scripts"), true);
+  const scriptsDir = path.join(targetDir, "scripts");
+  const written = await copyDir(path.join(commonDir(opts), "scripts"), scriptsDir, true);
+  // Stamp the scm-utils version into the scripts (the scaffolded post-checkout /
+  // setup-federation hooks label their psql connections `scm-utils/<version>` when NOT run
+  // under a Consort drive). Runtime shell cannot know this package's version, so it is
+  // substituted here, exactly as the workflows get {{LAKEBASE_SCM_UTILS_VERSION}}.
+  substituteScmUtilsVersion(scriptsDir, opts);
+  return written;
+}
+
+/** Recursively replace `{{LAKEBASE_SCM_UTILS_VERSION}}` with this package's version in every
+ *  file under `dir`. Used for the scaffolded scripts (the shell hooks' scm-utils/<version>
+ *  connection label); the same placeholder the workflows use. */
+export function substituteScmUtilsVersion(dir: string, opts?: ScaffoldOptions): void {
+  if (!fs.existsSync(dir)) return;
+  const version = substrateVersion(opts);
+  const walk = (d: string): void => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, entry.name);
+      if (entry.isDirectory()) { walk(p); continue; }
+      const before = fs.readFileSync(p, "utf-8");
+      const after = before.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
+      if (after !== before) fs.writeFileSync(p, after);
+    }
+  };
+  walk(dir);
 }
 
 /**

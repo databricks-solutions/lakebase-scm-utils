@@ -79247,6 +79247,7 @@ __export(scripts_exports, {
   stashStaged: () => stashStaged,
   stateFilePath: () => stateFilePath,
   stopRunner: () => stopRunner,
+  substituteScmUtilsVersion: () => substituteScmUtilsVersion,
   substrateVersion: () => substrateVersion,
   sync: () => sync,
   syncCiSecrets: () => syncCiSecrets,
@@ -88861,6 +88862,7 @@ var RUNTIME_ARTIFACT_IGNORE = [
 ];
 var DEFAULT_ENDPOINT = "primary";
 var CONSORT_APPLICATION_NAME = "consort";
+var SCM_UTILS_APPLICATION_NAME = "scm-utils";
 var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
@@ -88898,8 +88900,8 @@ function substrateSelfVersion() {
 
 // scripts/lakebase/get-connection.ts
 function connectionApplicationName() {
-  const version = process.env[CONSORT_VERSION_ENV]?.trim() || substrateSelfVersion();
-  return `${CONSORT_APPLICATION_NAME}/${version}`;
+  const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
+  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;
@@ -91165,7 +91167,27 @@ function copyDir(srcDir, destDir, makeExecutable, relPrefix = "") {
   return out;
 }
 async function deployScripts(targetDir, opts) {
-  return copyDir(path10.join(commonDir(opts), "scripts"), path10.join(targetDir, "scripts"), true);
+  const scriptsDir = path10.join(targetDir, "scripts");
+  const written = await copyDir(path10.join(commonDir(opts), "scripts"), scriptsDir, true);
+  substituteScmUtilsVersion(scriptsDir, opts);
+  return written;
+}
+function substituteScmUtilsVersion(dir, opts) {
+  if (!fs13.existsSync(dir)) return;
+  const version = substrateVersion(opts);
+  const walk = (d) => {
+    for (const entry of fs13.readdirSync(d, { withFileTypes: true })) {
+      const p = path10.join(d, entry.name);
+      if (entry.isDirectory()) {
+        walk(p);
+        continue;
+      }
+      const before = fs13.readFileSync(p, "utf-8");
+      const after = before.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
+      if (after !== before) fs13.writeFileSync(p, after);
+    }
+  };
+  walk(dir);
 }
 function deployClientProject(targetDir, projectName, opts) {
   const src = clientTemplateDir(opts);
@@ -97820,6 +97842,7 @@ function withProxyEnv(base = {}) {
   stashStaged,
   stateFilePath,
   stopRunner,
+  substituteScmUtilsVersion,
   substrateVersion,
   sync,
   syncCiSecrets,
