@@ -1,4 +1,10 @@
 import { defineConfig, type Options } from "tsup";
+import { readFileSync } from "node:fs";
+
+// This package's version, read at build time and inlined into the bundle via esbuild `define`
+// (consumed by scripts/lakebase/self-version.ts) so the connection application_name label survives
+// bundling (a webpacked extension host can't locate our package.json at runtime).
+const SELF_VERSION = (JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 // Dual-format build: emit both ESM (.js, since package.json type=module) and
 // CJS (.cjs) so the lakebase-scm-extension (CommonJS + webpack) can consume
@@ -60,6 +66,9 @@ const common: Options = {
   // from a CJS consumer like lakebase-scm-extension. Required for dual-
   // format reach.
   shims: true,
+  // Inline this package's version so substrateSelfVersion() resolves it without a filesystem
+  // package.json lookup (which a webpack bundle in the extension host defeats).
+  define: { __LAKEBASE_SCM_UTILS_VERSION__: JSON.stringify(SELF_VERSION) },
 };
 
 // Which ESM-only deps to inline (`noExternal`) is FORMAT-SPECIFIC , this is the

@@ -19,9 +19,22 @@ import { fileURLToPath } from "node:url";
 const PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 let cached: string | undefined;
 
+// Version inlined at BUILD time by tsup's esbuild `define` (see tsup.config.ts). This is what makes
+// the version survive BUNDLING: when the VS Code extension webpacks this module into one file, the
+// package.json walk below would find the EXTENSION's package.json (wrong name), never ours, and
+// degrade to "unknown". The build constant sidesteps the filesystem entirely. Undefined when
+// running from source (tsx / tests), where the walk below resolves it instead.
+declare const __LAKEBASE_SCM_UTILS_VERSION__: string | undefined;
+
 /** This package's version (e.g. "0.2.16"), or "unknown" if it cannot be resolved. Cached. */
 export function substrateSelfVersion(): string {
   if (cached !== undefined) return cached;
+  // Prefer the build-inlined version (survives bundling). `typeof` is safe when the identifier was
+  // never defined (source/tsx): it evaluates to "undefined" instead of throwing.
+  if (typeof __LAKEBASE_SCM_UTILS_VERSION__ === "string" && __LAKEBASE_SCM_UTILS_VERSION__.length > 0) {
+    cached = __LAKEBASE_SCM_UTILS_VERSION__;
+    return cached;
+  }
   cached = "unknown";
   try {
     let dir = path.dirname(fileURLToPath(import.meta.url));
