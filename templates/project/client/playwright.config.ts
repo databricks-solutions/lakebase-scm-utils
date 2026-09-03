@@ -1,4 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 // End-to-end tests drive the rendered SPA through a real browser against the
 // real backend, backed by the paired Lakebase branch. Playwright boots BOTH
@@ -17,6 +19,38 @@ const CLIENT_PORT = process.env.E2E_CLIENT_PORT ?? "5173";
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 const CLIENT_URL = `http://localhost:${CLIENT_PORT}`;
 
+// Backend stack detection (mirrors scripts/run-tests.sh): the backend lives at the project root,
+// one level up from this client/ config (Playwright runs from client/, hence cwd:".." below). Pick
+// the migrate-before-serve command + health URL for the detected stack so E2E boots on ANY language
+// , a nodejs scaffold otherwise inherited the Python (alembic/uvicorn) command and could not start.
+const ROOT = join(process.cwd(), "..");
+function backendWebServer(): { command: string; url: string } {
+  if (existsSync(join(ROOT, "pom.xml"))) {
+    // Java/Kotlin (Spring): flyway migrate, then boot on the resolved port.
+    return {
+      command: `../mvnw -q flyway:migrate && ../mvnw -q spring-boot:run -Dspring-boot.run.arguments=--server.port=${BACKEND_PORT}`,
+      url: `${BACKEND_URL}/actuator/health`,
+    };
+  }
+  if (
+    existsSync(join(ROOT, "package.json")) &&
+    !existsSync(join(ROOT, "pyproject.toml")) &&
+    !existsSync(join(ROOT, "requirements.txt"))
+  ) {
+    // Node.js backend: migrate-before-serve, then start on the resolved port.
+    return {
+      command: `npm --prefix .. run migrate && PORT=${BACKEND_PORT} npm --prefix .. run start`,
+      url: `${BACKEND_URL}/health`,
+    };
+  }
+  // Python/FastAPI (default): alembic upgrade, then uvicorn.
+  return {
+    command: `uv run --project .. alembic upgrade head && uv run --project .. uvicorn app.main:app --port ${BACKEND_PORT}`,
+    url: `${BACKEND_URL}/health`,
+  };
+}
+const backend = backendWebServer();
+
 export default defineConfig({
   testDir: "./tests/e2e",
   // Serialize specs when they share real-DB state via a seed/restore step.
@@ -32,13 +66,12 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      // Python/FastAPI backend. Apply migrations BEFORE serving (`alembic upgrade head &&`),
-      // so the e2e always runs against the CURRENT schema , the write paths a new story adds
-      // (e.g. a fresh table) exist. For other stacks run the migration step then the server:
-      //   Node.js:     npm --prefix .. run migrate && npm --prefix .. run start   (poll your /health)
-      //   Java/Spring: ../mvnw -q flyway:migrate && ../mvnw -q spring-boot:run     (poll /actuator/health)
-      command: `uv run --project .. alembic upgrade head && uv run --project .. uvicorn app.main:app --port ${BACKEND_PORT}`,
-      url: `${BACKEND_URL}/health`,
+      // Backend, language-aware (see backendWebServer above): migrate BEFORE serving so the e2e
+      // always runs against the CURRENT schema , the write paths a new story adds (e.g. a fresh
+      // table) exist. python -> alembic+uvicorn; nodejs -> npm run migrate+start; java/kotlin ->
+      // flyway+spring-boot. The stack is detected from the project root's build files.
+      command: backend.command,
+      url: backend.url,
       cwd: "..",
       // NEVER reuse the backend across e2e runs: a server started before a later story's
       // migration serves a STALE schema (GET succeeds against the old table; a write to the
