@@ -16,6 +16,10 @@ application-local.properties
 .consort/run-config.json
 .consort/drive-live.log
 .consort/diagnostics/
+# next.json is the drive's stop-state pointer, rewritten on EVERY stop. Committing it dirties the
+# tree on the next stop and re-blocks the experiment cut's clean-tree check , it is per-run state,
+# not corpus, so it never enters history.
+.consort/next.json
 .sftdd/agent-log.jsonl
 .sftdd/run-config.json
 .tdd/agent-log.jsonl
