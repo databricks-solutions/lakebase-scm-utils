@@ -54,6 +54,7 @@ export interface ConsortSetupHooks {
       agentModels?: Record<string, string>;
       uiTrack?: boolean;
       clientFramework?: string;
+      language?: "java" | "kotlin" | "python" | "nodejs";
     },
   ): void;
 }
@@ -501,6 +502,7 @@ export async function createProject(
         agentModels: input.agentModels,
         uiTrack,
         clientFramework,
+        language,
       });
     } catch (err) {
       warnings.push(

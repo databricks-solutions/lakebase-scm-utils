@@ -13523,7 +13523,8 @@ Last probe error:
           consortHooks.seedConfig(projectDir, {
             agentModels: input.agentModels,
             uiTrack,
-            clientFramework
+            clientFramework,
+            language
           });
         } catch (err) {
           warnings.push(

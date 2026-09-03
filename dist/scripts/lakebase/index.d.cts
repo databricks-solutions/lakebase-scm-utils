@@ -1985,6 +1985,7 @@ interface ConsortSetupHooks {
         agentModels?: Record<string, string>;
         uiTrack?: boolean;
         clientFramework?: string;
+        language?: "java" | "kotlin" | "python" | "nodejs";
     }): void;
 }
 /** @deprecated renamed to {@link ConsortSetupHooks}. Kept as a structural alias
