@@ -319,4 +319,3 @@ getCiAppEndpoint({
 `);
   process.exit(1);
 });
-//# sourceMappingURL=ci-app-endpoint.cli.js.map

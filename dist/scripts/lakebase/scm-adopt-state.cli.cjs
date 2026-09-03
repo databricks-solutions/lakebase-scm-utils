@@ -933,4 +933,3 @@ if (isCliEntry(importMetaUrl)) {
 0 && (module.exports = {
   runScmAdoptStateCli
 });
-//# sourceMappingURL=scm-adopt-state.cli.cjs.map

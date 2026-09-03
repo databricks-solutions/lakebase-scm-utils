@@ -935,4 +935,3 @@ export {
   sync,
   undoLastCommit
 };
-//# sourceMappingURL=index.js.map

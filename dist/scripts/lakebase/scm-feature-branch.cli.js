@@ -183,4 +183,3 @@ if (isCliEntry(import.meta.url)) {
 export {
   runScmFeatureBranchCli
 };
-//# sourceMappingURL=scm-feature-branch.cli.js.map

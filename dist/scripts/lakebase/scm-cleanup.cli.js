@@ -587,4 +587,3 @@ export {
   resolveFromEnv,
   runCleanupCli
 };
-//# sourceMappingURL=scm-cleanup.cli.js.map

@@ -79268,8 +79268,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.24".length > 0) {
-    cached = "0.2.24";
+  if ("0.2.25".length > 0) {
+    cached = "0.2.25";
     return cached;
   }
   cached = "unknown";
@@ -80902,4 +80902,3 @@ node-domexception/index.js:
 safe-buffer/index.js:
   (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 */
-//# sourceMappingURL=scm-reconcile-tier.cli.cjs.map

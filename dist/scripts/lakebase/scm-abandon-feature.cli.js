@@ -973,4 +973,3 @@ if (isCliEntry(import.meta.url)) {
 export {
   runScmAbandonFeatureCli
 };
-//# sourceMappingURL=scm-abandon-feature.cli.js.map

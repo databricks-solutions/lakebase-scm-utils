@@ -161,4 +161,3 @@ main().then(
     process.exit(1);
   }
 );
-//# sourceMappingURL=auth.cli.cjs.map

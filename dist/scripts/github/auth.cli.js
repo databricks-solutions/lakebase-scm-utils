@@ -138,4 +138,3 @@ main().then(
     process.exit(1);
   }
 );
-//# sourceMappingURL=auth.cli.js.map

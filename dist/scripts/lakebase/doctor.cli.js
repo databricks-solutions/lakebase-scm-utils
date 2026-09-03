@@ -464,8 +464,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.24".length > 0) {
-    cached = "0.2.24";
+  if ("0.2.25".length > 0) {
+    cached = "0.2.25";
     return cached;
   }
   cached = "unknown";
@@ -2301,4 +2301,3 @@ main().then(
     process.exit(1);
   }
 );
-//# sourceMappingURL=doctor.cli.js.map

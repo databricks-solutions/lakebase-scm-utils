@@ -1047,4 +1047,3 @@ async function cherryPick(args) {
   sync,
   undoLastCommit
 });
-//# sourceMappingURL=index.cjs.map

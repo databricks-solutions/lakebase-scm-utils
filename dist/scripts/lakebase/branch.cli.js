@@ -1735,4 +1735,3 @@ main().then(
     process.exit(1);
   }
 );
-//# sourceMappingURL=branch.cli.js.map

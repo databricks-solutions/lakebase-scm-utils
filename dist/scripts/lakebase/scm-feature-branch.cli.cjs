@@ -77829,4 +77829,3 @@ node-domexception/index.js:
 safe-buffer/index.js:
   (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 */
-//# sourceMappingURL=scm-feature-branch.cli.cjs.map

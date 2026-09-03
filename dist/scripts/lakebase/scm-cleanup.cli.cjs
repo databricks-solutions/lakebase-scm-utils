@@ -628,4 +628,3 @@ if (isCliEntry(importMetaUrl)) {
   resolveFromEnv,
   runCleanupCli
 });
-//# sourceMappingURL=scm-cleanup.cli.cjs.map

@@ -9340,8 +9340,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.24".length > 0) {
-    cached = "0.2.24";
+  if ("0.2.25".length > 0) {
+    cached = "0.2.25";
     return cached;
   }
   cached = "unknown";
@@ -11762,4 +11762,3 @@ toad-cache/dist/toad-cache.mjs:
    * @version 3.7.3
    *)
 */
-//# sourceMappingURL=scm-doctor.cli.js.map

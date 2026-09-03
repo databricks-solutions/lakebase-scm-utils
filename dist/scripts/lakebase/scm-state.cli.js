@@ -558,4 +558,3 @@ if (isCliEntry(import.meta.url)) {
 export {
   main as runScmStateCli
 };
-//# sourceMappingURL=scm-state.cli.js.map
