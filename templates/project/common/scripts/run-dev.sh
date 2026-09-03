@@ -125,7 +125,12 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
   SEED_SCRIPT="${SEED_SCRIPT:-scripts/seed_dev.py}"
   if [ "${SEED:-1}" != "0" ] && [ -f "$REPO_ROOT/$SEED_SCRIPT" ]; then
     echo "Seeding dev data ($SEED_SCRIPT)..."
-    uv run python "$SEED_SCRIPT" || true
+    # Run the seed with the repo ROOT importable. `uv run python scripts/seed_dev.py`
+    # puts the script's OWN dir (scripts/) on sys.path[0], NOT the repo root, so the
+    # seed's `import app...` fails with ModuleNotFoundError , unlike `uvicorn app.main:app`
+    # and `python -c` below, which import from cwd. Prepend the repo root to PYTHONPATH
+    # so the app package resolves.
+    PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" uv run python "$SEED_SCRIPT" || true
   fi
 
   # Dev backend port: start at 8200, NOT 8000. Port 8000 is the deploy target and

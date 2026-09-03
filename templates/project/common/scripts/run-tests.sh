@@ -173,3 +173,27 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/client/package.json" ]; then
   echo "Running client unit tests (Vitest)..."
   ( cd "$REPO_ROOT/client" && npm test )
 fi
+
+# Root E2E self-heal (mirrors the client block above). The Playwright E2E block
+# that enable-e2e appends BELOW runs `npm run test:e2e` (= `playwright test`) using
+# the project ROOT's local bin. But nothing has installed the root's node deps on
+# this path: a Python / full-stack root runs its language block (pytest/mvnw), which
+# installs NO node deps, and even a Node root can arrive here under the deploy gate's
+# NODE_ENV=production, where an earlier install omitted @playwright/test (a devDep).
+# Either way the `playwright` bin is absent and the appended e2e run dies with
+# "playwright: command not found" , a phantom, not a real failure , so the e2e suite
+# is effectively skipped and its ACs green with zero coverage. Install root deps here
+# so the root E2E suite ACTUALLY runs, exactly as the client block does for the SPA.
+# Gated on a project-root Playwright config (so it fires only when that e2e block
+# will), a full run (no path arg), and a root package.json. --include=dev is REQUIRED
+# for the same production-gate reason as the client block.
+if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/package.json" ] && { [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; }; then
+  if [ ! -d "$REPO_ROOT/node_modules" ] || [ ! -x "$REPO_ROOT/node_modules/.bin/playwright" ]; then
+    echo "root node_modules / playwright bin missing - installing root deps so the root E2E suite actually runs..."
+    if [ -f "$REPO_ROOT/package-lock.json" ]; then
+      ( cd "$REPO_ROOT" && npm ci --include=dev )
+    else
+      ( cd "$REPO_ROOT" && npm install --include=dev )
+    fi
+  fi
+fi
