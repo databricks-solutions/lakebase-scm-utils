@@ -20,6 +20,16 @@ application-local.properties
 # tree on the next stop and re-blocks the experiment cut's clean-tree check , it is per-run state,
 # not corpus, so it never enters history.
 .consort/next.json
+# The build lane's TRANSIENT run-state: per-cycle records (cycles/), per-experiment scratch
+# (experiments/), and the live build-pipeline pointer (pipeline.json). These churn every cycle and
+# describe the mechanics of a single run, not the design corpus, so they are gitignored the same way
+# next.json is , otherwise their per-cycle churn re-dirties the tree and re-blocks the next
+# experiment cut. The DESIGN corpus (features/, planning/, sprints/, workflow-state.json,
+# product-overview.md, nfrs.md, design/, architecture/) is committed, not ignored (Consort persists
+# it on the feature branch at each cut so the spec history survives for later stories).
+.consort/cycles/
+.consort/experiments/
+.consort/pipeline.json
 .sftdd/agent-log.jsonl
 .sftdd/run-config.json
 .tdd/agent-log.jsonl
