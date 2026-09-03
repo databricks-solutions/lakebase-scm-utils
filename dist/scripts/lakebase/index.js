@@ -11010,7 +11010,7 @@ async function withLakebaseRollback(opts, fn) {
       }
     }
     const base = err instanceof Error ? err.message : String(err);
-    const suffix = rolledBack ? ` (rolled back the Lakebase project "${opts.projectId}", so you can retry with the same name)` : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; purge it before retrying: databricks postgres delete-project ${opts.projectId})`;
+    const suffix = rolledBack ? ` (rolled back the Lakebase project "${opts.projectId}"; its slug is now SOFT-deleted, so a same-name retry collides with "already exists" , retry with a DIFFERENT project name, or purge the soft-deleted slug first)` : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; delete it with \`databricks postgres delete-project ${opts.projectId}\`, then retry with a DIFFERENT name , the soft-deleted slug blocks reusing this one until it is purged)`;
     const wrapped = err instanceof Error ? err : new Error(base);
     wrapped.message = `${base}${suffix}`;
     throw wrapped;
@@ -17107,7 +17107,7 @@ function checkEnv(projectDir) {
       status: "warn",
       message: ".env not found",
       detail: { projectDir, envPath: path31.join(projectDir, ".env") },
-      hint: "Run `lakebase-get-connection --output dsn --write-env` or `lakebase-branch sync-env`."
+      hint: "Run `lakebase-branch sync-env`, or `git checkout <branch>` so the post-checkout hook writes .env (or copy .env.example). The kit stores connection METADATA only , no DB token (the app mints a short-lived credential at runtime)."
     };
   }
   if (missing.length) {

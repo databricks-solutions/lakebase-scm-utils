@@ -146,6 +146,15 @@ maybe_npm_install() {
       echo "React client: ready."
     fi
   fi
+  # Root deps: a Node backend has a root package.json. Install them too, or the scaffolded
+  # project has no runnable backend until the developer manually npm-installs.
+  if [ -f "$WORK_TREE/package.json" ] && [ ! -d "$WORK_TREE/node_modules" ]; then
+    if command -v npm >/dev/null 2>&1; then
+      echo "Root: node_modules missing – running npm install..."
+      npm install --prefix "$WORK_TREE" --silent
+      echo "Root: ready."
+    fi
+  fi
 }
 
 # --- Helper: update .env and application-local.properties with connection info ---

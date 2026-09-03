@@ -203,8 +203,11 @@ export async function withLakebaseRollback<T>(opts: RollbackOptions, fn: () => P
     }
     const base = err instanceof Error ? err.message : String(err);
     const suffix = rolledBack
-      ? ` (rolled back the Lakebase project "${opts.projectId}", so you can retry with the same name)`
-      : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; purge it before retrying: databricks postgres delete-project ${opts.projectId})`;
+      ? ` (rolled back the Lakebase project "${opts.projectId}"; its slug is now SOFT-deleted, so a same-name retry` +
+        ` collides with "already exists" , retry with a DIFFERENT project name, or purge the soft-deleted slug first)`
+      : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; delete it with` +
+        ` \`databricks postgres delete-project ${opts.projectId}\`, then retry with a DIFFERENT name , the` +
+        ` soft-deleted slug blocks reusing this one until it is purged)`;
     const wrapped = err instanceof Error ? err : new Error(base);
     wrapped.message = `${base}${suffix}`;
     throw wrapped;

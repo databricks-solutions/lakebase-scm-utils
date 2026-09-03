@@ -433,7 +433,7 @@ function checkEnv(projectDir: string): CheckResult {
       status: "warn",
       message: ".env not found",
       detail: { projectDir, envPath: path.join(projectDir, ".env") },
-      hint: "Run `lakebase-get-connection --output dsn --write-env` or `lakebase-branch sync-env`.",
+      hint: "Run `lakebase-branch sync-env`, or `git checkout <branch>` so the post-checkout hook writes .env (or copy .env.example). The kit stores connection METADATA only , no DB token (the app mints a short-lived credential at runtime).",
     };
   }
   if (missing.length) {
