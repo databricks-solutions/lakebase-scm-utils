@@ -1,11 +1,17 @@
-// Copy a directory recursively, substituting {{PROJECT_NAME}} placeholders
-// in text files. Ported from ScaffoldService.copyDirWithSubstitution.
+// Copy a directory recursively, substituting {{PROJECT_NAME}} + {{LAKEBASE_SCM_UTILS_VERSION}}
+// placeholders in text files. Ported from ScaffoldService.copyDirWithSubstitution.
+//
+// {{LAKEBASE_SCM_UTILS_VERSION}} is the substrate's own SemVer, so every language template
+// (python database.py, node knexfile.js, the java/kotlin Spring fallback + overlay) resolves the
+// connection application_name to a REAL scm-utils/<version> label , the same substitution the
+// common/scripts already get via substituteScmUtilsVersion , instead of a hardcoded "unknown".
 //
 // Skips entries that are extension-only metadata (`.gitignore.extra`) or
 // fallback subdirs that shouldn't bleed into the destination scaffold.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { substrateSelfVersion } from "../lakebase/self-version.js";
 
 const SKIP_ENTRIES = new Set([".gitignore.extra", "fallback"]);
 
@@ -34,6 +40,7 @@ export function copyDirSubstituted(
       if (args.projectName) {
         content = content.replace(/\{\{PROJECT_NAME\}\}/g, args.projectName);
       }
+      content = content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, substrateSelfVersion());
       fs.writeFileSync(destPath, content);
     }
   }

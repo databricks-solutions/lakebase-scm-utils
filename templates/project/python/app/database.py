@@ -53,7 +53,7 @@ def _normalize_url(url: str) -> str:
         # consort/<v> or scm-utils/<v> into .env) wins; else consort/<consort-version> when run
         # under a Consort drive; else scm-utils/unknown (a standalone app with no .env label).
         _cv = os.getenv("CONSORT_VERSION")
-        app_name = os.getenv("PGAPPNAME") or (f"consort/{_cv}" if _cv else "scm-utils/unknown")
+        app_name = os.getenv("PGAPPNAME") or (f"consort/{_cv}" if _cv else "scm-utils/{{LAKEBASE_SCM_UTILS_VERSION}}")
         url += ("?" if "?" not in url else "&") + "application_name=" + quote_plus(app_name)
     return url
 

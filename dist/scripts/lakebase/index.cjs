@@ -90298,6 +90298,7 @@ function copyDirSubstituted(srcDir, destDir, args = {}) {
       if (args.projectName) {
         content = content.replace(/\{\{PROJECT_NAME\}\}/g, args.projectName);
       }
+      content = content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, substrateSelfVersion());
       fs8.writeFileSync(destPath, content);
     }
   }

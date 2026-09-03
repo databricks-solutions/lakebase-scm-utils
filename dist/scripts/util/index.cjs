@@ -34,9 +34,12 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/tsup/assets/cjs_shims.js
+var getImportMetaUrl, importMetaUrl;
 var init_cjs_shims = __esm({
   "node_modules/tsup/assets/cjs_shims.js"() {
     "use strict";
+    getImportMetaUrl = () => typeof document === "undefined" ? new URL(`file:${__filename}`).href : document.currentScript && document.currentScript.tagName.toUpperCase() === "SCRIPT" ? document.currentScript.src : new URL("main.js", document.baseURI).href;
+    importMetaUrl = /* @__PURE__ */ getImportMetaUrl();
   }
 });
 
@@ -1644,24 +1647,60 @@ function copyDirRecursive(src, dest) {
 
 // scripts/util/copy-dir-substituted.ts
 init_cjs_shims();
+var fs4 = __toESM(require("fs"), 1);
+var path3 = __toESM(require("path"), 1);
+
+// scripts/lakebase/self-version.ts
+init_cjs_shims();
 var fs3 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
+var import_node_url = require("url");
+var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
+var cached;
+function substrateSelfVersion() {
+  if (cached !== void 0) return cached;
+  cached = "unknown";
+  try {
+    let dir = path2.dirname((0, import_node_url.fileURLToPath)(importMetaUrl));
+    for (let i = 0; i < 8; i++) {
+      const pkgPath = path2.join(dir, "package.json");
+      if (fs3.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs3.readFileSync(pkgPath, "utf8"));
+          if (pkg.name === PKG_NAME && typeof pkg.version === "string" && pkg.version.length > 0) {
+            cached = pkg.version;
+            return cached;
+          }
+        } catch {
+        }
+      }
+      const parent = path2.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch {
+  }
+  return cached;
+}
+
+// scripts/util/copy-dir-substituted.ts
 var SKIP_ENTRIES = /* @__PURE__ */ new Set([".gitignore.extra", "fallback"]);
 function copyDirSubstituted(srcDir, destDir, args = {}) {
   const skip = args.skipEntries ?? SKIP_ENTRIES;
-  fs3.mkdirSync(destDir, { recursive: true });
-  for (const file of fs3.readdirSync(srcDir)) {
+  fs4.mkdirSync(destDir, { recursive: true });
+  for (const file of fs4.readdirSync(srcDir)) {
     if (skip.has(file)) continue;
-    const srcPath = path2.join(srcDir, file);
-    const destPath = path2.join(destDir, file);
-    if (fs3.statSync(srcPath).isDirectory()) {
+    const srcPath = path3.join(srcDir, file);
+    const destPath = path3.join(destDir, file);
+    if (fs4.statSync(srcPath).isDirectory()) {
       copyDirSubstituted(srcPath, destPath, { projectName: args.projectName, skipEntries: /* @__PURE__ */ new Set() });
     } else {
-      let content = fs3.readFileSync(srcPath, "utf-8");
+      let content = fs4.readFileSync(srcPath, "utf-8");
       if (args.projectName) {
         content = content.replace(/\{\{PROJECT_NAME\}\}/g, args.projectName);
       }
-      fs3.writeFileSync(destPath, content);
+      content = content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, substrateSelfVersion());
+      fs4.writeFileSync(destPath, content);
     }
   }
 }
@@ -1727,7 +1766,7 @@ var KIT_REGISTRIES = {
 
 // scripts/lakebase/databricks-profile.ts
 init_cjs_shims();
-var fs4 = __toESM(require("fs"), 1);
+var fs5 = __toESM(require("fs"), 1);
 var import_node_child_process = require("child_process");
 function normalizeHost(host) {
   return host.trim().replace(/\/+$/, "").toLowerCase();
@@ -1770,12 +1809,12 @@ function resolveProfileForHostSync(host, timeoutMs = KIT_TIMEOUTS.cliDefault) {
 
 // scripts/lakebase/env-file.ts
 init_cjs_shims();
-var fs5 = __toESM(require("fs"), 1);
-var path3 = __toESM(require("path"), 1);
+var fs6 = __toESM(require("fs"), 1);
+var path4 = __toESM(require("path"), 1);
 function readEnvVar(envPath, key) {
-  if (!fs5.existsSync(envPath)) return void 0;
+  if (!fs6.existsSync(envPath)) return void 0;
   let value;
-  for (const line of fs5.readFileSync(envPath, "utf-8").split("\n")) {
+  for (const line of fs6.readFileSync(envPath, "utf-8").split("\n")) {
     const trimmed = line.trimStart();
     if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
     value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
@@ -2959,7 +2998,7 @@ paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_cjs_shims();
-var generateMessage = (path4, cursorValue) => `The cursor at "${path4.join(
+var generateMessage = (path5, cursorValue) => `The cursor at "${path5.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -3000,9 +3039,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path4 = []) => {
+var deepFindPathToProperty = (object, searchProp, path5 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path4, key];
+    const currentPath = [...path5, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -3020,12 +3059,12 @@ var deepFindPathToProperty = (object, searchProp, path4 = []) => {
   }
   return [];
 };
-var get = (object, path4) => {
-  return path4.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path5) => {
+  return path5.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path4, mutator) => {
-  const lastProperty = path4[path4.length - 1];
-  const parentPath = [...path4].slice(0, -1);
+var set = (object, path5, mutator) => {
+  const lastProperty = path5[path5.length - 1];
+  const parentPath = [...path5].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -3077,22 +3116,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path4 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path4, "nodes"];
+  const path5 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path5, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path4, "edges"];
+  const edgesPath = [...path5, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path4, "pageInfo"];
+  const pageInfoPath = [...path5, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -5513,7 +5552,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path4) => path4.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path5) => path5.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -8590,7 +8629,7 @@ async function syncCiSecrets(args) {
 // scripts/util/cli-entry.ts
 init_cjs_shims();
 var import_node_fs = require("fs");
-var import_node_url = require("url");
+var import_node_url2 = require("url");
 function isCliEntry(importMetaUrl2) {
   const invokedRaw = process.argv[1];
   if (!invokedRaw) return false;
@@ -8602,7 +8641,7 @@ function isCliEntry(importMetaUrl2) {
     return false;
   }
   try {
-    moduleResolved = (0, import_node_fs.realpathSync)((0, import_node_url.fileURLToPath)(importMetaUrl2));
+    moduleResolved = (0, import_node_fs.realpathSync)((0, import_node_url2.fileURLToPath)(importMetaUrl2));
   } catch {
     return false;
   }

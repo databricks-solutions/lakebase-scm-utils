@@ -78,6 +78,15 @@ elif [ -f "$REPO_ROOT/pom.xml" ]; then
   # Java / Maven – export SPRING_DATASOURCE_* for Maven/Spring
   if [ -z "${SPRING_DATASOURCE_URL:-}" ] && [ -n "${DATABASE_URL:-}" ]; then
     SPRING_DATASOURCE_URL="jdbc:$(echo "$DATABASE_URL" | sed 's|^postgresql://[^@]*@|postgresql://|')"
+    # The pg JDBC driver reads `ApplicationName` (capital), NOT libpq's lowercase `application_name`.
+    # Translate one carried over from DATABASE_URL, or append the resolved label, so the java/kotlin
+    # connection carries consort/<v> (or scm-utils/<v>) like every other language.
+    SPRING_DATASOURCE_URL="$(printf '%s' "$SPRING_DATASOURCE_URL" | sed 's/\([?&]\)application_name=/\1ApplicationName=/')"
+    case "$SPRING_DATASOURCE_URL" in
+      *ApplicationName=*) : ;;
+      *\?*) SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}&ApplicationName=${PGAPPNAME:-scm-utils/{{LAKEBASE_SCM_UTILS_VERSION}}}" ;;
+      *)    SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}?ApplicationName=${PGAPPNAME:-scm-utils/{{LAKEBASE_SCM_UTILS_VERSION}}}" ;;
+    esac
     SPRING_DATASOURCE_USERNAME="${DB_USERNAME:-}"
     SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD:-}"
   fi

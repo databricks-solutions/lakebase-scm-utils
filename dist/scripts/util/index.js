@@ -1618,24 +1618,60 @@ function copyDirRecursive(src, dest) {
 
 // scripts/util/copy-dir-substituted.ts
 init_esm_shims();
+import * as fs4 from "fs";
+import * as path4 from "path";
+
+// scripts/lakebase/self-version.ts
+init_esm_shims();
 import * as fs3 from "fs";
 import * as path3 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
+var cached;
+function substrateSelfVersion() {
+  if (cached !== void 0) return cached;
+  cached = "unknown";
+  try {
+    let dir = path3.dirname(fileURLToPath2(import.meta.url));
+    for (let i = 0; i < 8; i++) {
+      const pkgPath = path3.join(dir, "package.json");
+      if (fs3.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs3.readFileSync(pkgPath, "utf8"));
+          if (pkg.name === PKG_NAME && typeof pkg.version === "string" && pkg.version.length > 0) {
+            cached = pkg.version;
+            return cached;
+          }
+        } catch {
+        }
+      }
+      const parent = path3.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch {
+  }
+  return cached;
+}
+
+// scripts/util/copy-dir-substituted.ts
 var SKIP_ENTRIES = /* @__PURE__ */ new Set([".gitignore.extra", "fallback"]);
 function copyDirSubstituted(srcDir, destDir, args = {}) {
   const skip = args.skipEntries ?? SKIP_ENTRIES;
-  fs3.mkdirSync(destDir, { recursive: true });
-  for (const file of fs3.readdirSync(srcDir)) {
+  fs4.mkdirSync(destDir, { recursive: true });
+  for (const file of fs4.readdirSync(srcDir)) {
     if (skip.has(file)) continue;
-    const srcPath = path3.join(srcDir, file);
-    const destPath = path3.join(destDir, file);
-    if (fs3.statSync(srcPath).isDirectory()) {
+    const srcPath = path4.join(srcDir, file);
+    const destPath = path4.join(destDir, file);
+    if (fs4.statSync(srcPath).isDirectory()) {
       copyDirSubstituted(srcPath, destPath, { projectName: args.projectName, skipEntries: /* @__PURE__ */ new Set() });
     } else {
-      let content = fs3.readFileSync(srcPath, "utf-8");
+      let content = fs4.readFileSync(srcPath, "utf-8");
       if (args.projectName) {
         content = content.replace(/\{\{PROJECT_NAME\}\}/g, args.projectName);
       }
-      fs3.writeFileSync(destPath, content);
+      content = content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, substrateSelfVersion());
+      fs4.writeFileSync(destPath, content);
     }
   }
 }
@@ -1656,7 +1692,7 @@ init_esm_shims();
 init_esm_shims();
 import { execFile, execFileSync as execFileSync2 } from "child_process";
 import { promisify } from "util";
-import { join as join4 } from "path";
+import { join as join5 } from "path";
 
 // scripts/lakebase/kit-config.ts
 init_esm_shims();
@@ -1701,7 +1737,7 @@ var KIT_REGISTRIES = {
 
 // scripts/lakebase/databricks-profile.ts
 init_esm_shims();
-import * as fs4 from "fs";
+import * as fs5 from "fs";
 import { execFileSync } from "child_process";
 function normalizeHost(host) {
   return host.trim().replace(/\/+$/, "").toLowerCase();
@@ -1744,12 +1780,12 @@ function resolveProfileForHostSync(host, timeoutMs = KIT_TIMEOUTS.cliDefault) {
 
 // scripts/lakebase/env-file.ts
 init_esm_shims();
-import * as fs5 from "fs";
-import * as path4 from "path";
+import * as fs6 from "fs";
+import * as path5 from "path";
 function readEnvVar(envPath, key) {
-  if (!fs5.existsSync(envPath)) return void 0;
+  if (!fs6.existsSync(envPath)) return void 0;
   let value;
-  for (const line of fs5.readFileSync(envPath, "utf-8").split("\n")) {
+  for (const line of fs6.readFileSync(envPath, "utf-8").split("\n")) {
     const trimmed = line.trimStart();
     if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
     value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
@@ -1787,7 +1823,7 @@ var profileByEnvFile = /* @__PURE__ */ new Map();
 var hostByEnvFile = /* @__PURE__ */ new Map();
 function envFileHost(cwd) {
   if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
-  const v = readEnvVar(join4(cwd, ".env"), "DATABRICKS_HOST");
+  const v = readEnvVar(join5(cwd, ".env"), "DATABRICKS_HOST");
   hostByEnvFile.set(cwd, v);
   return v;
 }
@@ -1812,7 +1848,7 @@ function resolveProfile(opts) {
   if (profileByEnvFile.has(cwd)) {
     fromEnvFile = profileByEnvFile.get(cwd);
   } else {
-    fromEnvFile = readEnvVar(join4(cwd, ".env"), "DATABRICKS_CONFIG_PROFILE");
+    fromEnvFile = readEnvVar(join5(cwd, ".env"), "DATABRICKS_CONFIG_PROFILE");
     profileByEnvFile.set(cwd, fromEnvFile);
   }
   if (fromEnvFile) return fromEnvFile;
@@ -2933,7 +2969,7 @@ paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_esm_shims();
-var generateMessage = (path5, cursorValue) => `The cursor at "${path5.join(
+var generateMessage = (path6, cursorValue) => `The cursor at "${path6.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -2974,9 +3010,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path5 = []) => {
+var deepFindPathToProperty = (object, searchProp, path6 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path5, key];
+    const currentPath = [...path6, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -2994,12 +3030,12 @@ var deepFindPathToProperty = (object, searchProp, path5 = []) => {
   }
   return [];
 };
-var get = (object, path5) => {
-  return path5.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path6) => {
+  return path6.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path5, mutator) => {
-  const lastProperty = path5[path5.length - 1];
-  const parentPath = [...path5].slice(0, -1);
+var set = (object, path6, mutator) => {
+  const lastProperty = path6[path6.length - 1];
+  const parentPath = [...path6].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -3051,22 +3087,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path5 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path5, "nodes"];
+  const path6 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path6, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path5, "edges"];
+  const edgesPath = [...path6, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path5, "pageInfo"];
+  const pageInfoPath = [...path6, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -5487,7 +5523,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path5) => path5.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path6) => path6.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -8564,7 +8600,7 @@ async function syncCiSecrets(args) {
 // scripts/util/cli-entry.ts
 init_esm_shims();
 import { realpathSync } from "fs";
-import { fileURLToPath as fileURLToPath2 } from "url";
+import { fileURLToPath as fileURLToPath3 } from "url";
 function isCliEntry(importMetaUrl) {
   const invokedRaw = process.argv[1];
   if (!invokedRaw) return false;
@@ -8576,7 +8612,7 @@ function isCliEntry(importMetaUrl) {
     return false;
   }
   try {
-    moduleResolved = realpathSync(fileURLToPath2(importMetaUrl));
+    moduleResolved = realpathSync(fileURLToPath3(importMetaUrl));
   } catch {
     return false;
   }
