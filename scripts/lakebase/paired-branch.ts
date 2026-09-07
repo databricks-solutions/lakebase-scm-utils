@@ -100,19 +100,53 @@ function gitRefExists(cwd: string, ref: string): boolean {
   }
 }
 
+/** True iff `ancestor` is an ancestor of (i.e. is contained by) `descendant`. */
+function gitIsAncestor(cwd: string, ancestor: string, descendant: string): boolean {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: KIT_TIMEOUTS.gitDefault,
+    });
+    return true; // exit 0 = yes
+  } catch {
+    return false; // exit 1 = no (or a ref error — treat as "not an ancestor")
+  }
+}
+
 /**
- * The git start-point a feature branch must fork from: the PARENT tier's pushed
- * tip. Fetches `origin/<parentBranch>` and prefers it (the promoted state the
- * paired Lakebase branch was cut from); falls back to a local `<parentBranch>`
- * ref; returns undefined when neither resolves (no remote + no local parent),
- * in which case the caller forks from HEAD (legacy behavior, e.g. tier-less /
- * hermetic repos). Exported for hermetic testing.
+ * The git start-point a fork must use for `parentBranch`. After fetching, prefer whichever of
+ * `origin/<parentBranch>` and the local `<parentBranch>` CONTAINS the other, so the fork carries a
+ * superset of both:
+ *
+ *   - A promoted TIER (staging/main): the local tier is equal to or behind `origin` (tiers advance
+ *     by pushed merges), so `origin` wins — matching the promoted state the paired Lakebase branch
+ *     was cut from.
+ *   - An EXPERIMENT cut off a FEATURE branch: the feature branch carries the just-committed design
+ *     corpus LOCALLY and may not be pushed yet, so `origin/<feature>` is STALE (behind local). The
+ *     OLD "prefer origin unconditionally" rule forked the experiment from the pre-design commit,
+ *     which then had no story artifacts on its working tree — the drive re-derived state as "no
+ *     design done" and reset the whole story back to breakdown. Preferring the LOCAL tip when it is
+ *     ahead of origin forks from the design-carrying commit, which is also what the paired Lakebase
+ *     branch was forked from, so git and the DB agree.
+ *
+ * Diverged (neither contains the other) keeps the origin default and leaves the caller's fork-parent
+ * agreement guard to surface the split. Returns undefined when neither ref resolves (fork from HEAD:
+ * tier-less / hermetic repos). Exported for hermetic testing.
  */
 export function resolveFeatureStartPoint(cwd: string, parentBranch?: string): string | undefined {
   if (!parentBranch) return undefined;
   gitFetchBranch(cwd, "origin", parentBranch);
-  if (gitRefExists(cwd, `origin/${parentBranch}`)) return `origin/${parentBranch}`;
-  if (gitRefExists(cwd, parentBranch)) return parentBranch;
+  const originRef = `origin/${parentBranch}`;
+  const hasOrigin = gitRefExists(cwd, originRef);
+  const hasLocal = gitRefExists(cwd, parentBranch);
+  if (hasOrigin && hasLocal) {
+    // Local is ahead of (or equal to) origin ⇒ it is the superset ⇒ fork from local. Otherwise
+    // (origin ahead, or diverged) keep origin.
+    return gitIsAncestor(cwd, originRef, parentBranch) ? parentBranch : originRef;
+  }
+  if (hasOrigin) return originRef;
+  if (hasLocal) return parentBranch;
   return undefined;
 }
 

@@ -1,10 +1,14 @@
-// A feature branch must fork from its PARENT tier's pushed tip, not from
-// whatever happens to be checked out. The live smoke cut F2 from
-// `main` (trunk, no F1 work) while its paired Lakebase branch carried staging's
-// lineage, so F2 re-authored F1's migration and Alembic could not locate the
-// DB's stamped revision at accept. Root cause: `git checkout -b <branch>` with
-// no start point. These tests pin the fix: resolveFeatureStartPoint prefers
-// origin/<parent>, and assertCleanForFork refuses a dirty fork.
+// A fork must start from the PARENT tip that carries a superset of both refs, not from
+// whatever happens to be checked out. Two live failures shaped this:
+//   1. A feature cut from `main` (trunk, no F1 work) while its paired Lakebase branch carried
+//      staging's lineage → re-authored F1's migration; Alembic could not locate the DB's stamped
+//      revision. Fix: fork from origin/<parent> (the promoted tier), not the checked-out HEAD.
+//   2. An EXPERIMENT cut off a feature branch forked from a STALE origin/<feature> (behind the
+//      local tip that carried the just-committed design corpus) → the experiment tree had no story
+//      artifacts, so the drive re-derived state as "no design done" and reset the story to
+//      breakdown. Fix: prefer the LOCAL parent tip when it is ahead of origin.
+// So resolveFeatureStartPoint is ancestry-aware (fork from whichever tip CONTAINS the other), and
+// assertCleanForFork refuses a dirty fork.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -16,6 +20,7 @@ import { resolveFeatureStartPoint, assertCleanForFork } from "../../scripts/lake
 let root: string;
 let originDir: string;
 let workDir: string;
+let seed: string;
 
 const git = (cwd: string, ...argv: string[]): string =>
   execFileSync("git", argv, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -37,7 +42,7 @@ function commit(dir: string, file: string, body: string, msg: string): void {
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "pb-fork-"));
   // origin: a bare repo with main + a staging branch that has an extra commit.
-  const seed = join(root, "seed");
+  seed = join(root, "seed");
   originDir = join(root, "origin.git");
   execFileSync("git", ["init", "-q", "--bare", "-b", "main", originDir]);
   initRepo(seed);
@@ -84,6 +89,38 @@ describe("resolveFeatureStartPoint", () => {
   it("returns undefined (fork from HEAD) when neither origin nor local parent resolves", () => {
     expect(resolveFeatureStartPoint(workDir, "no-such-tier")).toBeUndefined();
     expect(resolveFeatureStartPoint(workDir, undefined)).toBeUndefined();
+  });
+
+  it("prefers the LOCAL parent tip when it is AHEAD of origin (the experiment-cut regression)", () => {
+    // origin/feature-x = base; local feature-x = base + a design-corpus commit the drive just made
+    // and has NOT pushed. The OLD "prefer origin" rule forked the experiment from `base` (no story
+    // artifacts) → the drive reset to breakdown. It must fork from the local tip instead.
+    git(seed, "checkout", "-q", "-b", "feature-x", "main");
+    commit(seed, "spec.txt", "SPEC", "design: feature-x base");
+    git(seed, "push", "-q", "origin", "feature-x"); // origin/feature-x = base
+    git(workDir, "fetch", "-q", "origin");
+    git(workDir, "checkout", "-q", "-b", "feature-x", "origin/feature-x");
+    commit(workDir, "test-list.json", "[]", "design corpus: pre-experiment persist"); // local ahead, unpushed
+
+    expect(resolveFeatureStartPoint(workDir, "feature-x")).toBe("feature-x"); // LOCAL, not origin/feature-x
+    // Forking from it carries the design corpus (local tip), NOT the stale origin tip.
+    git(workDir, "checkout", "-q", "-b", "experiment-x", resolveFeatureStartPoint(workDir, "feature-x")!);
+    expect(git(workDir, "rev-parse", "HEAD")).toBe(git(workDir, "rev-parse", "feature-x"));
+    expect(git(workDir, "rev-parse", "HEAD")).not.toBe(git(workDir, "rev-parse", "origin/feature-x"));
+  });
+
+  it("prefers origin/<parent> when origin is AHEAD of the local ref (a promoted tier)", () => {
+    // Local tier sits at c1; origin advanced to c2 (a promotion someone else pushed). The fork must
+    // take the promoted origin tip — matching the tier the paired Lakebase branch was cut from.
+    git(seed, "checkout", "-q", "-b", "tierp", "main");
+    commit(seed, "p1.txt", "P1", "promote: c1");
+    git(seed, "push", "-q", "origin", "tierp"); // origin/tierp = c1
+    git(workDir, "fetch", "-q", "origin");
+    git(workDir, "checkout", "-q", "-b", "tierp", "origin/tierp"); // local tierp = c1
+    commit(seed, "p2.txt", "P2", "promote: c2");
+    git(seed, "push", "-q", "origin", "tierp"); // origin/tierp = c2 (ahead of local)
+
+    expect(resolveFeatureStartPoint(workDir, "tierp")).toBe("origin/tierp"); // origin ahead → origin
   });
 });
 
