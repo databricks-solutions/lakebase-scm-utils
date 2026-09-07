@@ -185,7 +185,16 @@ fi
 # client/package.json + playwright config to run them is itself a false GREEN - refuse, never silently skip
 # the class. (The top-of-file orphan guard already covers the no-client/package.json case; this adds the
 # "config missing" case and, above all, ACTUALLY RUNS the suite.)
-if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ]; then
+#
+# COST GATE (E2E is slow, so don't pay it on every per-cycle re-verify): the drive passes the current
+# cycle's layer as CONSORT_CYCLE_LAYER. Run the client E2E only when it is RELEVANT - an E2E-layer cycle
+# (CONSORT_CYCLE_LAYER=E2E) OR the layer is UNSET (the deploy-verify gate + any un-scoped full run). A
+# non-E2E cycle (API/Infra backend work) SKIPS the client E2E - the driver gets its RED on the E2E-layer
+# cycles that own the client UI, and the deploy gate re-runs the full suite. FAIL-SAFE: an unset layer
+# RUNS the E2E (correct-but-heavier), so a missing/incorrect thread never degrades to a silent skip
+# (false GREEN); the only way to skip is the drive EXPLICITLY naming a non-E2E layer.
+if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
+   && { [ -z "${CONSORT_CYCLE_LAYER:-}" ] || [ "${CONSORT_CYCLE_LAYER:-}" = "E2E" ]; }; then
   client_e2e_spec="$(find "$REPO_ROOT/client/tests/e2e" -type f \( -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.mjs' \) 2>/dev/null | head -n 1)"
   if [ -n "$client_e2e_spec" ]; then
     if [ ! -f "$REPO_ROOT/client/package.json" ] || \

@@ -130,6 +130,36 @@ describe("run-tests.sh client Playwright E2E (runs in the LOCAL loop, not CI-onl
     expect(out).toMatch(/refusing a hollow pass/);
     expect(out).toMatch(/S1\.spec\.ts/); // names the spec that could not run
   });
+
+  // COST GATE: the slow client E2E runs only when RELEVANT to the cycle. The drive passes the
+  // open cycle's layer as CONSORT_CYCLE_LAYER; a non-E2E (backend/API) cycle SKIPS the E2E so
+  // every per-cycle re-verify does not re-pay it. Vitest still runs (fast). FAIL-SAFE: unset or
+  // E2E => run (the deploy gate + E2E cycles); only an explicit non-E2E layer skips.
+  it("SKIPS the client E2E on a non-E2E cycle (CONSORT_CYCLE_LAYER=API) - Vitest still runs", () => {
+    const root = scaffoldWithClientE2e();
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1", CONSORT_CYCLE_LAYER: "API" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/CLIENT_VITEST_RAN/); // the fast client unit suite still runs
+    expect(out).not.toMatch(/Running client E2E \(Playwright\)/); // the slow E2E is skipped
+    expect(out).not.toMatch(/CLIENT_E2E_RAN/);
+  });
+
+  it("RUNS the client E2E on an E2E-layer cycle (CONSORT_CYCLE_LAYER=E2E)", () => {
+    const root = scaffoldWithClientE2e();
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1", CONSORT_CYCLE_LAYER: "E2E" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/Running client E2E \(Playwright\)/);
+    expect(out).toMatch(/CLIENT_E2E_RAN/);
+  });
+
+  it("FAIL-SAFE: an UNSET layer (deploy-verify gate) still runs the full client E2E", () => {
+    const root = scaffoldWithClientE2e();
+    // No CONSORT_CYCLE_LAYER: the deploy feature-verify + any un-scoped full run. Must NOT skip.
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/Running client E2E \(Playwright\)/);
+    expect(out).toMatch(/CLIENT_E2E_RAN/);
+  });
 });
 
 /** Base fixture: run-tests.sh + .env only. Callers add the pieces each case needs.
