@@ -71,9 +71,10 @@ fi
 # via the SFTDD_PYTEST_MARKER two-pass, which exits before the client Vitest block
 # below. To gate build GREEN on the SAME client suite the deploy feature-verify runs,
 # the build makes ONE extra invocation with SFTDD_CLIENT_ONLY=1: skip the backend
-# entirely (no migrations, no pytest) and run only the client Vitest block.
+# entirely (no migrations, no pytest) and run the client blocks below - the Vitest
+# unit suite AND the client Playwright E2E block.
 if [ "$#" -eq 0 ] && [ -n "${SFTDD_CLIENT_ONLY:-}" ]; then
-  echo "Client-only pass (SFTDD_CLIENT_ONLY=1): skipping the backend suite; running the client Vitest suite only."
+  echo "Client-only pass (SFTDD_CLIENT_ONLY=1): skipping the backend suite; running the client Vitest + Playwright E2E suites."
 elif [ -f "$REPO_ROOT/pom.xml" ]; then
   # Java / Maven – export SPRING_DATASOURCE_* for Maven/Spring
   if [ -z "${SPRING_DATASOURCE_URL:-}" ] && [ -n "${DATABASE_URL:-}" ]; then
@@ -149,9 +150,9 @@ fi
 
 # React SPA client unit tests (Vitest + Testing Library). Only on a full run
 # (no positional path arg, so a per-cycle backend-layer invocation does not drag
-# in the client suite), and only when a client/ workspace is present. The
-# client's e2e (Playwright) is owned by CI / the E2E block; this is the fast unit
-# lane. This is part of the AUTHORITATIVE full run (the build's honest-GREEN
+# in the client suite), and only when a client/ workspace is present. This is the
+# fast unit lane; the client's Playwright E2E runs in its OWN block just below (it
+# too is part of the local loop now, no longer CI-only). This is part of the AUTHORITATIVE full run (the build's honest-GREEN
 # verify and the deploy gate both use it), so the client tests must ACTUALLY RUN,
 # never be skipped: a silent skip when client/node_modules is absent would green
 # UI code whose tests never executed (a false GREEN), and the break would surface
@@ -172,6 +173,43 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/client/package.json" ]; then
   fi
   echo "Running client unit tests (Vitest)..."
   ( cd "$REPO_ROOT/client" && npm test )
+fi
+
+# React SPA client E2E (Playwright). The client's end-to-end suite (client/tests/e2e/*.spec.ts) MUST run
+# in the AUTHORITATIVE full run - the build's honest-GREEN verify AND the deploy gate both use it - NOT be
+# deferred to CI. Deferring it (the old "owned by CI" split) was a systemic FALSE GREEN: a client-UI AC
+# greened off the backend + client-Vitest passing while its Playwright E2E never ran locally, so the Driver
+# got NO RED, never built the UI, and the whole client-E2E class read green until CI caught it post-hoc.
+# Run it HERE so the Driver gets an honest RED and builds the UI. The client playwright.config.ts's webServer
+# boots the backend + SPA; a failing E2E fails the run (set -e). HARD STOP: E2E specs present with no
+# client/package.json + playwright config to run them is itself a false GREEN - refuse, never silently skip
+# the class. (The top-of-file orphan guard already covers the no-client/package.json case; this adds the
+# "config missing" case and, above all, ACTUALLY RUNS the suite.)
+if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ]; then
+  client_e2e_spec="$(find "$REPO_ROOT/client/tests/e2e" -type f \( -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.mjs' \) 2>/dev/null | head -n 1)"
+  if [ -n "$client_e2e_spec" ]; then
+    if [ ! -f "$REPO_ROOT/client/package.json" ] || \
+       ! { [ -f "$REPO_ROOT/client/playwright.config.ts" ] || [ -f "$REPO_ROOT/client/playwright.config.js" ] || [ -f "$REPO_ROOT/client/playwright.config.mjs" ]; }; then
+      echo "ERROR: client E2E specs exist under client/tests/e2e but there is no client/package.json + playwright config to run them - refusing a hollow pass (the entire client E2E class would be silently skipped, a false GREEN)." >&2
+      printf '    %s\n' "$client_e2e_spec" >&2
+      exit 1
+    fi
+    # Ensure the client deps + the Playwright browser are present (mirrors the Vitest block's self-heal;
+    # --include=dev for the deploy gate's NODE_ENV=production, where devDeps like @playwright/test are omitted).
+    if [ ! -x "$REPO_ROOT/client/node_modules/.bin/playwright" ]; then
+      echo "client playwright bin missing - installing client deps so the client E2E actually runs..."
+      if [ -f "$REPO_ROOT/client/package-lock.json" ]; then
+        ( cd "$REPO_ROOT/client" && npm ci --include=dev )
+      else
+        ( cd "$REPO_ROOT/client" && npm install --include=dev )
+      fi
+    fi
+    echo "Running client E2E (Playwright)..."
+    # Use the client's OWN playwright bin (guaranteed present by the check/install above), not npx,
+    # so browser install + the run are deterministic under the deploy gate. install chromium first
+    # (playwright test does not auto-install browsers); a failing E2E fails the run (set -e).
+    ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && npm run test:e2e )
+  fi
 fi
 
 # Root E2E self-heal (mirrors the client block above). The Playwright E2E block

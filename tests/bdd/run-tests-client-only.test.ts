@@ -82,6 +82,56 @@ describe("run-tests.sh SFTDD_CLIENT_ONLY (Finding 26)", () => {
   });
 });
 
+/** scaffold() + a client Playwright E2E surface: a playwright config, an e2e spec, a `test:e2e`
+ *  script, and a STUB `playwright` bin so `./node_modules/.bin/playwright install chromium` is an
+ *  offline no-op in the test (no real browser download). */
+function scaffoldWithClientE2e(opts: { e2eScript?: string; withConfig?: boolean } = {}): string {
+  const root = scaffold();
+  const client = path.join(root, "client");
+  fs.writeFileSync(
+    path.join(client, "package.json"),
+    JSON.stringify({
+      name: "client",
+      scripts: { test: "echo CLIENT_VITEST_RAN", "test:e2e": opts.e2eScript ?? "echo CLIENT_E2E_RAN" },
+    }) + "\n",
+  );
+  fs.mkdirSync(path.join(client, "tests", "e2e"), { recursive: true });
+  fs.writeFileSync(path.join(client, "tests", "e2e", "S1.spec.ts"), "// client e2e spec\n");
+  if (opts.withConfig !== false) {
+    fs.writeFileSync(path.join(client, "playwright.config.ts"), "export default {};\n");
+  }
+  const binDir = path.join(client, "node_modules", ".bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, "playwright"), "#!/bin/sh\nexit 0\n");
+  fs.chmodSync(path.join(binDir, "playwright"), 0o755);
+  return root;
+}
+
+describe("run-tests.sh client Playwright E2E (runs in the LOCAL loop, not CI-only)", () => {
+  it("runs the client E2E under SFTDD_CLIENT_ONLY (the false-green gap: it used to be deferred to CI)", () => {
+    const root = scaffoldWithClientE2e();
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/CLIENT_VITEST_RAN/); // unit suite still runs
+    expect(out).toMatch(/Running client E2E \(Playwright\)/);
+    expect(out).toMatch(/CLIENT_E2E_RAN/); // the E2E ACTUALLY runs now
+  });
+
+  it("propagates a client E2E failure as non-zero (refuses GREEN - the Driver gets its RED)", () => {
+    const root = scaffoldWithClientE2e({ e2eScript: "exit 1" });
+    const { ok } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(false);
+  });
+
+  it("HARD STOP: client E2E specs present but NO playwright config - refuses a hollow pass", () => {
+    const root = scaffoldWithClientE2e({ withConfig: false });
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(false);
+    expect(out).toMatch(/refusing a hollow pass/);
+    expect(out).toMatch(/S1\.spec\.ts/); // names the spec that could not run
+  });
+});
+
 /** Base fixture: run-tests.sh + .env only. Callers add the pieces each case needs.
  *  The false-GREEN guard runs FAIL-FAST (before language detection / any backend),
  *  so these cases need no backend tooling to exercise it. */
