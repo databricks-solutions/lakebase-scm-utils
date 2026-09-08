@@ -88874,8 +88874,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.26".length > 0) {
-    cached = "0.2.26";
+  if ("0.2.29".length > 0) {
+    cached = "0.2.29";
     return cached;
   }
   cached = "unknown";
@@ -89195,11 +89195,29 @@ function gitRefExists(cwd, ref) {
     return false;
   }
 }
+function gitIsAncestor(cwd, ancestor, descendant) {
+  try {
+    (0, import_node_child_process4.execFileSync)("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: KIT_TIMEOUTS.gitDefault
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 function resolveFeatureStartPoint(cwd, parentBranch) {
   if (!parentBranch) return void 0;
   gitFetchBranch(cwd, "origin", parentBranch);
-  if (gitRefExists(cwd, `origin/${parentBranch}`)) return `origin/${parentBranch}`;
-  if (gitRefExists(cwd, parentBranch)) return parentBranch;
+  const originRef = `origin/${parentBranch}`;
+  const hasOrigin = gitRefExists(cwd, originRef);
+  const hasLocal = gitRefExists(cwd, parentBranch);
+  if (hasOrigin && hasLocal) {
+    return gitIsAncestor(cwd, originRef, parentBranch) ? parentBranch : originRef;
+  }
+  if (hasOrigin) return originRef;
+  if (hasLocal) return parentBranch;
   return void 0;
 }
 async function assertCleanForFork(cwd, startPoint) {
