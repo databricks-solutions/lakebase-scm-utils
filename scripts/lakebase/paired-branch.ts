@@ -173,8 +173,13 @@ export async function assertCleanForFork(cwd: string, startPoint?: string): Prom
   }
 }
 
-function gitCheckoutExistingBranch(cwd: string, branch: string): void {
-  execFileSync("git", ["checkout", branch], {
+function gitCheckoutExistingBranch(cwd: string, branch: string, force = false): void {
+  // `force` (-f) discards uncommitted TRACKED changes to land on `branch`. Only the
+  // merge path uses it, and only AFTER guarding that the sole dirt is the disposable
+  // runtime-artifact churn (see mergePaired); the default stays a plain checkout that
+  // aborts on a dirty tree.
+  const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
+  execFileSync("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout,
@@ -887,7 +892,23 @@ export async function mergePaired(args: MergePairedArgs): Promise<MergePairedRes
 
   // Switch git to the merge target. checkoutPaired only resolves Lakebase +
   // .env; it does NOT perform the git checkout, so do that first.
-  gitCheckoutExistingBranch(args.cwd, args.into);
+  //
+  // A caller that merges mid-workflow (e.g. the per-story experiment accept) has
+  // committed its CODE but deliberately leaves the disposable runtime-artifact
+  // churn (`.consort/`, `.lakebase/`, ... — RUNTIME_ARTIFACT_IGNORE) uncommitted so
+  // it never diverges from the target branch. A plain `git checkout` ABORTS on that
+  // dirt ("local changes would be overwritten"), wedging the merge. So force the
+  // checkout to drop exactly that churn — but FIRST refuse if any dirty TRACKED file
+  // lives OUTSIDE the ignore list, so -f never silently discards real source
+  // (mirrors assertCleanForFork's guard, same RUNTIME_ARTIFACT_IGNORE convention).
+  if (await isDirty({ cwd: args.cwd, ignore: [...RUNTIME_ARTIFACT_IGNORE], untracked: false })) {
+    throw new Error(
+      `Working tree has uncommitted changes to tracked files outside runtime artifacts; ` +
+        `refusing to force-checkout ${args.into} for the merge (they would be discarded). ` +
+        `Commit or stash them first.`,
+    );
+  }
+  gitCheckoutExistingBranch(args.cwd, args.into, /* force */ true);
 
   let checkout: CheckoutPairedResult | undefined;
   if (syncEnv) {
