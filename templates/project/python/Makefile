@@ -10,4 +10,4 @@ migrate:
 	uv run --env-file .env alembic upgrade head
 
 run:
-	uv run --env-file .env uvicorn app.main:app
+	uv run --env-file .env uvicorn app.main:app --host 127.0.0.1 --port $${PORT:-8000}

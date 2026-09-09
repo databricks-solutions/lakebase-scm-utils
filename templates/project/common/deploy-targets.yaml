@@ -24,8 +24,13 @@ targets:
     # reachability poll stalls on ::1 where nothing listens and the deploy/verify
     # reports the app "not reachable after 60s" even though it is healthy on IPv4.
     base_url: http://127.0.0.1:8000
-    # Any HTTP response on this path means the server is up (200 not required).
-    health_path: /
+    # Probe the app's real health endpoint. /health returns 200 in EVERY lane
+    # (build/honest-GREEN, dev, and production). Do NOT use "/": it is reserved for
+    # the React SPA catch-all that mounts ONLY when client/dist exists, so in the
+    # build lane "/" 404s and readiness false-negatives even though the app is
+    # healthy. /health is defined before the catch-all (which excludes it), so it
+    # answers 200 whether or not the SPA is built.
+    health_path: /health
     ready_timeout_seconds: 60
     # Verify the running app actually works: the language-agnostic test entrypoint
     # (runs pending migrations + the project's test suite against the branch DB,

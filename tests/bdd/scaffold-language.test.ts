@@ -36,6 +36,29 @@ describe("deployLanguageProject – python path (static copy)", () => {
     const pyproject = fs.readFileSync(path.join(dir, "pyproject.toml"), "utf-8");
     expect(pyproject).not.toMatch(/\{\{PROJECT_NAME\}\}/);
   });
+
+  it("scaffolds a `make run` that honors the deploy-injected $PORT (not a hardcoded :8000)", async () => {
+    // Regression (pm22): the run target used to be `uvicorn app.main:app` with NO --port,
+    // so uvicorn always bound its default :8000 and IGNORED the $PORT the deploy/verify
+    // injects when it relocates off a busy port — nothing listened on the relocated port
+    // (:8001, because :8000 was squatted by a neighbor project) → "not reachable after 60s".
+    // The deploy-targets.yaml contract requires `run` to bind $PORT; the app is otherwise
+    // healthy. It also binds 127.0.0.1 to match the base_url (no localhost->::1 stall).
+    const dir = mkTmp();
+    await deployLanguageProject({ targetDir: dir, language: "python", projectName: "port-test" });
+    const mk = fs.readFileSync(path.join(dir, "Makefile"), "utf-8");
+    const runRecipe = mk.split("\n").find((l) => l.includes("uvicorn app.main:app")) ?? "";
+    expect(runRecipe).toMatch(/--port \$\$\{PORT:-8000\}/); // honors injected PORT, defaults to 8000
+    expect(runRecipe).toMatch(/--host 127\.0\.0\.1/);
+    expect(mk).not.toMatch(/uvicorn app\.main:app\s*$/m); // never the portless form that hardcodes :8000
+    // pm23 root cause: a SINGLE `$` makes `make` read `${PORT:-8000}` as a make-variable
+    // named `PORT:-8000` (undefined -> empty), so uvicorn gets `--port ` with no argument
+    // ("Option '--port' requires an argument") and never boots -> the verify polls the
+    // relocated port for 60s and false-negatives. The `$` MUST be doubled (`$$`) so make
+    // passes `${PORT:-8000}` to the shell, which does the default-value expansion.
+    expect(runRecipe, "the $ must be doubled ($$) or make eats it before the shell sees it")
+      .not.toMatch(/(?<!\$)\$\{PORT:-8000\}/);
+  });
 });
 
 describe("deployLanguageProject – nodejs path", () => {

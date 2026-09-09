@@ -174,4 +174,16 @@ describe("the shipped deploy-targets.yaml template", () => {
     expect(tpl).toMatch(/base_url:\s*http:\/\/127\.0\.0\.1:8000/);
     expect(tpl).not.toMatch(/base_url:\s*http:\/\/localhost:/);
   });
+
+  it("probes /health, not / (which is the SPA catch-all that 404s when client/dist is unbuilt)", () => {
+    // Regression (pm23): health_path "/" hit the React SPA catch-all, which mounts only when
+    // client/dist exists — so in the build lane "/" 404s and readiness false-negatives even
+    // though the app is healthy. /health answers 200 in every lane.
+    const tpl = readFileSync(
+      join(__dirname, "..", "..", "templates", "project", "common", "deploy-targets.yaml"),
+      "utf-8",
+    );
+    expect(tpl).toMatch(/health_path:\s*\/health\b/);
+    expect(tpl).not.toMatch(/health_path:\s*\/\s*$/m); // never a bare "/"
+  });
 });
