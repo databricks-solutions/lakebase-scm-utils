@@ -70,6 +70,25 @@ describe("deployGitignore", () => {
     expect(content).not.toMatch(/^\.sftdd\/\*/m);
   });
 
+  it("ignores the recorder's per-run observability (recorder-state, routing-decisions, turns/) and the .isaac tool dir, but NOT the corpus", async () => {
+    // Regression guard: the turn recorder's internal file-hash map, its
+    // routing-decision diagnostic stream, and the per-turn record dirs are
+    // re-created every run and are NOT design corpus. Left untracked they block
+    // the feature-branch fork's clean-tree check on a kit that still counts
+    // untracked files, and a corpus `git add` could sweep them into history.
+    // Same for an unrelated tool's local .isaac/ dir.
+    const dir = mkTmp();
+    await deployGitignore(dir, "python");
+    const content = fs.readFileSync(path.join(dir, ".gitignore"), "utf-8");
+    expect(content).toMatch(/^\.consort\/\.recorder-state\.json$/m);
+    expect(content).toMatch(/^\.consort\/routing-decisions\.jsonl$/m);
+    expect(content).toMatch(/^\.consort\/turns\/$/m);
+    expect(content).toMatch(/^\.isaac\/$/m);
+    // The corpus is NOT blanket-ignored (no bare `.consort/` rule).
+    expect(content).not.toMatch(/^\.consort\/?\s*$/m);
+    expect(content).not.toMatch(/^\.consort\/\*/m);
+  });
+
   it("ignores both run pins (.lakebase/{kit,scm-utils}-ref.local) but NOT the committed refs (Finding 28)", async () => {
     // The gitignored run pins must never be committed, so a branch checkout cannot
     // revert one and silently run the wrong kit/substrate. The committed

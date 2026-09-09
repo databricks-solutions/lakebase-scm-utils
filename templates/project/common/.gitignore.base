@@ -30,6 +30,18 @@ application-local.properties
 .consort/cycles/
 .consort/experiments/
 .consort/pipeline.json
+# The turn recorder's per-run observability: its internal file-hash map
+# (.recorder-state.json, used for delta computation), the routing-decision
+# diagnostic stream (routing-decisions.jsonl), and the per-turn record dirs
+# (turns/). All three are re-created every run and describe a single run's
+# mechanics, not the design corpus (the curated replay corpus lives in the kit
+# repo, never in a scaffolded project). The recorder already treats them as
+# internal; ignore them here so a corpus commit never sweeps them into history
+# and an untracked one never blocks the experiment / feature-branch fork's
+# clean-tree check.
+.consort/.recorder-state.json
+.consort/routing-decisions.jsonl
+.consort/turns/
 .sftdd/agent-log.jsonl
 .sftdd/run-config.json
 .tdd/agent-log.jsonl
@@ -52,3 +64,9 @@ application-local.properties
 # untracked .claude/agent-memory/ otherwise blocks the experiment-branch fork
 # (assertCleanForFork) the moment a role saves a memory.
 .claude/agent-memory/
+
+# Unrelated agent tooling writes a local .isaac/ config dir. It is not project
+# source and churns per run; the experiment-cut guard already tolerates it by
+# name, so ignore it here too so it never enters git nor blocks a fork on a kit
+# whose clean-tree check still counts untracked files.
+.isaac/
