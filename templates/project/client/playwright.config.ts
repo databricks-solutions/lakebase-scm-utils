@@ -16,8 +16,16 @@ import { join } from "node:path";
 // backend port via VITE_PROXY_TARGET so /api + /health still reach the backend.
 const BACKEND_PORT = process.env.E2E_BACKEND_PORT ?? "8000";
 const CLIENT_PORT = process.env.E2E_CLIENT_PORT ?? "5173";
-const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
-const CLIENT_URL = `http://localhost:${CLIENT_PORT}`;
+// Use 127.0.0.1, NOT localhost, and bind both servers to it (below). `localhost`
+// is ambiguous: on macOS it resolves to IPv6 ::1 first, but uvicorn binds IPv4
+// 127.0.0.1 only (its default) and Vite's dev server is likewise IPv4 — so a
+// Playwright webServer readiness poll of the localhost /health URL stalls on ::1
+// where nothing listens and fails "not reachable after 60s" even though the app
+// is healthy on IPv4. Pinning 127.0.0.1 end-to-end (poll URL, baseURL, proxy
+// target, AND the servers' --host) removes that ambiguity. Do NOT change back to
+// a localhost URL unless you also bind the servers dual-stack.
+const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`;
+const CLIENT_URL = `http://127.0.0.1:${CLIENT_PORT}`;
 
 // Backend stack detection (mirrors scripts/run-tests.sh): the backend lives at the project root,
 // one level up from this client/ config (Playwright runs from client/, hence cwd:".." below). Pick
@@ -45,7 +53,7 @@ function backendWebServer(): { command: string; url: string } {
   }
   // Python/FastAPI (default): alembic upgrade, then uvicorn.
   return {
-    command: `uv run --project .. alembic upgrade head && uv run --project .. uvicorn app.main:app --port ${BACKEND_PORT}`,
+    command: `uv run --project .. alembic upgrade head && uv run --project .. uvicorn app.main:app --host 127.0.0.1 --port ${BACKEND_PORT}`,
     url: `${BACKEND_URL}/health`,
   };
 }
@@ -99,7 +107,7 @@ export default defineConfig({
       },
     },
     {
-      command: `npm run dev -- --port ${CLIENT_PORT} --strictPort`,
+      command: `npm run dev -- --host 127.0.0.1 --port ${CLIENT_PORT} --strictPort`,
       url: CLIENT_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

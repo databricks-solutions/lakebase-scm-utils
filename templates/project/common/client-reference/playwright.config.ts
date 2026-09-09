@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   globalSetup: './tests/global-setup.ts',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
   },
   projects: [
@@ -54,8 +54,11 @@ export default defineConfig({
       // (build honest-GREEN + CI, nothing pre-serving) stay false so Playwright boots + migrates
       // its own backend — a server started before a later story's migration serves a stale schema
       // (GET ok, write to the new table 500s) and reuse skips the migrate step.
-      command: 'uv run alembic upgrade head && uv run uvicorn server.app:app --port 8000',
-      url: 'http://localhost:8000/health',
+      // 127.0.0.1, not localhost: uvicorn binds IPv4 127.0.0.1 by default, but on
+      // macOS `localhost` resolves to IPv6 ::1 first, so a localhost readiness poll
+      // stalls on ::1 where nothing listens. Bind + poll 127.0.0.1 end-to-end.
+      command: 'uv run alembic upgrade head && uv run uvicorn server.app:app --host 127.0.0.1 --port 8000',
+      url: 'http://127.0.0.1:8000/health',
       cwd: '..',
       reuseExistingServer: !!process.env.BASE_URL,
       timeout: 120_000,
@@ -83,8 +86,8 @@ export default defineConfig({
     },
     // Frontend – proxies `/api/*` to the backend.
     {
-      command: 'npm run dev',
-      url: 'http://localhost:5173',
+      command: 'npm run dev -- --host 127.0.0.1',
+      url: 'http://127.0.0.1:5173',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

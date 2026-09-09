@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import {
   parseTargetsYaml,
   readTargets,
@@ -155,5 +158,20 @@ describe("getTargetNames", () => {
 
   it("returns an empty array when no file exists", () => {
     expect(getTargetNames(workspace)).toEqual([]);
+  });
+});
+
+describe("the shipped deploy-targets.yaml template", () => {
+  it("uses 127.0.0.1 (not localhost) for the local base_url so the reachability poll matches the IPv4-bound app", () => {
+    // Regression guard for the localhost->::1 stall: the deploy/verify probe fetches
+    // base_url; on macOS `localhost` resolves to IPv6 ::1 first, but the app binds IPv4
+    // (uvicorn default 127.0.0.1), so a localhost base_url reports "not reachable after
+    // 60s" against a perfectly healthy app.
+    const tpl = readFileSync(
+      join(__dirname, "..", "..", "templates", "project", "common", "deploy-targets.yaml"),
+      "utf-8",
+    );
+    expect(tpl).toMatch(/base_url:\s*http:\/\/127\.0\.0\.1:8000/);
+    expect(tpl).not.toMatch(/base_url:\s*http:\/\/localhost:/);
   });
 });

@@ -191,10 +191,28 @@ describe("deployClientProject", () => {
     expect(cfg).toMatch(/E2E_CLIENT_PORT/);
     expect(cfg).toMatch(/\?\?\s*"8000"/);
     expect(cfg).toMatch(/\?\?\s*"5173"/);
-    // The uvicorn webServer command binds the resolved backend port, not a literal.
-    expect(cfg).toMatch(/uvicorn app\.main:app --port \$\{BACKEND_PORT\}/);
+    // The uvicorn webServer command binds the resolved backend port, not a literal,
+    // and binds IPv4 127.0.0.1 explicitly (see the IPv4 regression guard below).
+    expect(cfg).toMatch(/uvicorn app\.main:app --host 127\.0\.0\.1 --port \$\{BACKEND_PORT\}/);
     // The Vite dev proxy is pointed at the resolved backend so /api still reaches it.
     expect(cfg).toMatch(/VITE_PROXY_TARGET:\s*BACKEND_URL/);
+  });
+
+  it("pins the E2E harness to 127.0.0.1 (not localhost) so the readiness poll matches the IPv4-bound servers", () => {
+    // Regression guard for the localhost->::1 stall: `localhost` resolves to IPv6 ::1
+    // first on macOS, but uvicorn + Vite bind IPv4 127.0.0.1, so a localhost webServer
+    // readiness poll hangs on ::1 where nothing listens and fails "not reachable after
+    // 60s" even though the app is healthy. The URLs AND both servers' --host must be
+    // 127.0.0.1 end-to-end.
+    const target = mkTarget();
+    deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });
+    const cfg = read(target, "client/playwright.config.ts");
+    expect(cfg).toMatch(/BACKEND_URL\s*=\s*`http:\/\/127\.0\.0\.1:/);
+    expect(cfg).toMatch(/CLIENT_URL\s*=\s*`http:\/\/127\.0\.0\.1:/);
+    expect(cfg).toMatch(/uvicorn app\.main:app --host 127\.0\.0\.1/);
+    expect(cfg).toMatch(/npm run dev -- --host 127\.0\.0\.1/);
+    // No stray localhost URL survives in the harness.
+    expect(cfg).not.toMatch(/http:\/\/localhost:/);
   });
 
   it("backend webServer migrates before serving + reuses ONLY a pre-served (deploy-verify) app, never a stale one", () => {
