@@ -140,7 +140,7 @@ resolve_pkg() {
         tail -c "+$((last + 1))" "$npmlog" | sed 's/^/lk: /' >&2   # forward the real npm progress
         last="$cur"
       else
-        echo "lk: … installing the Consort toolkit ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
+        echo "lk: … still installing the Consort TOOLKIT itself (the kit — one-time per version, cached + reused across projects) ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
       fi
     done
     # Flush any final lines npm wrote between the last poll and exit, then drop the log

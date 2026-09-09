@@ -143,7 +143,10 @@ describe("scaffold output contract: lk toolkit-install heartbeat", () => {
     const lk = readTemplate("common/scripts/lk");
     expect(lk).toMatch(/--loglevel=http/); // per-package fetch lines (what is installing)
     expect(lk).toMatch(/sed 's\/\^\/lk: \//); // forward npm's lines, prefixed for the relay
-    expect(lk).toMatch(/installing the Consort toolkit .*elapsed/); // fallback liveness line
+    // Fallback liveness line, disambiguated so a watcher never misattributes the wait:
+    // it names the Consort TOOLKIT (the kit) itself + that it is cached/reused across projects.
+    expect(lk).toMatch(/installing the Consort TOOLKIT.*elapsed/);
+    expect(lk).toMatch(/cached \+ reused across projects/);
     expect(lk).toMatch(/kill -0 "\$npm_pid"/); // the background progress-forwarding loop
   });
 
