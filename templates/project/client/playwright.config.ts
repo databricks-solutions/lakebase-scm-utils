@@ -73,12 +73,17 @@ export default defineConfig({
       command: backend.command,
       url: backend.url,
       cwd: "..",
-      // NEVER reuse the backend across e2e runs: a server started before a later story's
-      // migration serves a STALE schema (GET succeeds against the old table; a write to the
-      // new table 500s), and reuse skips the `alembic upgrade head` above. Always restart so
-      // the command re-migrates + serves the current schema. The frontend has no schema, so it
-      // keeps reuse for local speed.
-      reuseExistingServer: false,
+      // Reuse the backend ONLY when the deploy-verify harness has ALREADY served a migrated
+      // app for this port — it signals that by exporting BASE_URL (deploy.ts migrates the
+      // branch to head, THEN serves; reusing that app is safe and avoids a port collision with
+      // the already-running server — the failure this fixes: reuse:false made Playwright try to
+      // boot its OWN uvicorn on the served port and die with "address already in use" before any
+      // spec ran). When BASE_URL is UNSET — the build honest-GREEN verify AND CI, where nothing
+      // pre-serves — stay false so Playwright boots + MIGRATES its own backend: a server started
+      // before a later story's migration serves a STALE schema (GET succeeds against the old
+      // table; a write to the new table 500s), and reuse would skip the `alembic upgrade head`
+      // above. That is the false-GREEN this guards, so it MUST stay false off the deploy path.
+      reuseExistingServer: !!process.env.BASE_URL,
       timeout: 120_000,
       env: {
         DATABRICKS_HOST: process.env.DATABRICKS_HOST ?? "",

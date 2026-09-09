@@ -49,13 +49,15 @@ export default defineConfig({
     // frontend tries to render. Playwright boots entries in parallel,
     // but the order is preserved for ready-check polling.
     {
-      // Migrate BEFORE serving so the e2e runs against the current schema, and NEVER reuse the
-      // backend , a server started before a later story's migration serves a stale schema (GET
-      // ok, write to the new table 500s), and reuse skips the migrate step. Always restart.
+      // Migrate BEFORE serving so the e2e runs against the current schema. Reuse ONLY when the
+      // deploy-verify harness already served a migrated app (it exports BASE_URL); otherwise
+      // (build honest-GREEN + CI, nothing pre-serving) stay false so Playwright boots + migrates
+      // its own backend — a server started before a later story's migration serves a stale schema
+      // (GET ok, write to the new table 500s) and reuse skips the migrate step.
       command: 'uv run alembic upgrade head && uv run uvicorn server.app:app --port 8000',
       url: 'http://localhost:8000/health',
       cwd: '..',
-      reuseExistingServer: false,
+      reuseExistingServer: !!process.env.BASE_URL,
       timeout: 120_000,
       env: {
         // If your backend gates test-only endpoints (e.g. /api/dev/seed-user)

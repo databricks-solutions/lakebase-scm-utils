@@ -197,16 +197,21 @@ describe("deployClientProject", () => {
     expect(cfg).toMatch(/VITE_PROXY_TARGET:\s*BACKEND_URL/);
   });
 
-  it("backend webServer migrates before serving + never reuses a stale server (stale-schema guard)", () => {
+  it("backend webServer migrates before serving + reuses ONLY a pre-served (deploy-verify) app, never a stale one", () => {
     // Regression guard for the stale-schema e2e bug: a backend reused across runs (or started
     // before a later story's migration) serves the OLD schema , GET ok, a write to the new
-    // table 500s. The backend command must `alembic upgrade head` THEN serve, and must NOT
-    // reuse (so the migrate step always runs). The frontend keeps reuse (no schema).
+    // table 500s. The backend command must `alembic upgrade head` THEN serve. Reuse is
+    // CONTEXT-AWARE: only when the deploy-verify harness ALREADY served a migrated app (it
+    // exports BASE_URL) — reusing it is safe AND avoids the port collision that killed the whole
+    // E2E suite ("address already in use" before any spec ran). OFF the deploy path (build
+    // honest-GREEN + CI, BASE_URL unset) it stays false so Playwright boots + re-migrates its own
+    // backend — the stale-schema false-GREEN guard. The frontend keeps reuse (no schema).
     const target = mkTarget();
     deployClientProject(target, "demoapp", { templatesDir: TEMPLATES });
     const cfg = read(target, "client/playwright.config.ts");
     expect(cfg).toMatch(/alembic upgrade head\s*&&\s*uv run --project \.\. uvicorn app\.main:app/);
-    expect(cfg).toMatch(/reuseExistingServer:\s*false/); // the backend entry , always restart + re-migrate
+    // backend entry: reuse a deploy-served app (BASE_URL set), else restart + re-migrate.
+    expect(cfg).toMatch(/reuseExistingServer:\s*!!process\.env\.BASE_URL/);
     // The migrate + the serve must hit the SAME DB: forward DATABASE_URL (else `alembic
     // upgrade head` migrates a different DB than uvicorn serves, and the served schema is
     // missing a story's new table -> 500). Live-confirmed on the run.
