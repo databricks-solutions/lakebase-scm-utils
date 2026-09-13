@@ -20,6 +20,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/scrub-npm-lock.sh" ] && source "$SCRIPT_DIR/scrub-npm-lock.sh"
 if [ ! -f .env ]; then
   echo "No .env found. Run 'git checkout <branch>' so the hook creates/updates .env, or copy .env.example to .env."
   exit 1
@@ -148,6 +150,9 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
   if [ -f "$REPO_ROOT/client/package.json" ]; then
     if [ ! -d "$REPO_ROOT/client/node_modules" ]; then
       echo "Installing client dependencies (first run)..."
+      # Make the lockfile installable off the Databricks network before npm fetches its
+      # `resolved` URLs verbatim (a proxy-host lock hangs an external clone). No-op if already public.
+      command -v scrub_npm_proxy_lock >/dev/null 2>&1 && scrub_npm_proxy_lock "$REPO_ROOT/client/package-lock.json"
       ( cd "$REPO_ROOT/client" && npm install )
     fi
     # Dev client port: start at 5200, NOT Vite's default 5173. CI's Playwright

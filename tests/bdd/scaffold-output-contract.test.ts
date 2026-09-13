@@ -57,6 +57,33 @@ describe("scaffold output contract: run-dev.sh", () => {
   });
 });
 
+describe("scaffold output contract: npm-lock proxy scrub (off-network install)", () => {
+  it("ships scrub-npm-lock.sh, which rewrites the Databricks npm-proxy host to the public registry", () => {
+    // Locking deps on a Databricks machine bakes npm-proxy.cloud.databricks.com into every
+    // `resolved` URL; `npm ci` then HANGS for anyone off that network. This helper rewrites the
+    // host to the public registry (integrity hashes stay valid). Its absence was the "external
+    // /consort:start hangs" defect; pinned here so it cannot silently drop out again.
+    const sh = readTemplate("common/scripts/scrub-npm-lock.sh");
+    expect(sh).toMatch(/scrub_npm_proxy_lock\(\)/);
+    expect(sh).toMatch(/npm-proxy\.cloud\.databricks\.com/);
+    expect(sh).toMatch(/registry\.npmjs\.org/);
+  });
+
+  it("run-dev.sh + run-tests.sh SOURCE the scrub and CALL it before every npm ci/install", () => {
+    for (const rel of ["common/scripts/run-dev.sh", "common/scripts/run-tests.sh"]) {
+      const sh = readTemplate(rel);
+      expect(sh, rel).toMatch(/source "\$SCRIPT_DIR\/scrub-npm-lock\.sh"/);
+      expect(sh, rel).toMatch(/scrub_npm_proxy_lock "\$REPO_ROOT[^"]*package-lock\.json"/);
+    }
+    // Every lockfile-install site in run-tests.sh (client Vitest, client E2E, root) is guarded by a
+    // scrub, so no install path can fetch un-scrubbed proxy URLs. 3 sites -> 3 scrubs -> 3 `npm ci`.
+    const tests = readTemplate("common/scripts/run-tests.sh");
+    // The actual invocation (with its lockfile arg), one per site — not the `command -v` guard.
+    expect((tests.match(/scrub_npm_proxy_lock "\$REPO_ROOT/g) ?? []).length).toBe(3);
+    expect((tests.match(/npm ci --include=dev/g) ?? []).length).toBe(3);
+  });
+});
+
 describe("scaffold output contract: port-utils.sh (shared port safeguard)", () => {
   it("defines port_in_use + free_port ONCE so run-dev + CI can't drift", () => {
     // The port safeguard (don't hard-fail on a busy port , probe upward for a

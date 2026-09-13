@@ -6,6 +6,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/scrub-npm-lock.sh" ] && source "$SCRIPT_DIR/scrub-npm-lock.sh"
 if [ ! -f .env ]; then
   echo "No .env found. Run 'git checkout <branch>' so the hook creates/updates .env, or copy .env.example to .env."
   exit 1
@@ -165,6 +167,9 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/client/package.json" ]; then
     # gate, where NODE_ENV=production is set; without it npm omits devDependencies
     # and vitest (a devDep) is skipped, so `npm test` below dies with
     # "vitest: command not found" and the deploy fails on a phantom, not the code.
+    # Make the lockfile installable off the Databricks network before `npm ci` fetches its
+    # `resolved` URLs verbatim (a proxy-host lock hangs an external clone). No-op if already public.
+    command -v scrub_npm_proxy_lock >/dev/null 2>&1 && scrub_npm_proxy_lock "$REPO_ROOT/client/package-lock.json"
     if [ -f "$REPO_ROOT/client/package-lock.json" ]; then
       ( cd "$REPO_ROOT/client" && npm ci --include=dev )
     else
@@ -207,6 +212,7 @@ if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
     # --include=dev for the deploy gate's NODE_ENV=production, where devDeps like @playwright/test are omitted).
     if [ ! -x "$REPO_ROOT/client/node_modules/.bin/playwright" ]; then
       echo "client playwright bin missing - installing client deps so the client E2E actually runs..."
+      command -v scrub_npm_proxy_lock >/dev/null 2>&1 && scrub_npm_proxy_lock "$REPO_ROOT/client/package-lock.json"
       if [ -f "$REPO_ROOT/client/package-lock.json" ]; then
         ( cd "$REPO_ROOT/client" && npm ci --include=dev )
       else
@@ -237,6 +243,7 @@ fi
 if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/package.json" ] && { [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; }; then
   if [ ! -d "$REPO_ROOT/node_modules" ] || [ ! -x "$REPO_ROOT/node_modules/.bin/playwright" ]; then
     echo "root node_modules / playwright bin missing - installing root deps so the root E2E suite actually runs..."
+    command -v scrub_npm_proxy_lock >/dev/null 2>&1 && scrub_npm_proxy_lock "$REPO_ROOT/package-lock.json"
     if [ -f "$REPO_ROOT/package-lock.json" ]; then
       ( cd "$REPO_ROOT" && npm ci --include=dev )
     else
