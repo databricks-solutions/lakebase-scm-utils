@@ -2,55 +2,61 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.35
+
+Make scaffolded lockfiles installable OFF the Databricks network.
+
+- **fix(scaffold): scrub the npm-proxy host from the client lockfile before `npm ci`/`npm install`.** Deps locked on a Databricks machine bake `npm-proxy.cloud.databricks.com` into every `resolved` URL, so `npm ci` HANGS for anyone off that network (external `/consort:start`, a fresh clone). Ships `scripts/scrub-npm-lock.sh` (`scrub_npm_proxy_lock`, rewrites the proxy host to `registry.npmjs.org`; integrity hashes stay valid) and sources + calls it before every `npm ci`/`npm install` site in `run-dev.sh` and `run-tests.sh` (client Vitest, client Playwright, root). No-op when the lockfile is absent or already public. Pinned by `scaffold-output-contract.test.ts`.
+
 ## 0.2.21
 
-Correct the v0.2.20 `application_name` brand: `consort/<v>` from Consort, `scm-utils/<v>` when direct , each with its OWN version.
+Correct the v0.2.20 `application_name` brand: `consort/<v>` from Consort, `scm-utils/<v>` when direct – each with its OWN version.
 
-- **fix(connection): restore the two-brand `application_name` scheme.** v0.2.20 wrongly branded EVERY connection `consort/<version>`; `connectionApplicationName()` now again returns `consort/<consort-version>` when the work comes from Consort (`CONSORT_VERSION` set) and `scm-utils/<scm-utils-version>` when scm-utils is invoked directly (the VS Code extension / bare CLI) , each carrying its respective version. This flows through the DSN (`buildPostgresUrl`) to the app runtime, `alembic`, `pytest`, `knex`, and `psql`.
-- **fix(scaffold): the scaffolded scripts + app resolve the same two-brand label.** `post-checkout.sh` / `setup-federation.sh` export `PGAPPNAME=consort/<consort-version>` under a drive, else `scm-utils/<scm-utils-version>` , the scm-utils version is **stamped at scaffold time** (`deployScripts` now substitutes `{{LAKEBASE_SCM_UTILS_VERSION}}`, as the workflows already do; runtime shell cannot know this package's version). The scaffolded app (`python/app/database.py`, `nodejs/knexfile.js`) inherits the label from `.env`/`PGAPPNAME`, else `consort/<CONSORT_VERSION>` under a drive. Tests: `application-name.test.ts`, `dsn-application-name.test.ts`, `scaffold.test.ts` (asserts no literal placeholder ships).
+- **fix(connection): restore the two-brand `application_name` scheme.** v0.2.20 wrongly branded EVERY connection `consort/<version>`; `connectionApplicationName()` now again returns `consort/<consort-version>` when the work comes from Consort (`CONSORT_VERSION` set) and `scm-utils/<scm-utils-version>` when scm-utils is invoked directly (the VS Code extension / bare CLI) – each carrying its respective version. This flows through the DSN (`buildPostgresUrl`) to the app runtime, `alembic`, `pytest`, `knex`, and `psql`.
+- **fix(scaffold): the scaffolded scripts + app resolve the same two-brand label.** `post-checkout.sh` / `setup-federation.sh` export `PGAPPNAME=consort/<consort-version>` under a drive, else `scm-utils/<scm-utils-version>` – the scm-utils version is **stamped at scaffold time** (`deployScripts` now substitutes `{{LAKEBASE_SCM_UTILS_VERSION}}`, as the workflows already do; runtime shell cannot know this package's version). The scaffolded app (`python/app/database.py`, `nodejs/knexfile.js`) inherits the label from `.env`/`PGAPPNAME`, else `consort/<CONSORT_VERSION>` under a drive. Tests: `application-name.test.ts`, `dsn-application-name.test.ts`, `scaffold.test.ts` (asserts no literal placeholder ships).
 
 ## 0.2.20
 
 `application_name = consort/<version>` on EVERY Lakebase connection; fix the v0.2.19 verify-allowlist patterns.
 
-- **feat(connection): stamp `consort/<version>` on every connection this kit opens or hands out , one uniform, versioned identity.** Previously only three direct `pg.Client`/pool sites were labeled; the DSN, the scaffolded app's runtime, migrations, tests, and the kit's own psql probes connected UNLABELED. Now:
-  - `connectionApplicationName()` always returns `consort/<version>` , the running Consort version (`CONSORT_VERSION`) under a drive, else this package's own SemVer when used directly , dropping the version-less `scm-utils/` variant so there is one brand everywhere.
-  - `buildPostgresUrl()` puts `application_name` IN the DSN (a libpq + node-postgres URI parameter), so every DSN consumer , the app's uvicorn/psycopg runtime, `alembic`, `pytest`, `knex`, `psql` , is labeled by the connection string it is handed.
+- **feat(connection): stamp `consort/<version>` on every connection this kit opens or hands out – one uniform, versioned identity.** Previously only three direct `pg.Client`/pool sites were labeled; the DSN, the scaffolded app's runtime, migrations, tests, and the kit's own psql probes connected UNLABELED. Now:
+  - `connectionApplicationName()` always returns `consort/<version>` – the running Consort version (`CONSORT_VERSION`) under a drive, else this package's own SemVer when used directly – dropping the version-less `scm-utils/` variant so there is one brand everywhere.
+  - `buildPostgresUrl()` puts `application_name` IN the DSN (a libpq + node-postgres URI parameter), so every DSN consumer – the app's uvicorn/psycopg runtime, `alembic`, `pytest`, `knex`, `psql` – is labeled by the connection string it is handed.
   - The scaffolded app (`python/app/database.py` single-door `_normalize_url`, `nodejs/knexfile.js`) preserves an incoming consort-labeled DSN and otherwise defaults to `consort/<version>`.
   - The scaffolded scripts (`post-checkout.sh`, `setup-federation.sh`) export `PGAPPNAME=consort/<version>` (from `CONSORT_VERSION` / the pinned `.lakebase/kit-ref`) and write it into `.env`, so the psql readiness probes, the Spring `jdbc` `ApplicationName`, and every `.env`-sourcing tool inherit the same label.
   Tests: `application-name.test.ts`, `dsn-application-name.test.ts`.
-- **fix(scaffold): widen the `.claude/settings.json` allow patterns to command-family prefixes with a trailing `*`.** v0.2.19's patterns were too narrow: only the backend forms matched (`Bash(uv run pytest *)`), while the driver's real e2e + kit-shim commands were still denied , `Bash(npm run test:e2e)` (no `*`) missed `npm run test:e2e -- <spec>`; `Bash(npm --prefix client run test:e2e)` missed `npm --prefix /abs/client run test:e2e …` (a literal middle token can't match a variable path); `Bash(npx --yes playwright test *)` missed `npx playwright test …` (a literal `--yes` rejects a command without it); and `./scripts/lk consort-log …` was absent. Live runs confirmed the matching rule: only a trailing ` *` (allow-any-suffix) matches; an exact pattern rejects args, and a literal token can't match a variable one. The patterns are now command-family prefixes with end-`*` , `Bash(npm run *)`, `Bash(npm --prefix *)`, `Bash(npx playwright *)`, `Bash(./scripts/lk *)`, `Bash(uv run *)` , which cover every observed driver form without whack-a-mole. The guard test was rewritten to assert the allowlist COVERS the real driver command forms (via a matcher mirroring Claude Code's `Bash(prefix *)` semantics), instead of asserting a literal string , the prior test codified the bug by asserting the exact `Bash(npm run test:e2e)`. Test: `scaffold.test.ts`.
+- **fix(scaffold): widen the `.claude/settings.json` allow patterns to command-family prefixes with a trailing `*`.** v0.2.19's patterns were too narrow: only the backend forms matched (`Bash(uv run pytest *)`), while the driver's real e2e + kit-shim commands were still denied – `Bash(npm run test:e2e)` (no `*`) missed `npm run test:e2e -- <spec>`; `Bash(npm --prefix client run test:e2e)` missed `npm --prefix /abs/client run test:e2e …` (a literal middle token can't match a variable path); `Bash(npx --yes playwright test *)` missed `npx playwright test …` (a literal `--yes` rejects a command without it); and `./scripts/lk consort-log …` was absent. Live runs confirmed the matching rule: only a trailing ` *` (allow-any-suffix) matches; an exact pattern rejects args, and a literal token can't match a variable one. The patterns are now command-family prefixes with end-`*` – `Bash(npm run *)`, `Bash(npm --prefix *)`, `Bash(npx playwright *)`, `Bash(./scripts/lk *)`, `Bash(uv run *)` – which cover every observed driver form without whack-a-mole. The guard test was rewritten to assert the allowlist COVERS the real driver command forms (via a matcher mirroring Claude Code's `Bash(prefix *)` semantics), instead of asserting a literal string – the prior test codified the bug by asserting the exact `Bash(npm run test:e2e)`. Test: `scaffold.test.ts`.
 
 ## 0.2.19
 
 Ship a scaffolded `.claude/settings.json` so a headless drive can self-verify.
 
-- **feat(scaffold): pre-allowlist the project's verify commands in a committed `.claude/settings.json`.** A scaffolded project is driven by the deterministic orchestrator, which spawns each role agent HEADLESSLY (`claude --agent <role>`), with no human present to answer an interactive permission prompt. Its role agents must run the project's real-branch-DB verify (`./scripts/run-tests.sh`, `uv run alembic`/`pytest`, the client `test`/`test:e2e`, `playwright install`), but a scaffolded project shipped no permission allowlist, so every one of those invocations was gated pending an approval no one could grant , the drive could not self-confirm GREEN and re-raised a stale escalation instead. The scaffolder now deploys `.claude/settings.json` (new `deployClaudeSettings`, wired into `scaffoldStaticAll`) carrying exactly those verify commands, skip-if-exists so it never clobbers a user's own settings. **Why `settings.json` (the committed *project* source) and NOT `settings.local.json` (the *local* source):** the drive spawns each agent with `claude -p --setting-sources project`, which loads ONLY `.claude/settings.json`; `settings.local.json` is never sourced by the spawned agent, so an allowlist placed there is invisible to the drive (the observed wall , the allowlist "wasn't honored" because it was in the local source). A committed `settings.json` also travels with the project, so every teammate's drive inherits it. Test: `scaffold.test.ts` (+2 guards , ships the verify allowlist; never clobbers an existing settings.json).
+- **feat(scaffold): pre-allowlist the project's verify commands in a committed `.claude/settings.json`.** A scaffolded project is driven by the deterministic orchestrator, which spawns each role agent HEADLESSLY (`claude --agent <role>`), with no human present to answer an interactive permission prompt. Its role agents must run the project's real-branch-DB verify (`./scripts/run-tests.sh`, `uv run alembic`/`pytest`, the client `test`/`test:e2e`, `playwright install`), but a scaffolded project shipped no permission allowlist, so every one of those invocations was gated pending an approval no one could grant – the drive could not self-confirm GREEN and re-raised a stale escalation instead. The scaffolder now deploys `.claude/settings.json` (new `deployClaudeSettings`, wired into `scaffoldStaticAll`) carrying exactly those verify commands, skip-if-exists so it never clobbers a user's own settings. **Why `settings.json` (the committed *project* source) and NOT `settings.local.json` (the *local* source):** the drive spawns each agent with `claude -p --setting-sources project`, which loads ONLY `.claude/settings.json`; `settings.local.json` is never sourced by the spawned agent, so an allowlist placed there is invisible to the drive (the observed wall – the allowlist "wasn't honored" because it was in the local source). A committed `settings.json` also travels with the project, so every teammate's drive inherits it. Test: `scaffold.test.ts` (+2 guards – ships the verify allowlist; never clobbers an existing settings.json).
 
 ## 0.2.18
 
 Complete the migrate-before-serve e2e fix: pin the served DB into the Playwright webServer env.
 
-- **fix(e2e): forward `DATABASE_URL` (and `VERIFY_DATABASE_URL`) into the scaffolded Playwright backend `webServer` env.** v0.2.17 made the backend `webServer` run `alembic upgrade head && uvicorn …` (migrate-before-serve, no reuse), but the `webServer` command does NOT inherit the shell's `DATABASE_URL`, so `alembic` could migrate a different database than `uvicorn` served , leaving the served schema missing a story's new table (the reconcile 500). `client/playwright.config.ts` (and the `client-reference`) now forward `DATABASE_URL` and `VERIFY_DATABASE_URL` into that `env` when set, so the migrate step and the served app resolve the SAME DB (run-tests.sh exports the ephemeral `VERIFY_DATABASE_URL` when the substrate provides an isolated child, else the branch DB). Only forwarded when set, to keep the env clean. Test: `scaffold-client.test.ts` (+1 guard asserting both keys are forwarded).
+- **fix(e2e): forward `DATABASE_URL` (and `VERIFY_DATABASE_URL`) into the scaffolded Playwright backend `webServer` env.** v0.2.17 made the backend `webServer` run `alembic upgrade head && uvicorn …` (migrate-before-serve, no reuse), but the `webServer` command does NOT inherit the shell's `DATABASE_URL`, so `alembic` could migrate a different database than `uvicorn` served – leaving the served schema missing a story's new table (the reconcile 500). `client/playwright.config.ts` (and the `client-reference`) now forward `DATABASE_URL` and `VERIFY_DATABASE_URL` into that `env` when set, so the migrate step and the served app resolve the SAME DB (run-tests.sh exports the ephemeral `VERIFY_DATABASE_URL` when the substrate provides an isolated child, else the branch DB). Only forwarded when set, to keep the env clean. Test: `scaffold-client.test.ts` (+1 guard asserting both keys are forwarded).
 
 ## 0.2.17
 
 Two connection/e2e-harness fixes.
 
-- **fix(connection): the `application_name` label now reaches the POOLED path too (`PGAPPNAME`).** v0.2.16 stamped `application_name` on the two direct `pg.Client` sites, but the PRIMARY path , `createLakebasePool` (used by `schema-diff`, `reconcile-tier`) , came back with an EMPTY `application_name`: `createLakebasePool` builds its own pg config and drops a passed `application_name` (accepted by the type since `LakebasePoolConfig extends PoolConfig`, but ignored at runtime). node-postgres honors the `PGAPPNAME` env as the connection's `application_name` and `createLakebasePool` doesn't override it, so `getConnection`'s pool branch now sets `process.env.PGAPPNAME = connectionApplicationName()` before creating the pool. Live-verified: the pooled connection lands in `pg_stat_activity` as `consort/<version>` (under a Consort run) / `scm-utils/<version>` (direct).
-- **fix(e2e): the scaffolded Playwright backend migrates before serving + never reuses a stale server.** `client/playwright.config.ts` (and the `client-reference`) started the backend with plain `uvicorn` and `reuseExistingServer: !process.env.CI`. Locally that reused a uvicorn started BEFORE a later story's migration , GET hit the old table (ok), a write to the new table 500'd , and the reuse skipped any migration step. The backend `webServer` now runs `alembic upgrade head && uvicorn …` with `reuseExistingServer: false`, so every e2e run gets a fresh, migrated backend against the current schema. The frontend keeps reuse (no schema). Test: `scaffold-client.test.ts` (+1 guard).
+- **fix(connection): the `application_name` label now reaches the POOLED path too (`PGAPPNAME`).** v0.2.16 stamped `application_name` on the two direct `pg.Client` sites, but the PRIMARY path – `createLakebasePool` (used by `schema-diff`, `reconcile-tier`) – came back with an EMPTY `application_name`: `createLakebasePool` builds its own pg config and drops a passed `application_name` (accepted by the type since `LakebasePoolConfig extends PoolConfig`, but ignored at runtime). node-postgres honors the `PGAPPNAME` env as the connection's `application_name` and `createLakebasePool` doesn't override it, so `getConnection`'s pool branch now sets `process.env.PGAPPNAME = connectionApplicationName()` before creating the pool. Live-verified: the pooled connection lands in `pg_stat_activity` as `consort/<version>` (under a Consort run) / `scm-utils/<version>` (direct).
+- **fix(e2e): the scaffolded Playwright backend migrates before serving + never reuses a stale server.** `client/playwright.config.ts` (and the `client-reference`) started the backend with plain `uvicorn` and `reuseExistingServer: !process.env.CI`. Locally that reused a uvicorn started BEFORE a later story's migration – GET hit the old table (ok), a write to the new table 500'd – and the reuse skipped any migration step. The backend `webServer` now runs `alembic upgrade head && uvicorn …` with `reuseExistingServer: false`, so every e2e run gets a fresh, migrated backend against the current schema. The frontend keeps reuse (no schema). Test: `scaffold-client.test.ts` (+1 guard).
 
 ## 0.2.16
 
 Stamp a transparent `application_name` on the substrate's Postgres connections.
 
-- **feat(connection): set `application_name` on the pg connections this package opens , `consort/<version>`
+- **feat(connection): set `application_name` on the pg connections this package opens – `consort/<version>`
   under a Consort run, `scm-utils/<version>` when used directly.** A transparent connection label
   (standard practice; visible to the database OWNER in their own `pg_stat_activity`) that identifies
   which tool connected and which build, reading no table contents. New `connectionApplicationName()`
   (get-connection.ts) resolves the label: it reads the `CONSORT_VERSION` env (which Consort exports from
-  its own version) and returns `consort/<that>`; with no env , the VS Code extension or a bare `lakebase-*`
-  CLI , it falls back to this package's own brand + SemVer via a new leaf `self-version.ts`
+  its own version) and returns `consort/<that>`; with no env – the VS Code extension or a bare `lakebase-*`
+  CLI – it falls back to this package's own brand + SemVer via a new leaf `self-version.ts`
   (`substrateSelfVersion()`, a dist-safe package.json read that never throws). Applied at both direct
   `pg.Client` sites (get-connection ping, branch-schema diff). Brands + the env-var contract are named
   constants in `constants.ts`. Never breaks a connection (an unresolved version → `scm-utils/unknown`;
@@ -64,7 +70,7 @@ Doctor enforces the documented Python **3.10** floor (was major-only).
 - **fix(doctor): the prereq check now gates on the minor version, so a 3.9 interpreter no longer
   reports `[doctor] environment ok`.** The `python` prereq was `minMajor: 3`, which can only express
   "some Python 3", so macOS's system `python3` (3.9.6) passed the doctor while the hint promised
-  3.10+ , observed directly: `lakebase-create-project` printed `[doctor] environment ok` on a 3.9.6
+  3.10+ – observed directly: `lakebase-create-project` printed `[doctor] environment ok` on a 3.9.6
   machine. `parseVersion` already extracts `{major, minor}`, so the minor was parsed but never
   compared. Added an optional `minMinor` field to `PrereqSpec` (the floor becomes `minMajor.minMinor`
   when set) and set the python prereq to `minMajor: 3, minMinor: 10`; `checkPrereq` now warns when the
@@ -92,7 +98,7 @@ Deploy pre-serve migrate + gitignore hygiene (scaffold templates).
 - **fix(deploy): the `local` deploy target now ships a `migrate:` command.** `deploy.ts`'s
   pre-serve forward-migrate is gated on `cfg.migrate`; the scaffold's `deploy-targets.yaml`
   (the source scaffolded into projects) had no `migrate:` entry, so the gate served the
-  experiment branch UNMIGRATED , DB-backed routes 500'd with `relation "..." does not exist`
+  experiment branch UNMIGRATED – DB-backed routes 500'd with `relation "..." does not exist`
   even though honest-GREEN verify (which migrates a disposable child) passed. The v0.3.8 fix
   had landed only in the consort copy of the template, not this scaffold source. Added
   `migrate: ./scripts/flyway-migrate.sh` (language-dispatches: Python→alembic, Node→knex,
@@ -107,7 +113,7 @@ Scaffold fix: `run-tests.sh` no longer reports a hollow pass when client tests c
 
 - **fix(run-tests): fail fast when client test files exist but there is no `client/package.json`.**
   The client Vitest block runs only when `client/package.json` exists, so a project scaffolded with
-  no client SPA (`uiTrack`/`clientFramework=none`) whose design still authored client-owned ACs , the
+  no client SPA (`uiTrack`/`clientFramework=none`) whose design still authored client-owned ACs – the
   agents wrote a home-screen `*.test.tsx` / e2e `*.spec.ts` against a client that was never built ,
   had its entire client suite SILENTLY SKIPPED, greening every client-owned AC with ZERO coverage (a
   false GREEN that surfaces, if ever, only as "the home screen doesn't exist" at the acceptance gate).
@@ -118,7 +124,7 @@ Scaffold fix: `run-tests.sh` no longer reports a hollow pass when client tests c
 
 ## 0.2.9
 
-Makes the `@databricks/*` bundling FORMAT-SPECIFIC , fixes the ESM regression 0.2.8 introduced.
+Makes the `@databricks/*` bundling FORMAT-SPECIFIC – fixes the ESM regression 0.2.8 introduced.
 
 - **fix(esm): keep `@databricks/*` EXTERNAL in the ESM build; bundle it in CJS only.**
   0.2.8 added `@databricks/*` to a single `noExternal` that applied to BOTH formats. That
@@ -151,7 +157,7 @@ CJS-consumability fix + leaner create.
 - **fix(cjs): bundle `octokit` so the CJS build is require-able in a CommonJS host.**
   octokit v4 is ESM-only (`type: module`, no CJS entry), so the default-externalized
   `require("octokit")` in `dist/scripts/*.cjs` threw `ERR_REQUIRE_ESM` in a CommonJS
-  runtime , which aborted `lakebase-scm-extension`'s activation (Electron extension
+  runtime – which aborted `lakebase-scm-extension`'s activation (Electron extension
   host): "failed to load its substrate dependency" -> no tree views, no commands. tsup
   now `noExternal`s `octokit` + `@octokit/*`, so esbuild inlines its (self-contained)
   bundle as CJS and the `.cjs` output is self-contained + require-able. Restores the
@@ -172,7 +178,7 @@ Central workspace resolution + kit-download UX.
   `DATABRICKS_CONFIG_PROFILE`; it now also reads `.env` `DATABRICKS_HOST` via a single
   `effectiveHost()` resolver (`opts.host` -> exported `DATABRICKS_HOST` -> `<cwd>/.env`
   `DATABRICKS_HOST`), threaded into both the child env and the profile host-match. So any
-  in-project call , doctor, tier-cut, drive auth preflight, credential mint, the agents ,
+  in-project call – doctor, tier-cut, drive auth preflight, credential mint, the agents ,
   targets the project workspace instead of silently falling back to the DEFAULT profile.
   This closes centrally the class the doctor (0.2.2) and tier-cut (0.2.5) fixes patched
   pointwise; no caller can regress it by forgetting to thread a host.
@@ -194,7 +200,7 @@ Tier-cut auth fix + recovery bin.
   unrelated/expired workspace). So a `lakebase-create-project --tiers 2` / `--tiers 3`
   could silently fail to cut staging/dev and leave the project prod-only. The tier-cut now
   runs against the SAME workspace the rest of create used.
-- **feat: `lakebase-cut-tier` , recover a missing tier without re-creating.** New bin that
+- **feat: `lakebase-cut-tier` – recover a missing tier without re-creating.** New bin that
   cuts a long-running tier (`--name staging --fork-from main`), defaulting instance + host
   from the project `.env`. Creates both the Lakebase (no-expiry) and git sides. The
   counterpart when a create-time tier-cut failed. (`lakebase-reconcile-tier` reconciles
@@ -208,10 +214,10 @@ Kit-warm UX + speed.
 
 - **feat(lk): the runtime-kit install now narrates instead of going dark.** `install_pkg`
   (used by `lk --warm` / `--rewarm` and a cold bin run) prints a leading "installing
-  <kit>@<ref> , one-time for this ref (~1-2 min)" line, streams npm's own progress to
+  <kit>@<ref> – one-time for this ref (~1-2 min)" line, streams npm's own progress to
   stderr (was `>/dev/null 2>&1`), and prints a "ready (cached ...)" line on success. A
   multi-minute first install no longer looks hung.
-- **perf(lk): leaner install , `--omit=dev --no-audit --no-fund`.** The kit ships prebuilt
+- **perf(lk): leaner install – `--omit=dev --no-audit --no-fund`.** The kit ships prebuilt
   `dist/`, so consumers never build; skipping the build-toolchain devDeps (tsup, vitest,
   typescript, esbuild) and the audit/fund round-trips trims the warm. Prod postinstalls
   (`@databricks/appkit`, `protobufjs`) still run.
@@ -244,7 +250,7 @@ Doctor auth fix.
   but no explicit profile, `runDoctor` now resolves the profile that matches that host up
   front and threads the host (sets `DATABRICKS_HOST`) into the `auth token` / `auth describe` /
   `current-user` probes. Previously an unset profile made `databricks auth token` fall back to
-  the DEFAULT profile , whose refresh token may be stale , so the doctor failed spuriously even
+  the DEFAULT profile – whose refresh token may be stale – so the doctor failed spuriously even
   though the target workspace authenticated fine. An explicit `--profile` still wins (no
   host-based resolution). Covered by `tests/bdd/doctor-auth-host.test.ts`.
 
@@ -308,7 +314,7 @@ no longer hand-rolls bare, unreachable feature pages.
   mark), wired into `index.html` and shown in the navbar / page titles.
 - **Reachable, styled example page.** `pages/AboutPage.tsx` is routed in
   `App.tsx` and linked from a navbar affordance, and `tests/e2e/about.spec.ts`
-  navigates the real app to it , the reachable + styled + navigated pattern to
+  navigates the real app to it – the reachable + styled + navigated pattern to
   model feature pages on (a bare, unrouted page is what the UX gate flags).
 - `STYLE_GUIDE.md` documents the vocabulary + the icon slot.
 
