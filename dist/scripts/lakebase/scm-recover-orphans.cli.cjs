@@ -78599,8 +78599,9 @@ async function assertCleanForFork(cwd, startPoint) {
     );
   }
 }
-function gitCheckoutExistingBranch(cwd, branch) {
-  (0, import_node_child_process3.execFileSync)("git", ["checkout", branch], {
+function gitCheckoutExistingBranch(cwd, branch, force = false) {
+  const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
+  (0, import_node_child_process3.execFileSync)("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout

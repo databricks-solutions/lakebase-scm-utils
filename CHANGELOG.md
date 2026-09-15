@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.36
+
+Unbreak the per-story accept/merge: force-checkout past disposable runtime-artifact churn.
+
+- **fix(merge): `mergePaired` force-checks-out the merge target, past the disposable `.consort`/`.lakebase` churn.** `mergePaired` switched branches with a plain `git checkout <into>`, which ABORTS on the uncommitted runtime-artifact churn (`RUNTIME_ARTIFACT_IGNORE`) a mid-workflow accept deliberately leaves in place, wedging `consort-pipeline accept` -> `mergePaired` (and any capture/replay run reaching it). `gitCheckoutExistingBranch` gains an opt-in `force` param that `mergePaired` uses, but it first REFUSES if any dirty *tracked* file lives OUTSIDE `RUNTIME_ARTIFACT_IGNORE`, so `-f` never discards real source (mirrors `assertCleanForFork`). The fresh-branch `createPairedBranch` path stays plain/abort-on-dirty. Regression-guarded (`paired-branch-merge-dirty.test.ts`).
+
 ## 0.2.35
 
 Make scaffolded lockfiles installable OFF the Databricks network.

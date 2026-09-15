@@ -9340,8 +9340,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.35".length > 0) {
-    cached = "0.2.35";
+  if ("0.2.36".length > 0) {
+    cached = "0.2.36";
     return cached;
   }
   cached = "unknown";
@@ -9612,8 +9612,9 @@ async function assertCleanForFork(cwd, startPoint) {
     );
   }
 }
-function gitCheckoutExistingBranch(cwd, branch) {
-  execFileSync4("git", ["checkout", branch], {
+function gitCheckoutExistingBranch(cwd, branch, force = false) {
+  const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
+  execFileSync4("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout

@@ -88874,8 +88874,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.35".length > 0) {
-    cached = "0.2.35";
+  if ("0.2.36".length > 0) {
+    cached = "0.2.36";
     return cached;
   }
   cached = "unknown";
@@ -89228,8 +89228,9 @@ async function assertCleanForFork(cwd, startPoint) {
     );
   }
 }
-function gitCheckoutExistingBranch(cwd, branch) {
-  (0, import_node_child_process4.execFileSync)("git", ["checkout", branch], {
+function gitCheckoutExistingBranch(cwd, branch, force = false) {
+  const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
+  (0, import_node_child_process4.execFileSync)("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout
@@ -89570,7 +89571,17 @@ async function resolveFeatureParent(args) {
 async function mergePaired(args) {
   const warnings = [];
   const syncEnv = args.syncEnv !== false;
-  gitCheckoutExistingBranch(args.cwd, args.into);
+  if (await isDirty({ cwd: args.cwd, ignore: [...RUNTIME_ARTIFACT_IGNORE], untracked: false })) {
+    throw new Error(
+      `Working tree has uncommitted changes to tracked files outside runtime artifacts; refusing to force-checkout ${args.into} for the merge (they would be discarded). Commit or stash them first.`
+    );
+  }
+  gitCheckoutExistingBranch(
+    args.cwd,
+    args.into,
+    /* force */
+    true
+  );
   let checkout;
   if (syncEnv) {
     checkout = await checkoutPaired({ cwd: args.cwd, branch: args.into, instance: args.instance });
