@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.38
+
+Fix the v0.2.37 provisioning guard: verify EXISTENCE, not a nonexistent READY state.
+
+- **fix(create-project): the fail-closed verification required `current_state === "READY"`, which the Lakebase project API never returns — so it false-failed EVERY create.** v0.2.37 added a post-create `get-project` check requiring `current_state === "READY"`, but `databricks postgres get-project` returns no lifecycle state at the project level (only `name` / `uid` / `status` metadata). The check therefore always saw "unknown" and threw `did not reach READY (state: unknown)`, breaking all project creation and the extension's adopt / "set up Lakebase" flow. The guard now keys on PRESENCE: get-project FINDING the project is the provisioning signal. It still throws when the project is ABSENT (the original silent-failure it was added for) and, defensively, on an EXPLICIT non-READY state. Regression-guarded in `lakebase-project.test.ts`.
+
 ## 0.2.37
 
 Fail-closed Lakebase provisioning; scaffold dependency + local-E2E hardening.

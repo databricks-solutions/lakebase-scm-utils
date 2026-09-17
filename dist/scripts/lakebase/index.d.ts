@@ -2710,11 +2710,12 @@ declare function createLakebaseProject(args: LakebaseProjectArgs): Promise<Lakeb
  * Exported so the regression contract is unit-testable without the CLI.
  *
  * The post-create `get-project` lookup is the source of truth, because
- * `create-project` can exit 0 without provisioning a live project:
- *   - lookup undefined (project absent)  → silent provisioning failure → throw
- *   - lookup present but state !== READY  → not usable                  → throw
- *   - lookup present and READY            → success
- * It NEVER defaults a missing state to "READY".
+ * `create-project` can exit 0 without provisioning a live project (an async op,
+ * or a no-op for a reserved / soft-deleted slug). The Lakebase project resource
+ * exposes NO lifecycle current_state, so PRESENCE is the provisioning signal:
+ *   - lookup undefined (project absent)               → silent provisioning failure → throw
+ *   - lookup present, state absent or READY           → provisioned                 → ok
+ *   - lookup present with an EXPLICIT non-READY state → throw (defensive)
  */
 declare function assertCreatedProjectReady(projectId: string, verified: LakebaseProjectMetadata | undefined, reportedState: string | undefined): LakebaseProjectInfo;
 /**

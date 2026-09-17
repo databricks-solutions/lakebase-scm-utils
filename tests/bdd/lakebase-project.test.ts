@@ -57,10 +57,11 @@ describe("lakebase-project – error wrapping", () => {
 
 // Fail-closed provisioning guard. `databricks postgres create-project` can
 // exit 0 without a live project (async op returning early, or a no-op for a
-// reserved/soft-deleted slug). The old createLakebaseProject defaulted a
-// missing state to "READY" and fabricated uid/name, so it reported that
-// silent failure as success. assertCreatedProjectReady is the pure decision
-// that now makes it fail closed.
+// reserved/soft-deleted slug). The Lakebase project resource has NO lifecycle
+// current_state, so PRESENCE (get-project finds it) is the provisioning signal:
+// assertCreatedProjectReady throws on ABSENCE (the silent failure) and tolerates
+// an absent/unknown state on a present project (requiring "READY" false-failed
+// every create — the v0.2.37 regression this now guards against).
 describe("assertCreatedProjectReady – fail-closed provisioning verification", () => {
   it("returns the project info when get-project reports READY", () => {
     const info = assertCreatedProjectReady(
@@ -80,24 +81,27 @@ describe("assertCreatedProjectReady – fail-closed provisioning verification", 
     );
   });
 
-  it("throws when the project exists but is not READY", () => {
+  it("throws only on an EXPLICIT non-READY state (defensive)", () => {
     expect(() =>
       assertCreatedProjectReady(
         "stockflow-x",
-        { uid: "stockflow-x", name: "projects/stockflow-x", state: "CREATING" },
-        "CREATING",
+        { uid: "stockflow-x", name: "projects/stockflow-x", state: "FAILED" },
+        "FAILED",
       ),
-    ).toThrow(/did not reach READY/i);
+    ).toThrow(/non-READY state/i);
   });
 
-  it("never defaults a missing state to READY (undefined state throws)", () => {
-    expect(() =>
-      assertCreatedProjectReady(
-        "stockflow-x",
-        { uid: "stockflow-x", name: "projects/stockflow-x", state: undefined },
-        undefined,
-      ),
-    ).toThrow(/did not reach READY/i);
+  it("tolerates an ABSENT state – the real get-project shape has no current_state, so a present project is provisioned", () => {
+    // Regression guard: the Lakebase project resource returns no lifecycle
+    // current_state, so requiring state === "READY" false-failed EVERY create
+    // ("did not reach READY (state: unknown)"). A present project with an absent
+    // state must be treated as provisioned, not refused.
+    const info = assertCreatedProjectReady(
+      "stockflow-x",
+      { uid: "stockflow-x", name: "projects/stockflow-x", state: undefined },
+      undefined,
+    );
+    expect(info).toEqual({ uid: "stockflow-x", name: "projects/stockflow-x", state: "READY" });
   });
 });
 

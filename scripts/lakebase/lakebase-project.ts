@@ -58,15 +58,18 @@ export async function createLakebaseProject(args: LakebaseProjectArgs): Promise<
   // "READY" and fabricated uid/name from the input args, which reported a
   // silent provisioning failure as "Project created successfully" (warnings:
   // []). Instead, re-read the project via get-project and require it to EXIST
-  // and report current_state === "READY"; poll briefly to tolerate get-project
+  // (the Lakebase project resource exposes NO lifecycle current_state, so
+  // presence is the provisioning signal); poll briefly to tolerate get-project
   // eventual-consistency right after a freshly-completed provision.
   return pollCreatedProjectReady(args, reportedState);
 }
 
 /**
- * Poll `get-project` until the just-created project reports READY, then assert
- * via {@link assertCreatedProjectReady}. An absent or non-READY project throws
- * (fail-closed) instead of returning a fabricated success.
+ * Poll `get-project` until it FINDS the just-created project, then assert via
+ * {@link assertCreatedProjectReady}. The project resource has no lifecycle state,
+ * so presence is the signal; poll only while ABSENT (eventual-consistency right
+ * after create). An absent project throws (fail-closed) instead of returning a
+ * fabricated success.
  */
 async function pollCreatedProjectReady(
   args: LakebaseProjectArgs,
@@ -77,7 +80,7 @@ async function pollCreatedProjectReady(
   for (const wait of backoffMs) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     last = await getProjectInfo(args);
-    if (last && last.state === "READY") break;
+    if (last) break; // present = provisioned (there is no project-level READY gate)
   }
   return assertCreatedProjectReady(args.projectId, last, reportedState);
 }
@@ -87,11 +90,12 @@ async function pollCreatedProjectReady(
  * Exported so the regression contract is unit-testable without the CLI.
  *
  * The post-create `get-project` lookup is the source of truth, because
- * `create-project` can exit 0 without provisioning a live project:
- *   - lookup undefined (project absent)  → silent provisioning failure → throw
- *   - lookup present but state !== READY  → not usable                  → throw
- *   - lookup present and READY            → success
- * It NEVER defaults a missing state to "READY".
+ * `create-project` can exit 0 without provisioning a live project (an async op,
+ * or a no-op for a reserved / soft-deleted slug). The Lakebase project resource
+ * exposes NO lifecycle current_state, so PRESENCE is the provisioning signal:
+ *   - lookup undefined (project absent)               → silent provisioning failure → throw
+ *   - lookup present, state absent or READY           → provisioned                 → ok
+ *   - lookup present with an EXPLICIT non-READY state → throw (defensive)
  */
 export function assertCreatedProjectReady(
   projectId: string,
@@ -105,13 +109,17 @@ export function assertCreatedProjectReady(
         `This is a silent provisioning failure — nothing was created.`,
     );
   }
-  if (verified.state !== "READY") {
+  // The project exists (get-project found it). The Lakebase project resource has
+  // no lifecycle current_state, so an absent/unknown state is the NORMAL shape and
+  // means provisioned — do NOT reject it (requiring "READY" false-failed EVERY
+  // create). Reject only an EXPLICIT non-READY state, should the API surface one.
+  if (verified.state && verified.state !== "READY") {
     throw new LakebaseProjectError(
-      `Lakebase project "${projectId}" did not reach READY (state: ${verified.state ?? "unknown"}` +
-        `${reportedState ? `, create reported: ${reportedState}` : ""}).`,
+      `Lakebase project "${projectId}" reported a non-READY state: ${verified.state}` +
+        `${reportedState ? ` (create reported: ${reportedState})` : ""}.`,
     );
   }
-  return { uid: verified.uid, name: verified.name, state: verified.state };
+  return { uid: verified.uid, name: verified.name, state: verified.state ?? "READY" };
 }
 
 /**
