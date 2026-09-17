@@ -49,11 +49,69 @@ export async function createLakebaseProject(args: LakebaseProjectArgs): Promise<
     (parsed.result as Record<string, unknown> | undefined) ??
     parsed;
   const status = (result.status as { current_state?: string } | undefined) ?? undefined;
-  return {
-    uid: (result.uid as string) ?? args.projectId,
-    name: (result.name as string) ?? `projects/${args.projectId}`,
-    state: status?.current_state ?? (result.state as string) ?? "READY",
-  };
+  const reportedState = status?.current_state ?? (result.state as string | undefined);
+
+  // Fail-closed verification. `create-project` can exit 0 WITHOUT a live
+  // project — an async operation that returns before completion, or a no-op
+  // response for a reserved / soft-deleted slug — so we must NOT trust the
+  // create call's own output. The prior code defaulted a missing state to
+  // "READY" and fabricated uid/name from the input args, which reported a
+  // silent provisioning failure as "Project created successfully" (warnings:
+  // []). Instead, re-read the project via get-project and require it to EXIST
+  // and report current_state === "READY"; poll briefly to tolerate get-project
+  // eventual-consistency right after a freshly-completed provision.
+  return pollCreatedProjectReady(args, reportedState);
+}
+
+/**
+ * Poll `get-project` until the just-created project reports READY, then assert
+ * via {@link assertCreatedProjectReady}. An absent or non-READY project throws
+ * (fail-closed) instead of returning a fabricated success.
+ */
+async function pollCreatedProjectReady(
+  args: LakebaseProjectArgs,
+  reportedState: string | undefined,
+): Promise<LakebaseProjectInfo> {
+  const backoffMs = [0, 1500, 3000, 5000];
+  let last: LakebaseProjectMetadata | undefined;
+  for (const wait of backoffMs) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    last = await getProjectInfo(args);
+    if (last && last.state === "READY") break;
+  }
+  return assertCreatedProjectReady(args.projectId, last, reportedState);
+}
+
+/**
+ * Pure decision for {@link createLakebaseProject}'s fail-closed verification.
+ * Exported so the regression contract is unit-testable without the CLI.
+ *
+ * The post-create `get-project` lookup is the source of truth, because
+ * `create-project` can exit 0 without provisioning a live project:
+ *   - lookup undefined (project absent)  → silent provisioning failure → throw
+ *   - lookup present but state !== READY  → not usable                  → throw
+ *   - lookup present and READY            → success
+ * It NEVER defaults a missing state to "READY".
+ */
+export function assertCreatedProjectReady(
+  projectId: string,
+  verified: LakebaseProjectMetadata | undefined,
+  reportedState: string | undefined,
+): LakebaseProjectInfo {
+  if (!verified) {
+    throw new LakebaseProjectError(
+      `Lakebase project "${projectId}" was not provisioned: create-project exited ` +
+        `(reported state: ${reportedState ?? "none"}) but get-project cannot find it. ` +
+        `This is a silent provisioning failure — nothing was created.`,
+    );
+  }
+  if (verified.state !== "READY") {
+    throw new LakebaseProjectError(
+      `Lakebase project "${projectId}" did not reach READY (state: ${verified.state ?? "unknown"}` +
+        `${reportedState ? `, create reported: ${reportedState}` : ""}).`,
+    );
+  }
+  return { uid: verified.uid, name: verified.name, state: verified.state };
 }
 
 /**

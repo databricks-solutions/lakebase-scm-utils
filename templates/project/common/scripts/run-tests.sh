@@ -198,6 +198,23 @@ fi
 # cycles that own the client UI, and the deploy gate re-runs the full suite. FAIL-SAFE: an unset layer
 # RUNS the E2E (correct-but-heavier), so a missing/incorrect thread never degrades to a silent skip
 # (false GREEN); the only way to skip is the drive EXPLICITLY naming a non-E2E layer.
+# Local E2E resiliency: allocate FREE ports the way pr.yml (CI) does, so a
+# stale :8000 (e.g. a /deploy server whose `consort-deploy --stop` teardown
+# didn't run) or :5173 can't hard-fail Playwright's webServer. Idempotent -
+# allocates at most once per run - so local `./scripts/run-tests.sh` E2E is as
+# collision-proof as CI (pr.yml free-port-allocates the same way).
+ensure_local_e2e_ports() {
+  if [ -n "${E2E_BACKEND_PORT:-}" ]; then return 0; fi
+  if [ -f "$SCRIPT_DIR/port-utils.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/port-utils.sh"
+    export E2E_BACKEND_PORT="$(free_port 8000)"
+    export E2E_CLIENT_PORT="$(free_port 5173)"
+    export VITE_PROXY_TARGET="http://127.0.0.1:${E2E_BACKEND_PORT}"
+    echo "Local E2E free-port: backend :$E2E_BACKEND_PORT / client :$E2E_CLIENT_PORT"
+  fi
+}
+
 if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
    && { [ -z "${CONSORT_CYCLE_LAYER:-}" ] || [ "${CONSORT_CYCLE_LAYER:-}" = "E2E" ]; }; then
   client_e2e_spec="$(find "$REPO_ROOT/client/tests/e2e" -type f \( -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.mjs' \) 2>/dev/null | head -n 1)"
@@ -223,6 +240,7 @@ if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
     # Use the client's OWN playwright bin (guaranteed present by the check/install above), not npx,
     # so browser install + the run are deterministic under the deploy gate. install chromium first
     # (playwright test does not auto-install browsers); a failing E2E fails the run (set -e).
+    ensure_local_e2e_ports
     ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && npm run test:e2e )
   fi
 fi
@@ -250,4 +268,7 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/package.json" ] && { [ -f "$REPO_ROOT/play
       ( cd "$REPO_ROOT" && npm install --include=dev )
     fi
   fi
+  # Allocate free E2E ports before the enable-e2e-appended `npm run test:e2e`
+  # block (below) runs, so a stale :8000 / :5173 can't hard-fail its webServer.
+  ensure_local_e2e_ports
 fi

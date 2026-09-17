@@ -9395,11 +9395,31 @@ async function createLakebaseProject(args) {
   }
   const result = parsed.response ?? parsed.result ?? parsed;
   const status = result.status ?? void 0;
-  return {
-    uid: result.uid ?? args.projectId,
-    name: result.name ?? `projects/${args.projectId}`,
-    state: status?.current_state ?? result.state ?? "READY"
-  };
+  const reportedState = status?.current_state ?? result.state;
+  return pollCreatedProjectReady(args, reportedState);
+}
+async function pollCreatedProjectReady(args, reportedState) {
+  const backoffMs = [0, 1500, 3e3, 5e3];
+  let last;
+  for (const wait2 of backoffMs) {
+    if (wait2) await new Promise((r) => setTimeout(r, wait2));
+    last = await getProjectInfo(args);
+    if (last && last.state === "READY") break;
+  }
+  return assertCreatedProjectReady(args.projectId, last, reportedState);
+}
+function assertCreatedProjectReady(projectId, verified, reportedState) {
+  if (!verified) {
+    throw new LakebaseProjectError(
+      `Lakebase project "${projectId}" was not provisioned: create-project exited (reported state: ${reportedState ?? "none"}) but get-project cannot find it. This is a silent provisioning failure \u2014 nothing was created.`
+    );
+  }
+  if (verified.state !== "READY") {
+    throw new LakebaseProjectError(
+      `Lakebase project "${projectId}" did not reach READY (state: ${verified.state ?? "unknown"}${reportedState ? `, create reported: ${reportedState}` : ""}).`
+    );
+  }
+  return { uid: verified.uid, name: verified.name, state: verified.state };
 }
 async function deleteLakebaseProject(args) {
   const name = args.projectId.startsWith("projects/") ? args.projectId : `projects/${args.projectId}`;
@@ -9680,8 +9700,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.36".length > 0) {
-    cached = "0.2.36";
+  if ("0.2.37".length > 0) {
+    cached = "0.2.37";
     return cached;
   }
   cached = "unknown";
@@ -18416,6 +18436,7 @@ export {
   assertAdoptionPreflight,
   assertCleanForFork,
   assertCommitTargetNotProtected,
+  assertCreatedProjectReady,
   buildPostgresUrl,
   buildSchemaQuery,
   cacheProjectRetention,

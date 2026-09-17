@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import {
+  assertCreatedProjectReady,
   createLakebaseProject,
   deleteLakebaseProject,
   findDefaultBranchName,
@@ -51,6 +52,52 @@ describe("lakebase-project – error wrapping", () => {
     const deleteFn: typeof deleteLakebaseProject = deleteLakebaseProject;
     expect(typeof createFn).toBe("function");
     expect(typeof deleteFn).toBe("function");
+  });
+});
+
+// Fail-closed provisioning guard. `databricks postgres create-project` can
+// exit 0 without a live project (async op returning early, or a no-op for a
+// reserved/soft-deleted slug). The old createLakebaseProject defaulted a
+// missing state to "READY" and fabricated uid/name, so it reported that
+// silent failure as success. assertCreatedProjectReady is the pure decision
+// that now makes it fail closed.
+describe("assertCreatedProjectReady – fail-closed provisioning verification", () => {
+  it("returns the project info when get-project reports READY", () => {
+    const info = assertCreatedProjectReady(
+      "stockflow-x",
+      { uid: "stockflow-x", name: "projects/stockflow-x", state: "READY" },
+      "READY",
+    );
+    expect(info).toEqual({ uid: "stockflow-x", name: "projects/stockflow-x", state: "READY" });
+  });
+
+  it("throws when the project is absent (create exited 0 but nothing provisioned)", () => {
+    expect(() => assertCreatedProjectReady("stockflow-x", undefined, undefined)).toThrow(
+      LakebaseProjectError,
+    );
+    expect(() => assertCreatedProjectReady("stockflow-x", undefined, "READY")).toThrow(
+      /silent provisioning failure/i,
+    );
+  });
+
+  it("throws when the project exists but is not READY", () => {
+    expect(() =>
+      assertCreatedProjectReady(
+        "stockflow-x",
+        { uid: "stockflow-x", name: "projects/stockflow-x", state: "CREATING" },
+        "CREATING",
+      ),
+    ).toThrow(/did not reach READY/i);
+  });
+
+  it("never defaults a missing state to READY (undefined state throws)", () => {
+    expect(() =>
+      assertCreatedProjectReady(
+        "stockflow-x",
+        { uid: "stockflow-x", name: "projects/stockflow-x", state: undefined },
+        undefined,
+      ),
+    ).toThrow(/did not reach READY/i);
   });
 });
 

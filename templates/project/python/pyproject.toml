@@ -5,6 +5,14 @@ description = "FastAPI + SQLAlchemy + Lakebase database branches"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.115.0",
+    # Cap Starlette below 1.0. FastAPI declares starlette>=0.46.0 with no upper
+    # bound, and Starlette 1.x changed the routing internals so that
+    # app.include_router() registers ZERO routes: directly-decorated routes
+    # (e.g. @app.get("/health")) still serve, but every mounted feature router
+    # 404s. Constraining the transitive here means a fresh `uv sync` can never
+    # resolve an incompatible FastAPI/Starlette pair (the "works in the original
+    # dir, 404s in a fresh clone" failure).
+    "starlette>=0.46.0,<1.0",
     "uvicorn>=0.30.0",
     "sqlalchemy>=2.0.0",
     "alembic>=1.14.0",

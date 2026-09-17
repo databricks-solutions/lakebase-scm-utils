@@ -2,6 +2,14 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.37
+
+Fail-closed Lakebase provisioning; scaffold dependency + local-E2E hardening.
+
+- **fix(create-project): `createLakebaseProject` verifies the project actually provisioned, instead of fabricating success.** The old code defaulted a missing `current_state` to `"READY"` and synthesized `uid`/`name` from the input args, so a `databricks postgres create-project` that exited 0 WITHOUT a live project (an async op returning before completion, or a no-op response for a reserved / soft-deleted slug) was reported as "Project created successfully" with `warnings: []` while nothing was provisioned. It now re-reads via `get-project`, polls briefly for `READY`, and throws `LakebaseProjectError` when the project is absent or non-READY (the pure `assertCreatedProjectReady` is unit-tested in `lakebase-project.test.ts`).
+- **fix(scaffold/python): cap `starlette>=0.46.0,<1.0` in the scaffolded `pyproject.toml`.** FastAPI declares `starlette>=0.46.0` with no upper bound; Starlette 1.x changed the routing internals so `app.include_router()` registers zero routes (mounted feature routers 404, directly-decorated routes still serve). A fresh `uv sync` could resolve the incompatible pair, the "works in the original dir, 404s in a fresh clone" failure. The cap holds the transitive in FastAPI's supported range.
+- **fix(scaffold/run-tests): local client + root Playwright E2E free-port-allocate like CI (`pr.yml`).** `run-tests.sh` gained an idempotent `ensure_local_e2e_ports` (sources `port-utils.sh`; exports `E2E_BACKEND_PORT` / `E2E_CLIENT_PORT` / `VITE_PROXY_TARGET`), called in the client E2E block and the root self-heal block, so a stale `:8000` / `:5173` (e.g. a `/deploy` server whose teardown did not run) can no longer hard-fail Playwright's webServer.
+
 ## 0.2.36
 
 Unbreak the per-story accept/merge: force-checkout past disposable runtime-artifact churn.
