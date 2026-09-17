@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.39
+
+Fix the scaffolded substrate scripts' bin resolution: route through `./scripts/lk`, never a root `node_modules`.
+
+- **fix(scaffold): five scripts probed a root `node_modules/.bin/lakebase-branch` this layout never creates, then misdirected to `npm install`.** `refresh-token.sh`, `connect-main-branch.sh`, `delete-lakebase-branches.sh`, `set-production-db-secrets.sh`, and `sanitize-branch-name.sh` each carried a copy-pasted preamble resolving the substrate bin from `$WORK_TREE/node_modules/.bin/...`. But a scaffolded project has no root `package.json` / `node_modules` — the substrate is installed by `./scripts/lk` into a shared version-keyed cache and run via `node dist/...`. So the probe could never be satisfied on a fresh clone, and its "Run 'npm install'" hint pointed at a root with no manifest (ENOENT). All five now `source` a shared `resolve-scm-bin.sh` (`run_scm_bin <bin> …`) that defers to `./scripts/lk`, which owns cache resolution AND auto-installs a cold cache. Guarded by `scaffold-output-contract.test.ts`.
+
 ## 0.2.38
 
 Fix the v0.2.37 provisioning guard: verify EXISTENCE, not a nonexistent READY state.

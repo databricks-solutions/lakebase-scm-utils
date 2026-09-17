@@ -32,24 +32,10 @@ if [ -z "$PROJ_ID" ]; then
   exit 1
 fi
 
-# Resolve the lakebase-branch bin. Fast path: node_modules (npm projects). A
-# Python project never has node_modules (and a fresh CI checkout has none), so
-# fall back to the canonical kit resolver scripts/lk, which finds the kit via
-# .lakebase/kit-ref + the shared cache (or LAKEBASE_KIT_DIR). $BIN is used as a
-# command prefix, so "bash <lk> lakebase-branch" composes with "delete ...".
-BIN="${WORK_TREE:-$PWD}/node_modules/.bin/lakebase-branch"
-if [ ! -x "$BIN" ]; then
-  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
-  LK="${WORK_TREE:-$PWD}/scripts/lk"
-  if [ -f "$ALT" ]; then
-    BIN="node $ALT"
-  elif [ -f "$LK" ]; then
-    BIN="bash $LK lakebase-branch"
-  else
-    echo "delete-lakebase-branches: kit not resolvable (no node_modules and no scripts/lk)." >&2
-    exit 1
-  fi
-fi
+# Resolve the substrate CLI through ./scripts/lk (single source of truth; this
+# layout has no root node_modules). run_scm_bin runs a bin by name via lk.
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/resolve-scm-bin.sh"
 
 # Resolve targets.
 if [ $# -eq 0 ]; then
@@ -95,7 +81,7 @@ done
 
 for name in $FEATURE_BRANCHES $CI_BRANCHES; do
   echo "Deleting Lakebase branch: $name"
-  if $BIN delete --instance "$PROJ_ID" --branch "$name" 2>&1; then
+  if run_scm_bin lakebase-branch delete --instance "$PROJ_ID" --branch "$name" 2>&1; then
     echo "Deleted $name."
   else
     echo "Failed to delete $name (see above)."

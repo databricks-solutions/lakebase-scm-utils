@@ -23,21 +23,8 @@ if [ -z "$WORK_TREE" ]; then
   WORK_TREE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
 
-BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
-if [ -x "$BIN" ]; then
-  exec "$BIN" sanitize-name "$INPUT"
-fi
-ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
-if [ -f "$ALT" ]; then
-  exec node "$ALT" sanitize-name "$INPUT"
-fi
-# No node_modules (a Python project never has one; a fresh CI checkout has none
-# either). Fall back to the canonical kit resolver scripts/lk, which finds the
-# kit via .lakebase/kit-ref + the shared cache (or LAKEBASE_KIT_DIR). This is the
-# substrate's standard resolution; node_modules is just the fast path when present.
-LK="$WORK_TREE/scripts/lk"
-if [ -f "$LK" ]; then
-  exec bash "$LK" lakebase-branch sanitize-name "$INPUT"
-fi
-echo "sanitize-branch-name: kit not resolvable (no node_modules and no scripts/lk)." >&2
-exit 1
+# Resolve + run lakebase-branch through ./scripts/lk (single source of truth; this
+# project has no root node_modules , a node_modules/.bin probe never resolves here).
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/resolve-scm-bin.sh"
+run_scm_bin lakebase-branch sanitize-name "$INPUT"

@@ -18,17 +18,11 @@ if [ -z "$WORK_TREE" ]; then
 fi
 cd "$WORK_TREE"
 
-BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
-if [ ! -x "$BIN" ]; then
-  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
-  if [ ! -f "$ALT" ]; then
-    echo "connect-main-branch: lakebase-scm-utils not installed. Run 'npm install'." >&2
-    exit 1
-  fi
-  node "$ALT" sync-env --cwd "$WORK_TREE" --branch main
-else
-  "$BIN" sync-env --cwd "$WORK_TREE" --branch main
-fi
+# Resolve + run lakebase-branch through ./scripts/lk (single source of truth; lk
+# auto-installs a cold cache). This layout has no root node_modules.
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/resolve-scm-bin.sh"
+run_scm_bin lakebase-branch sync-env --cwd "$WORK_TREE" --branch main
 
 if [ -f pom.xml ]; then
   set -a

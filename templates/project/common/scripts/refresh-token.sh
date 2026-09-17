@@ -19,20 +19,13 @@ if [ -z "$WORK_TREE" ]; then
 fi
 cd "$WORK_TREE"
 
-# Resolve the kit's lakebase-branch bin. Prefer the npm-installed
-# .bin symlink; fall back to the on-disk dist file so fresh clones
-# (pre-install) and CI runners both work.
-BIN="$WORK_TREE/node_modules/.bin/lakebase-branch"
-if [ ! -x "$BIN" ]; then
-  ALT="$WORK_TREE/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/branch.cli.js"
-  if [ ! -f "$ALT" ]; then
-    echo "refresh-token: lakebase-scm-utils not installed. Run 'npm install'." >&2
-    exit 1
-  fi
-  node "$ALT" sync-env --cwd "$WORK_TREE"
-else
-  "$BIN" sync-env --cwd "$WORK_TREE"
-fi
+# Resolve + run the substrate's lakebase-branch CLI through ./scripts/lk (the
+# single source of truth: lk resolves the shared version-keyed cache and
+# auto-installs a cold one). This layout has no root node_modules, so a
+# node_modules/.bin probe can never be satisfied here.
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/resolve-scm-bin.sh"
+run_scm_bin lakebase-branch sync-env --cwd "$WORK_TREE"
 
 # Spring tail: mirror SPRING_DATASOURCE_* into application-local.properties
 # when pom.xml is present. Values are already in .env after sync-env;

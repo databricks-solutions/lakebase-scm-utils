@@ -26,19 +26,14 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-BIN="${WORK_TREE:-$PWD}/node_modules/.bin/lakebase-ci-resolve-branch"
-if [ ! -x "$BIN" ]; then
-  ALT="${WORK_TREE:-$PWD}/node_modules/@databricks-solutions/lakebase-scm-utils/dist/scripts/lakebase/ci-resolve-branch.cli.js"
-  if [ ! -f "$ALT" ]; then
-    echo "set-production-db-secrets: lakebase-scm-utils not installed. Run 'npm install'." >&2
-    exit 1
-  fi
-  BIN="node $ALT"
-fi
+# Resolve the substrate CLI through ./scripts/lk (single source of truth; no root
+# node_modules in this layout).
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/resolve-scm-bin.sh"
 
 # Resolve the production branch + endpoint + credentials.
 # eval form emits KEY='value' lines; safe single-quoted for shell eval.
-EVAL_OUT="$($BIN --git-branch main --ensure-endpoint 2>&1)" || {
+EVAL_OUT="$(run_scm_bin lakebase-ci-resolve-branch --git-branch main --ensure-endpoint 2>&1)" || {
   echo "set-production-db-secrets: failed to resolve production branch:" >&2
   echo "$EVAL_OUT" >&2
   exit 1

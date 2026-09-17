@@ -32,6 +32,40 @@ describe("scaffold output contract: alembic env.py", () => {
   });
 });
 
+describe("scaffold output contract: substrate-bin resolution via ./scripts/lk", () => {
+  // Regression net for the node_modules/.bin trap (2026-09-17): five scripts
+  // resolved the substrate via `$WORK_TREE/node_modules/.bin/lakebase-branch` —
+  // a path this layout (no root package.json) never creates — and on the miss
+  // printed "Run 'npm install'", sending users to npm at a root with no
+  // package.json (ENOENT). All substrate resolution now routes through
+  // ./scripts/lk via the shared resolve-scm-bin.sh helper.
+  const SCRIPTS = [
+    "refresh-token.sh",
+    "connect-main-branch.sh",
+    "delete-lakebase-branches.sh",
+    "set-production-db-secrets.sh",
+    "sanitize-branch-name.sh",
+  ];
+
+  it("ships resolve-scm-bin.sh, which runs a bin by name through ./scripts/lk", () => {
+    const sh = readTemplate("common/scripts/resolve-scm-bin.sh");
+    expect(sh).toMatch(/run_scm_bin\(\)/);
+    expect(sh).toMatch(/bash "\$lk" "\$bin"/);
+  });
+
+  it("every substrate script SOURCEs the helper and never probes node_modules/.bin or suggests npm install", () => {
+    for (const rel of SCRIPTS) {
+      const sh = readTemplate(`common/scripts/${rel}`);
+      expect(sh, rel).toMatch(/source "\$\(dirname "\$\{BASH_SOURCE\[0\]\}"\)\/resolve-scm-bin\.sh"/);
+      expect(sh, rel).toMatch(/run_scm_bin /);
+      // The trap: a root node_modules/.bin probe (never satisfiable here) and the
+      // wrong "npm install" remediation must both be gone.
+      expect(sh, rel).not.toMatch(/node_modules\/\.bin\/lakebase/);
+      expect(sh, rel).not.toMatch(/not installed\. Run 'npm install'/);
+    }
+  });
+});
+
 describe("scaffold output contract: run-dev.sh", () => {
   it("serves the app locally for a human reviewer, language-aware, with hot-reload", () => {
     // Every scaffolded project ships a run-dev.sh so a human can open the
