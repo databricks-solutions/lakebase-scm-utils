@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.40
+
+The appended Playwright E2E block self-allocates free ports, so consort-upgraded projects get local-E2E port resiliency too.
+
+- **fix(enable-e2e): the E2E block appended to `run-tests.sh` now allocates free ports itself.** v0.2.39 added local E2E free-port allocation to the substrate's inline `run-tests.sh`, but consort's UPGRADE path resets `run-tests.sh` to a block-less base and re-appends the E2E block via `enableE2eForProject` — which had no port allocation, so an upgraded project's E2E could still collide with a stale `:8000` / `:5173`. `runTestsE2eBlock` now sources `port-utils.sh` and exports `E2E_BACKEND_PORT` / `E2E_CLIENT_PORT` / `VITE_PROXY_TARGET` at its top, self-contained (idempotent when the base already set them; a no-op when `port-utils.sh` is absent). Guarded by `enable-e2e.test.ts`.
+
 ## 0.2.39
 
 Fix the scaffolded substrate scripts' bin resolution: route through `./scripts/lk`, never a root `node_modules`.

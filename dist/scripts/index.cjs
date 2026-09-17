@@ -88895,8 +88895,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.39".length > 0) {
-    cached = "0.2.39";
+  if ("0.2.40".length > 0) {
+    cached = "0.2.40";
     return cached;
   }
   cached = "unknown";
@@ -91746,6 +91746,22 @@ function runTestsE2eBlock() {
   return [
     "",
     RUN_TESTS_E2E_MARKER,
+    // Local E2E resiliency: allocate FREE ports the way pr.yml (CI) does, so a
+    // stale :8000 (e.g. a /deploy server whose teardown did not run) or :5173
+    // cannot hard-fail the Playwright webServer. Self-contained (does NOT rely on
+    // the base run-tests.sh defining a helper), so it works whether this block is
+    // appended onto the substrate template OR onto consort's block-less base via
+    // consort-upgrade. Idempotent (skips when ports are already set by the base's
+    // allocation); harmless when port-utils.sh is absent (Playwright then uses its
+    // config defaults).
+    'if [ -z "${E2E_BACKEND_PORT:-}" ] && [ -f "$REPO_ROOT/scripts/port-utils.sh" ]; then',
+    "  # shellcheck source=/dev/null",
+    '  source "$REPO_ROOT/scripts/port-utils.sh"',
+    '  export E2E_BACKEND_PORT="$(free_port 8000)"',
+    '  export E2E_CLIENT_PORT="$(free_port 5173)"',
+    '  export VITE_PROXY_TARGET="http://127.0.0.1:${E2E_BACKEND_PORT}"',
+    '  echo "Local E2E free-port: backend :$E2E_BACKEND_PORT / client :$E2E_CLIENT_PORT"',
+    "fi",
     'if [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; then',
     '  echo "Running Playwright E2E tests..."',
     '  if [ -f "$REPO_ROOT/package.json" ] && command -v npm >/dev/null 2>&1; then',

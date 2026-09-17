@@ -126,6 +126,12 @@ describe("addE2eToRunTestsScript", () => {
     expect(after).toMatch(/Running Playwright E2E tests/);
     expect(after).toMatch(/playwright\.config\.ts/);
     expect(after).toMatch(/npm run test:e2e/);
+    // Local E2E free-port allocation (CI-parity): the appended block self-allocates
+    // free ports so a stale :8000 / :5173 can't hard-fail Playwright's webServer, and
+    // is self-contained so it also works appended onto consort's block-less base.
+    expect(after).toMatch(/free_port 8000/);
+    expect(after).toMatch(/E2E_BACKEND_PORT=/);
+    expect(after).toMatch(/scripts\/port-utils\.sh/);
   });
 
   it("is idempotent: a second invocation does not insert again", () => {
