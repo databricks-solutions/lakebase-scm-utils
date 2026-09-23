@@ -149,7 +149,13 @@ export function buildInvocation(args: string[], opts: DatabricksCliOptions): {
   // so an in-project call pins the project workspace rather than the DEFAULT
   // profile's default host. Trailing slash stripped for a stable value.
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env: NodeJS.ProcessEnv = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env: NodeJS.ProcessEnv = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  // A stray DATABRICKS_WORKSPACE_ID (a bare numeric workspace ID, never a URL)
+  // makes the CLI's unified-host path dial https://<id> (issue #204.1). The
+  // workspace always resolves via the profile/host chain above, so scrub the
+  // stray var from the child env (the documented workaround, centralized).
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv =
     profile && !opts.noProfile && !args.includes("--profile")

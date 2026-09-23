@@ -37,6 +37,14 @@ describe("buildInvocation: profile resolved one way + threaded explicitly", () =
     expect(argv.slice(-2)).toEqual(["--profile", "fevm-serverless-stable-ecparr"]);
   });
 
+  it("scrubs a stray DATABRICKS_WORKSPACE_ID from the child env (a bare ID dials https://<id>)", () => {
+    const base = { DATABRICKS_WORKSPACE_ID: "1234567890", DATABRICKS_CONFIG_PROFILE: "fevm-serverless-stable-ecparr" };
+    const { env } = buildInvocation(["postgres", "list-projects"], { env: base });
+    expect(env.DATABRICKS_WORKSPACE_ID).toBeUndefined();
+    // The caller's own env object is never mutated (the scrub works on a copy).
+    expect(base.DATABRICKS_WORKSPACE_ID).toBe("1234567890");
+  });
+
   it("sets DATABRICKS_HOST (trailing slashes trimmed) in the child env", () => {
     const { env } = buildInvocation(["auth", "describe"], {
       host: "https://x.cloud.databricks.com//",
