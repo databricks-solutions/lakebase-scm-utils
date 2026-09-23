@@ -275,7 +275,7 @@ describe("deployWorkflows: {{LAKEBASE_SCM_UTILS_VERSION}} substitution", () => {
       )
     ) as { version: string };
     expect(prYml).toContain(`SCM_UTILS_REF:-v${kitPkg.version}`);
-    expect(prYml).toContain('lakebase-scm-utils#"${SCM_UTILS_REF}"');
+    expect(prYml).toContain('--package="${SCM_UTILS_NPX_PKG}"');
     expect(prYml).not.toMatch(/lakebase-scm-utils#v\d/);
   });
 
@@ -374,7 +374,7 @@ describe("deployWorkflows: {{LAKEBASE_SCM_UTILS_VERSION}} substitution", () => {
     // kit ref fallback and the call sites resolve #"${SCM_UTILS_REF}" (Finding 24).
     expect(mergeYml).not.toContain("{{LAKEBASE_SCM_UTILS_VERSION}}");
     expect(mergeYml).toContain(`SCM_UTILS_REF:-v${kitPkg.version}`);
-    expect(mergeYml).toContain('lakebase-scm-utils#"${SCM_UTILS_REF}"');
+    expect(mergeYml).toContain('--package="${SCM_UTILS_NPX_PKG}"');
     expect(mergeYml).not.toMatch(/lakebase-scm-utils#v\d/);
 
     // Substrate routing for migrations (replaces the language-branched

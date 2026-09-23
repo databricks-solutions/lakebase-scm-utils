@@ -33,10 +33,15 @@ describe("pr.yml: Resolve CI app endpoint", () => {
 
   it("resolves the kit ref from .lakebase/scm-utils-ref at every call site (Finding 24)", () => {
     // The kit ref follows .lakebase/scm-utils-ref (via the Resolve substrate ref step ->
-    // SCM_UTILS_REF), the SAME source scripts/lk uses, instead of a scaffold-time
-    // literal pin: github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}"
+    // SCM_UTILS_REF -> SCM_UTILS_NPX_PKG), the SAME source scripts/lk uses, instead of a
+    // scaffold-time literal pin. Call sites consume the resolved package spec; the resolve
+    // step maps version-tag refs to the registry tarball and anything else to GitHub.
+    expect(yaml).toContain('--package="${SCM_UTILS_NPX_PKG}"');
     expect(yaml).toContain(
-      'github:databricks-solutions/lakebase-scm-utils#"${SCM_UTILS_REF}"',
+      "SCM_UTILS_NPX_PKG=@databricks-solutions/lakebase-scm-utils@${SCM_UTILS_REF#v}",
+    );
+    expect(yaml).toContain(
+      "SCM_UTILS_NPX_PKG=github:databricks-solutions/lakebase-scm-utils#${SCM_UTILS_REF}",
     );
     // No stale hardcoded #v<version> pin remains.
     expect(yaml).not.toMatch(/lakebase-scm-utils#v\d/);

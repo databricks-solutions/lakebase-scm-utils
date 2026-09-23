@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # lk , run a substrate/SCM or SFTDD CLI fast, without the npx tax.
 #
-# `npx --package=github:databricks-solutions/<pkg>#<ref> <bin>` re-resolves the
-# GitHub ref on EVERY call (~3.5s even warm). This shim resolves a package ONCE
-# per ref into a shared cache and runs the bin via `node dist/...` (~0.09s).
+# `npx --package=<pkg>@<version> <bin>` re-resolves on EVERY call (~3.5s even
+# warm). This shim resolves a package ONCE per ref into a shared cache and runs
+# the bin via `node dist/...` (~0.09s). Cold-cache installs pull the published
+# tarball from the npm registry for version-tag refs (seconds; GitHub is the
+# fallback) and clone+install from GitHub for branch/SHA refs (their only source).
 #
 # Two packages back a scaffolded project, and lk routes each bin to its owner so
 # each runs from its OWN dist (no cross-package node_modules paths):
@@ -110,27 +112,20 @@ resolve_pkg() {
     node -e 'const fs=require("fs"),p=require("path"),r=process.argv[1];let b={};try{b=(require(r+"/package.json").bin)||{}}catch(e){process.stderr.write("lk: cannot read package.json at "+r+"\n");process.exit(1)}const m=Object.values(b).filter(x=>!fs.existsSync(p.join(r,x)));if(m.length){process.stderr.write("lk: "+r+" dist is INCOMPLETE , "+m.length+"/"+Object.keys(b).length+" bin(s) have no file (e.g. "+m.slice(0,3).join(", ")+").\n");process.exit(1)}' "$1"
   }
 
-  install_pkg() {
-    local committish="$1" sha="$2" tmp
-    mkdir -p "$cache_root"
-    tmp="$(mktemp -d "${cache_root}/.tmp.XXXXXX")"
-    # Tell the consumer what is happening: this is a full npm install from git and
-    # takes a couple minutes over the network the FIRST time a ref is cached (the
-    # kit + its runtime deps). Without this, a silent multi-minute install looks
-    # hung. `--omit=dev` skips the build-toolchain devDeps (tsup/vitest/typescript/
-    # esbuild) , the kit ships prebuilt dist/, so consumers never build; `--no-audit
-    # --no-fund` drop registry round-trips. npm's own progress goes to stderr (>&2)
-    # so an interactive warm/rewarm narrates instead of going dark.
-    echo "lk: Downloading the Consort toolkit (${pkg}@${committish}) , one-time for this version, ~1-2 min (kit + its dependencies). Later commands are instant." >&2
-    # SHOW WHAT IS BEING INSTALLED , not just a clock. npm's progress bar is TTY-only
-    # (silent when piped to a log for the relay), but `--loglevel=http` prints one line
-    # per package fetched (`npm http fetch GET 200 …/<pkg>/-/<pkg>-<ver>.tgz`) , exactly
-    # "what is being installed". We run npm to a temp log and FORWARD its new lines
-    # (prefixed `lk:` so the narrator relays them) every few seconds as they land; only
-    # when npm is briefly between fetches (e.g. the initial git clone) do we print an
-    # elapsed-time line. So the relay never goes silent and never looks like a timeout.
+  # npm_install_with_progress <spec>: install <spec> into $tmp in the background
+  # while narrating. `--omit=dev` skips the build-toolchain devDeps (tsup/vitest/
+  # typescript/esbuild) , the kit ships prebuilt dist/, so consumers never build;
+  # `--no-audit --no-fund` drop registry round-trips. SHOW WHAT IS BEING INSTALLED,
+  # not just a clock: npm's progress bar is TTY-only (silent when piped to a log
+  # for the relay), but `--loglevel=http` prints one line per package fetched, so
+  # we FORWARD its new lines (prefixed `lk:`) every few seconds as they land; only
+  # when npm is briefly between fetches (e.g. a git clone) do we print an elapsed
+  # line. The relay never goes silent and never looks like a timeout. Returns
+  # npm's exit status.
+  npm_install_with_progress() {
+    local spec="$1"
     local npmlog; npmlog="$(mktemp)"
-    npm install --loglevel=http --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "${gh}#${committish}" > "$npmlog" 2>&1 &
+    npm install --loglevel=http --no-save --prefer-online --omit=dev --no-audit --no-fund --prefix "$tmp" "$spec" > "$npmlog" 2>&1 &
     local npm_pid=$! start last cur
     start=$(date +%s); last=0
     while kill -0 "$npm_pid" 2>/dev/null; do
@@ -140,22 +135,60 @@ resolve_pkg() {
         tail -c "+$((last + 1))" "$npmlog" | sed 's/^/lk: /' >&2   # forward the real npm progress
         last="$cur"
       else
-        echo "lk: … still installing the Consort TOOLKIT itself (the kit — one-time per version, cached + reused across projects) ($(( $(date +%s) - start ))s elapsed; ~1-2 min typical)…" >&2
+        echo "lk: … still installing the Consort TOOLKIT itself (the kit — one-time per version, cached + reused across projects) ($(( $(date +%s) - start ))s elapsed)…" >&2
       fi
     done
-    # Flush any final lines npm wrote between the last poll and exit, then drop the log
-    # (all branches below are covered , no leaked temp on success OR failure).
+    # Flush any final lines npm wrote between the last poll and exit, then drop the
+    # log (all branches below are covered , no leaked temp on success OR failure).
     cur=$(wc -c < "$npmlog" 2>/dev/null || echo 0)
     [ "$cur" -gt "$last" ] && tail -c "+$((last + 1))" "$npmlog" | sed 's/^/lk: /' >&2
     rm -f "$npmlog"
-    if wait "$npm_pid" && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
-      rm -rf "$cache"
-      if mv "$tmp" "$cache" 2>/dev/null; then
-        [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.pkg-sha" 2>/dev/null || true
-        echo "lk: Consort toolkit ready (${pkg}@${committish}; subsequent commands are instant)." >&2
-        return 0
+    wait "$npm_pid"
+  }
+
+  # finalize_install <committish> <sha>: promote a completed $tmp install into the
+  # version-keyed cache slot.
+  finalize_install() {
+    local committish="$1" sha="$2"
+    rm -rf "$cache"
+    if mv "$tmp" "$cache" 2>/dev/null; then
+      [ -n "$sha" ] && printf '%s\n' "$sha" > "${cache}/.pkg-sha" 2>/dev/null || true
+      echo "lk: Consort toolkit ready (${pkg}@${committish}; subsequent commands are instant)." >&2
+      return 0
+    fi
+    rm -rf "$tmp"; return 1
+  }
+
+  install_pkg() {
+    local committish="$1" sha="$2" tmp
+    mkdir -p "$cache_root"
+    tmp="$(mktemp -d "${cache_root}/.tmp.XXXXXX")"
+    # Tell the consumer what is happening: without narration a cold-cache install
+    # looks hung (a GitHub install takes a couple of minutes the FIRST time a ref
+    # is cached; a registry install is seconds).
+    echo "lk: Downloading the Consort toolkit (${pkg}@${committish}) , one-time for this version. Later commands are instant." >&2
+    # Registry-first for immutable version tags (v0.2.40 -> ${pkg}@0.2.40): a
+    # registry tarball lands in seconds (no git clone, no build). GitHub stays the
+    # fallback (e.g. a tag not yet published) and is the only path for branch/SHA
+    # refs, which the registry never has.
+    local ver=""
+    if [ "$is_sha" -eq 0 ]; then
+      case "$ref" in
+        v[0-9]*) ver="${ref#v}" ;;
+        [0-9]*)  ver="$ref" ;;
+      esac
+    fi
+    if [ -n "$ver" ]; then
+      if npm_install_with_progress "${pkg}@${ver}" && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
+        finalize_install "$committish" "$sha"
+        return $?
       fi
-      rm -rf "$tmp"; return 1
+      echo "lk: registry install of ${pkg}@${ver} did not complete; falling back to GitHub (${gh}#${committish})." >&2
+      rm -rf "$tmp"; tmp="$(mktemp -d "${cache_root}/.tmp.XXXXXX")"
+    fi
+    if npm_install_with_progress "${gh}#${committish}" && [ -d "${tmp}/node_modules/${pkg}/dist" ]; then
+      finalize_install "$committish" "$sha"
+      return $?
     fi
     rm -rf "$tmp"; return 1
   }

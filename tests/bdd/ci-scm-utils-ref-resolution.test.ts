@@ -58,16 +58,21 @@ describe.each(["pr.yml", "merge.yml"] as const)(
       expect(yaml).toContain(`v${substrateVersion()}`);
     });
 
-    it("uses #\"${SCM_UTILS_REF}\" at every call site (no hardcoded #v<ver> pin)", async () => {
+    it("resolves every npx call site via SCM_UTILS_NPX_PKG (no hardcoded #v<ver> pin)", async () => {
       const yaml = await scaffoldWorkflow(name);
+      // Every npx invocation consumes the resolved package spec.
       const callSites = [
-        ...yaml.matchAll(/github:databricks-solutions\/lakebase-scm-utils#(\S+)/g),
+        ...yaml.matchAll(/--package="\$\{SCM_UTILS_NPX_PKG\}"/g),
       ];
       expect(callSites.length).toBeGreaterThan(0);
-      for (const m of callSites) {
-        // The ref must be the resolved variable, never a baked literal version.
-        expect(m[1]).toMatch(/^"?\$\{?SCM_UTILS_REF\}?"?$/);
-      }
+      // The resolve step maps the ref: registry spec for version tags (v stripped),
+      // the GitHub source form for branch/SHA refs (their only source).
+      expect(yaml).toContain(
+        "SCM_UTILS_NPX_PKG=@databricks-solutions/lakebase-scm-utils@${SCM_UTILS_REF#v}",
+      );
+      expect(yaml).toContain(
+        "SCM_UTILS_NPX_PKG=github:databricks-solutions/lakebase-scm-utils#${SCM_UTILS_REF}",
+      );
       // No leftover literal-version pin anywhere in the invocation lines.
       expect(yaml).not.toMatch(/lakebase-scm-utils#v\d/);
       // And no lingering reference to the kit package in CI (all bins are substrate).
