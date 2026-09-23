@@ -13,6 +13,52 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { execFileSync } from "node:child_process";
+
+/** True iff `rel` (repo-relative) is git-tracked in projectDir. Best-effort: no
+ *  git / not a repo -> false. Shared home (scm-doctor's Finding-28 check reads
+ *  the same predicate). */
+export function isGitTracked(projectDir: string, rel: string): boolean {
+  try {
+    execFileSync("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Ensure the runtime SCM claim state is NOT git-tracked (issue #203 / Finding 28):
+ *  a tracked .lakebase/workflow-state.json gets a branch-COMMITTED stale claim
+ *  restored over the live one by every branch checkout / `git reset --hard
+ *  origin/<tier>`, which then blocks the next feature's claim
+ *  ("already-claimed-other") until a manual abandon+reclaim. Untrack it
+ *  (index-only; the working file stays) and cover it in .gitignore, so the live
+ *  claim survives checkouts. The committed .lakebase/kit-ref + scm-utils-ref stay
+ *  tracked deliberately (CI resolves them). Idempotent + best-effort (non-git
+ *  dirs / unwritable .gitignore skip silently – the state write itself still lands). */
+function ensureWorkflowStateUntracked(projectDir: string): void {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      execFileSync("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+    /* best-effort */
+  }
+  try {
+    const gitignore = path.join(projectDir, ".gitignore");
+    const existing = fs.existsSync(gitignore) ? fs.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs.appendFileSync(
+        gitignore,
+        `${sep}# Runtime SCM claim state (per working tree): a branch checkout must never restore\n# a stale committed claim over the live one (issue #203 / Finding 28).\n${rel}\n`,
+      );
+    }
+  } catch {
+    /* best-effort */
+  }
+}
 
 /** All SCM states, in canonical progression order. */
 export const SCM_STATES = [
@@ -133,6 +179,9 @@ export function writeWorkflowState(
       .join("\n");
     throw new Error(`Refusing to write invalid SCM state:\n${summary}`);
   }
+  // Self-heal on every write (issue #203): the live claim survives checkouts
+  // only while the state file is untracked.
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path.join(projectDir, ".lakebase");
   fs.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);

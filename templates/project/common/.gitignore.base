@@ -58,6 +58,14 @@ application-local.properties
 .lakebase/kit-ref.local
 .lakebase/scm-utils-ref.local
 
+# The runtime SCM CLAIM state: per working tree, rewritten by every SCM transition
+# (claim / pr-ready / ci-green / merged). If it is git-tracked, a branch checkout
+# or `git reset --hard origin/<tier>` restores a branch-COMMITTED stale claim over
+# the live one, and the next feature's claim then refuses "already-claimed-other"
+# until a manual abandon+reclaim (issue #203 / Finding 28). Never track it; the
+# committed kit-ref / scm-utils-ref pins above stay tracked deliberately.
+.lakebase/workflow-state.json
+
 # Per-agent local memory: each role subagent (memory: project) persists its own
 # learnings here mid-run. It is local + churny (re-written every run), not feature
 # code, so it must never be committed nor count as a dirty working tree , an

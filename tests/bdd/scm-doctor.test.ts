@@ -390,7 +390,9 @@ describe("runDoctor: scm-state-git-tracked (Finding 28)", () => {
 
   it("flags a git-tracked .lakebase/workflow-state.json (checkout can restore a stale claim)", async () => {
     seedState();
-    git("add", "--", ".lakebase/workflow-state.json");
+    // writeWorkflowState now gitignores the state file on write (issue #203), so a
+    // LEGACY tracked file (committed before the ignore existed) needs a force-add.
+    git("add", "-f", "--", ".lakebase/workflow-state.json");
     git("commit", "-q", "-m", "state");
     const report = await doctor.runDoctor({ projectDir: tmpDir });
     const f = report.findings.find((x) => x.id === "scm-state-git-tracked");

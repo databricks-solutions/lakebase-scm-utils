@@ -9,7 +9,6 @@
 // an error rather than performing a related-but-different remediation.
 
 import * as fs from "node:fs";
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import {
   getBranchByName,
@@ -25,6 +24,7 @@ import { recoverOrphans } from "./scm-recover-orphans.js";
 import { abandonFeatureBranch } from "./scm-abandon-feature.js";
 import {
   readWorkflowState,
+  isGitTracked,
   type ScmWorkflowState,
   type TierTopology,
 } from "./scm-workflow-state.js";
@@ -104,17 +104,6 @@ function readEnv(projectDir: string): Map<string, string> {
 
 function leafOf(b: LakebaseBranchInfo): string {
   return b.name.split("/").pop() ?? b.name;
-}
-
-/** True iff `rel` (repo-relative) is git-tracked in projectDir. Best-effort: no
- *  git / not a repo -> false. */
-function isGitTracked(projectDir: string, rel: string): boolean {
-  try {
-    execFileSync("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function worstOf(a: DoctorSeverity, b: DoctorSeverity): DoctorSeverity {
