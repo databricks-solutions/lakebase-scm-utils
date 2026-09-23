@@ -225,12 +225,27 @@ function runTestsE2eBlock(): string {
     '  export VITE_PROXY_TARGET="http://127.0.0.1:${E2E_BACKEND_PORT}"',
     '  echo "Local E2E free-port: backend :$E2E_BACKEND_PORT / client :$E2E_CLIENT_PORT"',
     'fi',
+    // Stale-server hygiene (issue #197): CI=1 on the Playwright invocations below
+    // forces EVERY config vintage's reuseExistingServer guard OFF (old `!CI` and
+    // new `!!BASE_URL` alike), so the verify never reuses a stale server bound to
+    // an unmigrated branch (the false-500 misdiagnosis). A lingering uvicorn/vite
+    // on the conventional default ports still serves STALE schema to anything
+    // that reaches it, so clear it (TERM, not KILL) before the boot - never when
+    // the caller pre-set the ports (the deploy gate owns that server; BASE_URL).
+    'if [ -z "${BASE_URL:-}" ] && command -v lsof >/dev/null 2>&1; then',
+    '  for p in "${E2E_BACKEND_PORT:-8000}" "${E2E_CLIENT_PORT:-5173}"; do',
+    '    if lsof -iTCP:"$p" -sTCP:LISTEN -n -P >/dev/null 2>&1; then',
+    '      echo "Local E2E: clearing a stale listener on :$p before the webServer boot"',
+    '      lsof -ti tcp:"$p" 2>/dev/null | xargs kill 2>/dev/null || true',
+    '    fi',
+    '  done',
+    'fi',
     'if [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; then',
     '  echo "Running Playwright E2E tests..."',
     '  if [ -f "$REPO_ROOT/package.json" ] && command -v npm >/dev/null 2>&1; then',
-    '    (cd "$REPO_ROOT" && npm run test:e2e)',
+    '    (cd "$REPO_ROOT" && CI=1 npm run test:e2e)',
     "  else",
-    '    (cd "$REPO_ROOT" && npx --yes playwright test)',
+    '    (cd "$REPO_ROOT" && CI=1 npx --yes playwright test)',
     "  fi",
     // Python E2E: pytest-playwright + the shipped tests/e2e/conftest.py
     // (live_server). Gated on the conftest + pyproject so it only fires for a
@@ -269,7 +284,8 @@ function runTestsE2eBlock(): string {
     'if [ -f "$REPO_ROOT/client/playwright.config.ts" ] || [ -f "$REPO_ROOT/client/playwright.config.js" ] || [ -f "$REPO_ROOT/client/playwright.config.mjs" ]; then',
     '  echo "Running client Playwright E2E tests..."',
     '  (cd "$REPO_ROOT/client" && npx --yes playwright install chromium)',
-    '  (cd "$REPO_ROOT/client" && npx --yes playwright test --pass-with-no-tests)',
+    // CI=1: no server reuse on any config vintage (see the stale-server note above).
+    '  (cd "$REPO_ROOT/client" && CI=1 npx --yes playwright test --pass-with-no-tests)',
     "fi",
     "",
   ].join("\n");

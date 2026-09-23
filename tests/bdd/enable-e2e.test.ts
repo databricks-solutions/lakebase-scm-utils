@@ -132,6 +132,16 @@ describe("addE2eToRunTestsScript", () => {
     expect(after).toMatch(/free_port 8000/);
     expect(after).toMatch(/E2E_BACKEND_PORT=/);
     expect(after).toMatch(/scripts\/port-utils\.sh/);
+    // Issue #197: the verify must never REUSE a stale server bound to an unmigrated
+    // branch. CI=1 forces every playwright.config vintage's reuseExistingServer
+    // guard off (old `!CI` and new `!!BASE_URL` alike), on ALL JS invocations.
+    expect(after).toMatch(/CI=1 npm run test:e2e/);
+    expect(after).toMatch(/CI=1 npx --yes playwright test --pass-with-no-tests/);
+    // And a lingering uvicorn/vite on the conventional default ports is cleared
+    // (TERM, never when the deploy gate pre-serves via BASE_URL).
+    expect(after).toMatch(/clearing a stale listener on/);
+    expect(after).toMatch(/lsof -ti tcp:/);
+    expect(after).toMatch(/BASE_URL/);
   });
 
   it("is idempotent: a second invocation does not insert again", () => {
@@ -171,7 +181,7 @@ describe("addE2eToRunTestsScript", () => {
     const after = fs.readFileSync(path.join(projectDir, "scripts", "run-tests.sh"), "utf8");
     expect(after).toMatch(/Running client Playwright E2E tests/);
     expect(after).toMatch(/REPO_ROOT\/client\/playwright\.config\.ts/);
-    expect(after).toMatch(/cd "\$REPO_ROOT\/client" && npx --yes playwright test --pass-with-no-tests/);
+    expect(after).toMatch(/cd "\$REPO_ROOT\/client" && CI=1 npx --yes playwright test --pass-with-no-tests/);
     // Browser install runs from the client workspace, mirroring CI's client step.
     expect(after).toMatch(/cd "\$REPO_ROOT\/client" && npx --yes playwright install chromium/);
   });
@@ -451,5 +461,25 @@ describe("base run-tests.sh: the full run does not collect tests/e2e", () => {
     expect(script).toMatch(/uv run --extra dev pytest --ignore=tests\/e2e/);
     // An explicit path arg is still honored verbatim (the per-cycle layer runner).
     expect(script).toMatch(/uv run --extra dev pytest "\$@"/);
+  });
+});
+
+describe("base run-tests.sh: the client E2E verify never reuses a stale server (issue #197)", () => {
+  const script = fs.readFileSync(KIT_RUN_TESTS_SH, "utf8");
+
+  it("runs the client Playwright suite under CI=1 so every config vintage's reuse guard is off", () => {
+    // A reused webServer keeps its boot-time VITE_PROXY_TARGET and can serve a
+    // STALE, unmigrated DB (E2E 500s misdiagnosed as app regressions). CI=1 forces
+    // reuseExistingServer off on old (`!CI`) and new (`!!BASE_URL`) configs alike.
+    expect(script).toMatch(/CI=1 npm run test:e2e/);
+  });
+
+  it("clears stale conventional-port listeners before the webServer boot (never when BASE_URL is set)", () => {
+    // A lingering uvicorn/vite on :8000/:5173 (a prior E2E run, a deploy whose
+    // teardown missed) still serves stale schema; clear it with TERM. The deploy
+    // gate OWNS its pre-served server, so the kill is gated on BASE_URL being unset.
+    expect(script).toMatch(/clearing a stale listener on/);
+    expect(script).toMatch(/lsof -ti tcp:/);
+    expect(script).toMatch(/if \[ -z "\$\{BASE_URL:-\}" \]/);
   });
 });

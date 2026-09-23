@@ -213,6 +213,20 @@ ensure_local_e2e_ports() {
     export VITE_PROXY_TARGET="http://127.0.0.1:${E2E_BACKEND_PORT}"
     echo "Local E2E free-port: backend :$E2E_BACKEND_PORT / client :$E2E_CLIENT_PORT"
   fi
+  # Stale-server hygiene (issue #197): CI=1 (on the Playwright invocation below)
+  # means the webServer never REUSES a stale app, and free_port moved us off any
+  # collision - but a lingering uvicorn/vite on the conventional default ports (a
+  # prior E2E run, or a deploy whose teardown missed) still serves STALE schema to
+  # anything that reaches it. Clear it (TERM, not KILL) before the boot. Never
+  # when the caller pre-set the ports (the deploy gate owns that server).
+  if [ -z "${BASE_URL:-}" ] && command -v lsof >/dev/null 2>&1; then
+    for p in "${E2E_BACKEND_PORT:-8000}" "${E2E_CLIENT_PORT:-5173}"; do
+      if lsof -iTCP:"$p" -sTCP:LISTEN -n -P >/dev/null 2>&1; then
+        echo "Local E2E: clearing a stale listener on :$p before the webServer boot"
+        lsof -ti tcp:"$p" 2>/dev/null | xargs kill 2>/dev/null || true
+      fi
+    done
+  fi
 }
 
 if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
@@ -240,8 +254,11 @@ if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
     # Use the client's OWN playwright bin (guaranteed present by the check/install above), not npx,
     # so browser install + the run are deterministic under the deploy gate. install chromium first
     # (playwright test does not auto-install browsers); a failing E2E fails the run (set -e).
+    # CI=1: force EVERY playwright.config vintage's reuseExistingServer guard OFF
+    # (old `!CI` and new `!!BASE_URL` alike) so the verify never reuses a stale
+    # server bound to an unmigrated branch (issue #197's false-500 misdiagnosis).
     ensure_local_e2e_ports
-    ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && npm run test:e2e )
+    ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && CI=1 npm run test:e2e )
   fi
 fi
 
