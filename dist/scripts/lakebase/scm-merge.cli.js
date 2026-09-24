@@ -9033,6 +9033,20 @@ function orderForOutput(state) {
 }
 
 // scripts/lakebase/scm-merge.ts
+async function reconcileTierToOrigin(args) {
+  const { cwd, tier } = args;
+  try {
+    const head = await getCurrentBranch({ cwd });
+    if (head === tier) {
+      await exec2(`git pull --ff-only`, { cwd, timeout: 3e4 });
+    } else {
+      await exec2(`git fetch origin ${shellEscape(`${tier}:${tier}`)}`, { cwd, timeout: 3e4 });
+    }
+    return null;
+  } catch (err) {
+    return `local reconcile of ${tier} to origin/${tier} failed: ${err instanceof Error ? err.message : String(err)}. Reconcile it by hand (git checkout ${tier} && git pull --ff-only).`;
+  }
+}
 var ScmMergeError = class extends Error {
   constructor(message, code) {
     super(message);
@@ -9158,6 +9172,8 @@ async function mergeFeature(args) {
       }
     } else {
       headAfter = head || current.branch;
+      const reconcileWarning = await reconcileTierToOrigin({ cwd: args.projectDir, tier: switchTo });
+      if (reconcileWarning) warnings.push(reconcileWarning);
     }
     if (headAfter !== current.branch) {
       try {
@@ -9342,8 +9358,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.42".length > 0) {
-    cached = "0.2.42";
+  if ("0.2.43".length > 0) {
+    cached = "0.2.43";
     return cached;
   }
   cached = "unknown";

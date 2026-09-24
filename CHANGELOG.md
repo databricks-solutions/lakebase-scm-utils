@@ -2,6 +2,12 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.43
+
+- **CI substrate resolve falls back to GitHub when the registry can't serve the tarball yet.** The registry-first resolve had no fallback for version-tag refs, so a freshly-published substrate version blocked by the proxy's same-day security screen (~24h) hard-failed CI on `npx` ETARGET. The resolve step now probes the tarball once (`npm view dist.tarball` + a `curl` HEAD) and falls back to the `github:` source form when the registry can't serve it, so a same-day publish never stalls CI.
+- **Merge reconciles the local tier ref to origin after a remote merge, regardless of HEAD.** The post-merge fast-forward only ran when HEAD was the feature branch, so a promote interrupted after the remote merge (e.g. a downstream migrate failure) could leave the local tier behind — the next sprint then planned on stale code and the next push rejected non-fast-forward. A new `reconcileTierToOrigin` fast-forwards the local tier without a checkout; best-effort, never destructive.
+- **Scaffold conftest migration-restore warns instead of swallowing silently.** The teardown catch is narrowed to `(CommandError, OperationalError)` and prints a warning, so a genuine restore failure surfaces rather than passing silently.
+
 ## 0.2.40
 
 The appended Playwright E2E block self-allocates free ports, so consort-upgraded projects get local-E2E port resiliency too.
