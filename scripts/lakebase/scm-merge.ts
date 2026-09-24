@@ -21,6 +21,35 @@ import { pollUntil } from "../util/poll-until.js";
 import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
 import { resolveGitBase } from "./scm-git-base.js";
+
+/**
+ * Fast-forward the local tier ref to origin/<tier> after a remote merge, WITHOUT
+ * needing a checkout. A promote interrupted after the remote merge (e.g. a
+ * downstream migrate failure) otherwise leaves the local tier BEHIND, so the
+ * next sprint plans on stale code and the next push rejects non-fast-forward.
+ * Mechanism by head position: when HEAD IS the tier, `git pull --ff-only` syncs
+ * ref + working tree; otherwise `git fetch origin <tier>:<tier>` fast-forwards
+ * the local ref in place (git refuses fetch-into-current-branch, hence the
+ * split). Returns null on success; a warning string when the sync fails (e.g.
+ * not a fast-forward because the local tier has its own commits), never throws.
+ */
+export async function reconcileTierToOrigin(args: { cwd: string; tier: string }): Promise<string | null> {
+  const { cwd, tier } = args;
+  try {
+    const head = await getCurrentBranch({ cwd });
+    if (head === tier) {
+      await exec(`git pull --ff-only`, { cwd, timeout: 30_000 });
+    } else {
+      await exec(`git fetch origin ${shellEscape(`${tier}:${tier}`)}`, { cwd, timeout: 30_000 });
+    }
+    return null;
+  } catch (err) {
+    return (
+      `local reconcile of ${tier} to origin/${tier} failed: ${err instanceof Error ? err.message : String(err)}. ` +
+      `Reconcile it by hand (git checkout ${tier} && git pull --ff-only).`
+    );
+  }
+}
 import {
   readWorkflowState,
   writeWorkflowState,
@@ -328,6 +357,13 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
       }
     } else {
       headAfter = head || current.branch;
+      // HEAD isn't the feature branch, so the checkout+ff path above didn't run.
+      // Reconcile the local tier ref to origin anyway (no checkout needed): a
+      // promote interrupted after the remote merge must not leave the tier behind
+      // (the stockflow F1 case: local staging missed the merge, the next push
+      // rejected non-fast-forward). Best-effort; a failure is a warning, not a throw.
+      const reconcileWarning = await reconcileTierToOrigin({ cwd: args.projectDir, tier: switchTo });
+      if (reconcileWarning) warnings.push(reconcileWarning);
     }
     if (headAfter !== current.branch) {
       try {
