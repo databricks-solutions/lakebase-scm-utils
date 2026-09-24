@@ -41,9 +41,16 @@ def _restore_migration_head_after_each_test():
 
         from alembic import command
         from alembic.config import Config
+        from alembic.util.exc import CommandError
+        from sqlalchemy.exc import OperationalError
 
         ini = str(Path(__file__).resolve().parent.parent / "alembic.ini")
         command.upgrade(Config(ini), "head")
-    except Exception:
-        # Best-effort isolation; never fail a test on teardown restoration.
-        pass
+    except (CommandError, OperationalError) as exc:
+        # Best-effort isolation, but never SILENT and never an umbrella swallow:
+        # surface a restore failure instead of hiding it (a broken migration must
+        # be visible, not masked as routine teardown noise). CommandError wraps
+        # alembic's own failures; OperationalError covers DBAPI/connection errors.
+        # Everything else (a real schema error) propagates and fails loudly, which
+        # is the correct behavior for a genuinely broken restore.
+        print(f"WARNING: migration-head restore failed during teardown: {exc}")
