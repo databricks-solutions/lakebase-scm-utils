@@ -1485,7 +1485,6 @@ function isCliEntry(importMetaUrl) {
 // scripts/lakebase/scm-doctor.ts
 init_esm_shims();
 import * as fs13 from "fs";
-import { execFileSync as execFileSync5 } from "child_process";
 import * as path14 from "path";
 
 // scripts/lakebase/branch-utils.ts
@@ -1759,7 +1758,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -8680,6 +8681,39 @@ init_esm_shims();
 init_esm_shims();
 import * as fs3 from "fs";
 import * as path3 from "path";
+import { execFileSync as execFileSync4 } from "child_process";
+function isGitTracked(projectDir, rel) {
+  try {
+    execFileSync4("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      execFileSync4("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path3.join(projectDir, ".gitignore");
+    const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep3 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs3.appendFileSync(
+        gitignore,
+        `${sep3}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -8726,6 +8760,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path3.join(projectDir, ".lakebase");
   fs3.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
@@ -9019,7 +9054,7 @@ init_esm_shims();
 init_esm_shims();
 import * as fs5 from "fs";
 import * as path5 from "path";
-import { execFileSync as execFileSync4 } from "child_process";
+import { execFileSync as execFileSync5 } from "child_process";
 
 // scripts/lakebase/branch-create.ts
 init_esm_shims();
@@ -9340,8 +9375,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.41".length > 0) {
-    cached = "0.2.41";
+  if ("0.2.42".length > 0) {
+    cached = "0.2.42";
     return cached;
   }
   cached = "unknown";
@@ -9530,7 +9565,7 @@ async function isDirty(args) {
 
 // scripts/lakebase/paired-branch.ts
 function gitCurrentBranch(cwd) {
-  return execFileSync4("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+  return execFileSync5("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -9539,7 +9574,7 @@ function gitCurrentBranch(cwd) {
 }
 function gitHasLocalBranch(cwd, branch) {
   try {
-    execFileSync4("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
+    execFileSync5("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
       cwd,
       stdio: "ignore",
       timeout: KIT_TIMEOUTS.gitDefault
@@ -9551,7 +9586,7 @@ function gitHasLocalBranch(cwd, branch) {
 }
 function gitCheckoutNewBranch(cwd, branch, startPoint) {
   const argv = startPoint ? ["checkout", "-b", branch, startPoint] : ["checkout", "-b", branch];
-  execFileSync4("git", argv, {
+  execFileSync5("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout
@@ -9559,7 +9594,7 @@ function gitCheckoutNewBranch(cwd, branch, startPoint) {
 }
 function gitFetchBranch(cwd, remote, branch) {
   try {
-    execFileSync4("git", ["fetch", remote, branch], {
+    execFileSync5("git", ["fetch", remote, branch], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitNetwork
@@ -9569,7 +9604,7 @@ function gitFetchBranch(cwd, remote, branch) {
 }
 function gitRefExists(cwd, ref) {
   try {
-    execFileSync4("git", ["rev-parse", "--verify", "--quiet", ref], {
+    execFileSync5("git", ["rev-parse", "--verify", "--quiet", ref], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitDefault
@@ -9581,7 +9616,7 @@ function gitRefExists(cwd, ref) {
 }
 function gitIsAncestor(cwd, ancestor, descendant) {
   try {
-    execFileSync4("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+    execFileSync5("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitDefault
@@ -9614,14 +9649,14 @@ async function assertCleanForFork(cwd, startPoint) {
 }
 function gitCheckoutExistingBranch(cwd, branch, force = false) {
   const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
-  execFileSync4("git", argv, {
+  execFileSync5("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout
   });
 }
 function gitDeleteLocalBranch(cwd, branch, force = true) {
-  execFileSync4("git", ["branch", force ? "-D" : "-d", branch], {
+  execFileSync5("git", ["branch", force ? "-D" : "-d", branch], {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitDefault
@@ -9629,7 +9664,7 @@ function gitDeleteLocalBranch(cwd, branch, force = true) {
 }
 function gitHasRemoteBranch(cwd, remote, branch) {
   try {
-    const out = execFileSync4(
+    const out = execFileSync5(
       "git",
       ["ls-remote", "--exit-code", "--heads", remote, branch],
       { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: KIT_TIMEOUTS.gitNetwork }
@@ -9640,7 +9675,7 @@ function gitHasRemoteBranch(cwd, remote, branch) {
   }
 }
 function gitDeleteRemoteBranch(cwd, remote, branch) {
-  execFileSync4("git", ["push", remote, "--delete", branch], {
+  execFileSync5("git", ["push", remote, "--delete", branch], {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitPush
@@ -11206,14 +11241,6 @@ function readEnv(projectDir) {
 }
 function leafOf2(b) {
   return b.name.split("/").pop() ?? b.name;
-}
-function isGitTracked(projectDir, rel) {
-  try {
-    execFileSync5("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 function worstOf(a, b) {
   const order = ["ok", "warn", "fail"];

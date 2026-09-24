@@ -120,6 +120,7 @@ var CONVENTION_TIER_DEFAULTS = {
 // scripts/lakebase/scm-workflow-state.ts
 import * as fs5 from "fs";
 import * as path4 from "path";
+import { execFileSync as execFileSync4 } from "child_process";
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",

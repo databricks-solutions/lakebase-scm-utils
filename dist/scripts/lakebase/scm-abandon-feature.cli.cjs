@@ -77755,7 +77755,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -78140,6 +78142,39 @@ async function deletePairedBranch(args) {
 init_cjs_shims();
 var fs6 = __toESM(require("fs"), 1);
 var path4 = __toESM(require("path"), 1);
+var import_node_child_process4 = require("child_process");
+function isGitTracked(projectDir, rel) {
+  try {
+    (0, import_node_child_process4.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      (0, import_node_child_process4.execFileSync)("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path4.join(projectDir, ".gitignore");
+    const existing = fs6.existsSync(gitignore) ? fs6.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs6.appendFileSync(
+        gitignore,
+        `${sep}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -78186,6 +78221,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path4.join(projectDir, ".lakebase");
   fs6.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);

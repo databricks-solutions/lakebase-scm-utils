@@ -77726,6 +77726,7 @@ var CONVENTION_TIER_DEFAULTS = {
 init_cjs_shims();
 var fs6 = __toESM(require("fs"), 1);
 var path4 = __toESM(require("path"), 1);
+var import_node_child_process4 = require("child_process");
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",

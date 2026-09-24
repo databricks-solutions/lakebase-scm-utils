@@ -27,6 +27,7 @@ function isCliEntry(importMetaUrl) {
 // scripts/lakebase/scm-workflow-state.ts
 import * as fs from "fs";
 import * as path from "path";
+import { execFileSync } from "child_process";
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -297,16 +298,16 @@ var KIT_REGISTRIES = {
 // scripts/lakebase/paired-branch.ts
 import * as fs5 from "fs";
 import * as path4 from "path";
-import { execFileSync as execFileSync3 } from "child_process";
+import { execFileSync as execFileSync4 } from "child_process";
 
 // scripts/lakebase/databricks-cli.ts
-import { execFile, execFileSync as execFileSync2 } from "child_process";
+import { execFile, execFileSync as execFileSync3 } from "child_process";
 import { promisify } from "util";
 import { join as join3 } from "path";
 
 // scripts/lakebase/databricks-profile.ts
 import * as fs2 from "fs";
-import { execFileSync } from "child_process";
+import { execFileSync as execFileSync2 } from "child_process";
 
 // scripts/util/exec.ts
 import * as cp from "child_process";

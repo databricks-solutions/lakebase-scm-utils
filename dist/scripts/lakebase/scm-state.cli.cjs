@@ -77545,6 +77545,7 @@ function isCliEntry(importMetaUrl2) {
 init_cjs_shims();
 var fs = __toESM(require("fs"), 1);
 var path = __toESM(require("path"), 1);
+var import_node_child_process = require("child_process");
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -77821,21 +77822,21 @@ var KIT_REGISTRIES = {
 init_cjs_shims();
 var fs6 = __toESM(require("fs"), 1);
 var path4 = __toESM(require("path"), 1);
-var import_node_child_process3 = require("child_process");
+var import_node_child_process4 = require("child_process");
 
 // scripts/lakebase/branch-create.ts
 init_cjs_shims();
 
 // scripts/lakebase/databricks-cli.ts
 init_cjs_shims();
-var import_node_child_process2 = require("child_process");
+var import_node_child_process3 = require("child_process");
 var import_node_util = require("util");
 var import_node_path = require("path");
 
 // scripts/lakebase/databricks-profile.ts
 init_cjs_shims();
 var fs2 = __toESM(require("fs"), 1);
-var import_node_child_process = require("child_process");
+var import_node_child_process2 = require("child_process");
 
 // scripts/util/exec.ts
 init_cjs_shims();
@@ -77847,7 +77848,7 @@ var fs3 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
 
 // scripts/lakebase/databricks-cli.ts
-var execFileP = (0, import_node_util.promisify)(import_node_child_process2.execFile);
+var execFileP = (0, import_node_util.promisify)(import_node_child_process3.execFile);
 
 // scripts/util/poll-until.ts
 init_cjs_shims();

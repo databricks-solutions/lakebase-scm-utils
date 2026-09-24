@@ -8351,6 +8351,39 @@ async function pollUntil(args) {
 init_cjs_shims();
 var fs3 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
+var import_node_child_process4 = require("child_process");
+function isGitTracked(projectDir, rel) {
+  try {
+    (0, import_node_child_process4.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      (0, import_node_child_process4.execFileSync)("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path2.join(projectDir, ".gitignore");
+    const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs3.appendFileSync(
+        gitignore,
+        `${sep2}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -8397,6 +8430,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path2.join(projectDir, ".lakebase");
   fs3.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);

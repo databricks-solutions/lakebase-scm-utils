@@ -78963,7 +78963,6 @@ function isCliEntry(importMetaUrl2) {
 // scripts/lakebase/scm-doctor.ts
 init_cjs_shims();
 var fs14 = __toESM(require("fs"), 1);
-var import_node_child_process8 = require("child_process");
 var path13 = __toESM(require("path"), 1);
 
 // scripts/lakebase/branch-utils.ts
@@ -79237,7 +79236,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -86158,6 +86159,39 @@ init_cjs_shims();
 init_cjs_shims();
 var fs3 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
+var import_node_child_process4 = require("child_process");
+function isGitTracked(projectDir, rel) {
+  try {
+    (0, import_node_child_process4.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      (0, import_node_child_process4.execFileSync)("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path2.join(projectDir, ".gitignore");
+    const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep3 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs3.appendFileSync(
+        gitignore,
+        `${sep3}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -86204,6 +86238,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path2.join(projectDir, ".lakebase");
   fs3.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
@@ -86497,7 +86532,7 @@ init_cjs_shims();
 init_cjs_shims();
 var fs6 = __toESM(require("fs"), 1);
 var path4 = __toESM(require("path"), 1);
-var import_node_child_process4 = require("child_process");
+var import_node_child_process5 = require("child_process");
 
 // scripts/lakebase/branch-create.ts
 init_cjs_shims();
@@ -88187,8 +88222,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.41".length > 0) {
-    cached = "0.2.41";
+  if ("0.2.42".length > 0) {
+    cached = "0.2.42";
     return cached;
   }
   cached = "unknown";
@@ -88377,7 +88412,7 @@ async function isDirty(args) {
 
 // scripts/lakebase/paired-branch.ts
 function gitCurrentBranch(cwd) {
-  return (0, import_node_child_process4.execFileSync)("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+  return (0, import_node_child_process5.execFileSync)("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -88386,7 +88421,7 @@ function gitCurrentBranch(cwd) {
 }
 function gitHasLocalBranch(cwd, branch) {
   try {
-    (0, import_node_child_process4.execFileSync)("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
+    (0, import_node_child_process5.execFileSync)("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`], {
       cwd,
       stdio: "ignore",
       timeout: KIT_TIMEOUTS.gitDefault
@@ -88398,7 +88433,7 @@ function gitHasLocalBranch(cwd, branch) {
 }
 function gitCheckoutNewBranch(cwd, branch, startPoint) {
   const argv = startPoint ? ["checkout", "-b", branch, startPoint] : ["checkout", "-b", branch];
-  (0, import_node_child_process4.execFileSync)("git", argv, {
+  (0, import_node_child_process5.execFileSync)("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout
@@ -88406,7 +88441,7 @@ function gitCheckoutNewBranch(cwd, branch, startPoint) {
 }
 function gitFetchBranch(cwd, remote, branch) {
   try {
-    (0, import_node_child_process4.execFileSync)("git", ["fetch", remote, branch], {
+    (0, import_node_child_process5.execFileSync)("git", ["fetch", remote, branch], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitNetwork
@@ -88416,7 +88451,7 @@ function gitFetchBranch(cwd, remote, branch) {
 }
 function gitRefExists(cwd, ref) {
   try {
-    (0, import_node_child_process4.execFileSync)("git", ["rev-parse", "--verify", "--quiet", ref], {
+    (0, import_node_child_process5.execFileSync)("git", ["rev-parse", "--verify", "--quiet", ref], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitDefault
@@ -88428,7 +88463,7 @@ function gitRefExists(cwd, ref) {
 }
 function gitIsAncestor(cwd, ancestor, descendant) {
   try {
-    (0, import_node_child_process4.execFileSync)("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+    (0, import_node_child_process5.execFileSync)("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       timeout: KIT_TIMEOUTS.gitDefault
@@ -88461,14 +88496,14 @@ async function assertCleanForFork(cwd, startPoint) {
 }
 function gitCheckoutExistingBranch(cwd, branch, force = false) {
   const argv = force ? ["checkout", "-f", branch] : ["checkout", branch];
-  (0, import_node_child_process4.execFileSync)("git", argv, {
+  (0, import_node_child_process5.execFileSync)("git", argv, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitCheckout
   });
 }
 function gitDeleteLocalBranch(cwd, branch, force = true) {
-  (0, import_node_child_process4.execFileSync)("git", ["branch", force ? "-D" : "-d", branch], {
+  (0, import_node_child_process5.execFileSync)("git", ["branch", force ? "-D" : "-d", branch], {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitDefault
@@ -88476,7 +88511,7 @@ function gitDeleteLocalBranch(cwd, branch, force = true) {
 }
 function gitHasRemoteBranch(cwd, remote, branch) {
   try {
-    const out = (0, import_node_child_process4.execFileSync)(
+    const out = (0, import_node_child_process5.execFileSync)(
       "git",
       ["ls-remote", "--exit-code", "--heads", remote, branch],
       { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: KIT_TIMEOUTS.gitNetwork }
@@ -88487,7 +88522,7 @@ function gitHasRemoteBranch(cwd, remote, branch) {
   }
 }
 function gitDeleteRemoteBranch(cwd, remote, branch) {
-  (0, import_node_child_process4.execFileSync)("git", ["push", remote, "--delete", branch], {
+  (0, import_node_child_process5.execFileSync)("git", ["push", remote, "--delete", branch], {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     timeout: KIT_TIMEOUTS.gitPush
@@ -88985,7 +89020,7 @@ var path7 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 init_cjs_shims();
-var import_node_child_process5 = require("child_process");
+var import_node_child_process6 = require("child_process");
 var fs8 = __toESM(require("fs"), 1);
 var path6 = __toESM(require("path"), 1);
 function resolveAlembicBin(projectDir) {
@@ -89007,7 +89042,7 @@ function spawnAlembic(projectDir, args, dsn) {
     const env = { ...process.env };
     env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path6.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
-    const child = (0, import_node_child_process5.spawn)(bin, args, {
+    const child = (0, import_node_child_process6.spawn)(bin, args, {
       cwd: projectDir,
       env,
       stdio: ["ignore", "pipe", "pipe"]
@@ -89369,7 +89404,7 @@ var path9 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 init_cjs_shims();
-var import_node_child_process6 = require("child_process");
+var import_node_child_process7 = require("child_process");
 var path8 = __toESM(require("path"), 1);
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
@@ -89385,7 +89420,7 @@ function migrationsLocation(projectDir) {
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
   return new Promise((resolve3, reject) => {
-    const child = (0, import_node_child_process6.spawn)(
+    const child = (0, import_node_child_process7.spawn)(
       "flyway",
       ["-outputType=json", `-locations=${migrationsLocation(ctx.projectDir)}`, ...args],
       {
@@ -89622,7 +89657,7 @@ var path11 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 init_cjs_shims();
-var import_node_child_process7 = require("child_process");
+var import_node_child_process8 = require("child_process");
 var fs11 = __toESM(require("fs"), 1);
 var path10 = __toESM(require("path"), 1);
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
@@ -89644,7 +89679,7 @@ function spawnKnex(projectDir, args, dsn) {
       );
       return;
     }
-    const child = (0, import_node_child_process7.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
+    const child = (0, import_node_child_process8.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
       cwd: projectDir,
       env: dsn ? { ...process.env, DATABASE_URL: dsn } : { ...process.env },
       stdio: ["ignore", "pipe", "pipe"]
@@ -90053,14 +90088,6 @@ function readEnv(projectDir) {
 }
 function leafOf2(b) {
   return b.name.split("/").pop() ?? b.name;
-}
-function isGitTracked(projectDir, rel) {
-  try {
-    (0, import_node_child_process8.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 function worstOf(a, b) {
   const order = ["ok", "warn", "fail"];

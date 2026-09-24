@@ -296,7 +296,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -844,8 +846,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.41".length > 0) {
-    cached = "0.2.41";
+  if ("0.2.42".length > 0) {
+    cached = "0.2.42";
     return cached;
   }
   cached = "unknown";
@@ -1304,6 +1306,39 @@ async function createFeaturePairedBranch(args) {
 // scripts/lakebase/scm-workflow-state.ts
 import * as fs5 from "fs";
 import * as path4 from "path";
+import { execFileSync as execFileSync4 } from "child_process";
+function isGitTracked(projectDir, rel) {
+  try {
+    execFileSync4("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      execFileSync4("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path4.join(projectDir, ".gitignore");
+    const existing = fs5.existsSync(gitignore) ? fs5.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs5.appendFileSync(
+        gitignore,
+        `${sep2}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -1350,6 +1385,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path4.join(projectDir, ".lakebase");
   fs5.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);

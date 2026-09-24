@@ -85758,7 +85758,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -86257,6 +86259,39 @@ async function resolveGitBase(parentBranch, cwd) {
 init_cjs_shims();
 var fs3 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
+var import_node_child_process4 = require("child_process");
+function isGitTracked(projectDir, rel) {
+  try {
+    (0, import_node_child_process4.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      (0, import_node_child_process4.execFileSync)("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path2.join(projectDir, ".gitignore");
+    const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs3.appendFileSync(
+        gitignore,
+        `${sep2}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -86303,6 +86338,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path2.join(projectDir, ".lakebase");
   fs3.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
@@ -88153,8 +88189,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.41".length > 0) {
-    cached = "0.2.41";
+  if ("0.2.42".length > 0) {
+    cached = "0.2.42";
     return cached;
   }
   cached = "unknown";
@@ -88264,7 +88300,7 @@ var path5 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 init_cjs_shims();
-var import_node_child_process4 = require("child_process");
+var import_node_child_process5 = require("child_process");
 var fs6 = __toESM(require("fs"), 1);
 var path4 = __toESM(require("path"), 1);
 function resolveAlembicBin(projectDir) {
@@ -88286,7 +88322,7 @@ function spawnAlembic(projectDir, args, dsn) {
     const env = { ...process.env };
     env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path4.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
-    const child = (0, import_node_child_process4.spawn)(bin, args, {
+    const child = (0, import_node_child_process5.spawn)(bin, args, {
       cwd: projectDir,
       env,
       stdio: ["ignore", "pipe", "pipe"]
@@ -88648,7 +88684,7 @@ var path7 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 init_cjs_shims();
-var import_node_child_process5 = require("child_process");
+var import_node_child_process6 = require("child_process");
 var path6 = __toESM(require("path"), 1);
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
@@ -88664,7 +88700,7 @@ function migrationsLocation(projectDir) {
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
   return new Promise((resolve2, reject) => {
-    const child = (0, import_node_child_process5.spawn)(
+    const child = (0, import_node_child_process6.spawn)(
       "flyway",
       ["-outputType=json", `-locations=${migrationsLocation(ctx.projectDir)}`, ...args],
       {
@@ -88901,7 +88937,7 @@ var path9 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 init_cjs_shims();
-var import_node_child_process6 = require("child_process");
+var import_node_child_process7 = require("child_process");
 var fs9 = __toESM(require("fs"), 1);
 var path8 = __toESM(require("path"), 1);
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
@@ -88923,7 +88959,7 @@ function spawnKnex(projectDir, args, dsn) {
       );
       return;
     }
-    const child = (0, import_node_child_process6.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
+    const child = (0, import_node_child_process7.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
       cwd: projectDir,
       env: dsn ? { ...process.env, DATABASE_URL: dsn } : { ...process.env },
       stdio: ["ignore", "pipe", "pipe"]

@@ -79062,6 +79062,7 @@ __export(lakebase_exports, {
   installPlaywright: () => installPlaywright,
   isAllSchemas: () => isAllSchemas,
   isForeignFeatureClaim: () => isForeignFeatureClaim,
+  isGitTracked: () => isGitTracked,
   isLongRunningTierBranch: () => isLongRunningTierBranch,
   isLtsJavaVersion: () => isLtsJavaVersion,
   isPrereleaseBootVersion: () => isPrereleaseBootVersion,
@@ -79450,7 +79451,9 @@ function resolveProfile(opts) {
 function buildInvocation(args, opts) {
   const base = opts.env ?? process.env;
   const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
-  const env = trimmedHost ? { ...base, DATABRICKS_HOST: trimmedHost } : base;
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
   const profile = resolveProfile(opts);
   const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
   return { argv, env, profile };
@@ -81566,8 +81569,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.41".length > 0) {
-    cached = "0.2.41";
+  if ("0.2.42".length > 0) {
+    cached = "0.2.42";
     return cached;
   }
   cached = "unknown";
@@ -91350,12 +91353,27 @@ function runTestsE2eBlock() {
     '  export VITE_PROXY_TARGET="http://127.0.0.1:${E2E_BACKEND_PORT}"',
     '  echo "Local E2E free-port: backend :$E2E_BACKEND_PORT / client :$E2E_CLIENT_PORT"',
     "fi",
+    // Stale-server hygiene (issue #197): CI=1 on the Playwright invocations below
+    // forces EVERY config vintage's reuseExistingServer guard OFF (old `!CI` and
+    // new `!!BASE_URL` alike), so the verify never reuses a stale server bound to
+    // an unmigrated branch (the false-500 misdiagnosis). A lingering uvicorn/vite
+    // on the conventional default ports still serves STALE schema to anything
+    // that reaches it, so clear it (TERM, not KILL) before the boot - never when
+    // the caller pre-set the ports (the deploy gate owns that server; BASE_URL).
+    'if [ -z "${BASE_URL:-}" ] && command -v lsof >/dev/null 2>&1; then',
+    '  for p in "${E2E_BACKEND_PORT:-8000}" "${E2E_CLIENT_PORT:-5173}"; do',
+    '    if lsof -iTCP:"$p" -sTCP:LISTEN -n -P >/dev/null 2>&1; then',
+    '      echo "Local E2E: clearing a stale listener on :$p before the webServer boot"',
+    '      lsof -ti tcp:"$p" 2>/dev/null | xargs kill 2>/dev/null || true',
+    "    fi",
+    "  done",
+    "fi",
     'if [ -f "$REPO_ROOT/playwright.config.ts" ] || [ -f "$REPO_ROOT/playwright.config.js" ]; then',
     '  echo "Running Playwright E2E tests..."',
     '  if [ -f "$REPO_ROOT/package.json" ] && command -v npm >/dev/null 2>&1; then',
-    '    (cd "$REPO_ROOT" && npm run test:e2e)',
+    '    (cd "$REPO_ROOT" && CI=1 npm run test:e2e)',
     "  else",
-    '    (cd "$REPO_ROOT" && npx --yes playwright test)',
+    '    (cd "$REPO_ROOT" && CI=1 npx --yes playwright test)',
     "  fi",
     // Python E2E: pytest-playwright + the shipped tests/e2e/conftest.py
     // (live_server). Gated on the conftest + pyproject so it only fires for a
@@ -91394,7 +91412,8 @@ function runTestsE2eBlock() {
     'if [ -f "$REPO_ROOT/client/playwright.config.ts" ] || [ -f "$REPO_ROOT/client/playwright.config.js" ] || [ -f "$REPO_ROOT/client/playwright.config.mjs" ]; then',
     '  echo "Running client Playwright E2E tests..."',
     '  (cd "$REPO_ROOT/client" && npx --yes playwright install chromium)',
-    '  (cd "$REPO_ROOT/client" && npx --yes playwright test --pass-with-no-tests)',
+    // CI=1: no server reuse on any config vintage (see the stale-server note above).
+    '  (cd "$REPO_ROOT/client" && CI=1 npx --yes playwright test --pass-with-no-tests)',
     "fi",
     ""
   ].join("\n");
@@ -91999,6 +92018,39 @@ async function syncCiSecrets(args) {
 init_cjs_shims();
 var fs18 = __toESM(require("fs"), 1);
 var path15 = __toESM(require("path"), 1);
+var import_node_child_process9 = require("child_process");
+function isGitTracked(projectDir, rel) {
+  try {
+    (0, import_node_child_process9.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+function ensureWorkflowStateUntracked(projectDir) {
+  const rel = ".lakebase/workflow-state.json";
+  try {
+    if (isGitTracked(projectDir, rel)) {
+      (0, import_node_child_process9.execFileSync)("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
+    }
+  } catch {
+  }
+  try {
+    const gitignore = path15.join(projectDir, ".gitignore");
+    const existing = fs18.existsSync(gitignore) ? fs18.readFileSync(gitignore, "utf8") : "";
+    if (!existing.split("\n").some((l) => l.trim() === rel)) {
+      const sep4 = existing === "" || existing.endsWith("\n") ? "" : "\n";
+      fs18.appendFileSync(
+        gitignore,
+        `${sep4}# Runtime SCM claim state (per working tree): a branch checkout must never restore
+# a stale committed claim over the live one (issue #203 / Finding 28).
+${rel}
+`
+      );
+    }
+  } catch {
+  }
+}
 var SCM_STATES = [
   "scaffold-complete",
   "feature-claimed",
@@ -92051,6 +92103,7 @@ function writeWorkflowState(projectDir, state) {
     throw new Error(`Refusing to write invalid SCM state:
 ${summary}`);
   }
+  ensureWorkflowStateUntracked(projectDir);
   const dir = path15.join(projectDir, ".lakebase");
   fs18.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
@@ -93016,7 +93069,7 @@ var path20 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 init_cjs_shims();
-var import_node_child_process9 = require("child_process");
+var import_node_child_process10 = require("child_process");
 var fs22 = __toESM(require("fs"), 1);
 var path19 = __toESM(require("path"), 1);
 function resolveAlembicBin(projectDir) {
@@ -93038,7 +93091,7 @@ function spawnAlembic(projectDir, args, dsn) {
     const env = { ...process.env };
     env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path19.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
-    const child = (0, import_node_child_process9.spawn)(bin, args, {
+    const child = (0, import_node_child_process10.spawn)(bin, args, {
       cwd: projectDir,
       env,
       stdio: ["ignore", "pipe", "pipe"]
@@ -93400,7 +93453,7 @@ var path22 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 init_cjs_shims();
-var import_node_child_process10 = require("child_process");
+var import_node_child_process11 = require("child_process");
 var path21 = __toESM(require("path"), 1);
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
@@ -93416,7 +93469,7 @@ function migrationsLocation(projectDir) {
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
   return new Promise((resolve2, reject) => {
-    const child = (0, import_node_child_process10.spawn)(
+    const child = (0, import_node_child_process11.spawn)(
       "flyway",
       ["-outputType=json", `-locations=${migrationsLocation(ctx.projectDir)}`, ...args],
       {
@@ -93653,7 +93706,7 @@ var path24 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 init_cjs_shims();
-var import_node_child_process11 = require("child_process");
+var import_node_child_process12 = require("child_process");
 var fs25 = __toESM(require("fs"), 1);
 var path23 = __toESM(require("path"), 1);
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
@@ -93675,7 +93728,7 @@ function spawnKnex(projectDir, args, dsn) {
       );
       return;
     }
-    const child = (0, import_node_child_process11.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
+    const child = (0, import_node_child_process12.spawn)("npx", ["--no-install", "knex", "--knexfile", knexfile, ...args], {
       cwd: projectDir,
       env: dsn ? { ...process.env, DATABASE_URL: dsn } : { ...process.env },
       stdio: ["ignore", "pipe", "pipe"]
@@ -95307,7 +95360,6 @@ function parentForTopology(t2, defaultLeaf) {
 // scripts/lakebase/scm-doctor.ts
 init_cjs_shims();
 var fs30 = __toESM(require("fs"), 1);
-var import_node_child_process12 = require("child_process");
 var path28 = __toESM(require("path"), 1);
 var FEATURE_PREFIX = "feature/";
 var TIER_LEAFS2 = DEFAULT_PROTECTED_TIER_NAMES;
@@ -95324,14 +95376,6 @@ function readEnv(projectDir) {
 }
 function leafOf2(b) {
   return b.name.split("/").pop() ?? b.name;
-}
-function isGitTracked(projectDir, rel) {
-  try {
-    (0, import_node_child_process12.execFileSync)("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 function worstOf(a, b) {
   const order = ["ok", "warn", "fail"];
@@ -96794,6 +96838,7 @@ function isUcMissingError(msg) {
   installPlaywright,
   isAllSchemas,
   isForeignFeatureClaim,
+  isGitTracked,
   isLongRunningTierBranch,
   isLtsJavaVersion,
   isPrereleaseBootVersion,
