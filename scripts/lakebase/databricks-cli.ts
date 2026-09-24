@@ -36,6 +36,11 @@ export interface DatabricksCliOptions {
    *  subcommand. Set this for version/help probes so they work regardless of
    *  DATABRICKS_CONFIG_PROFILE. */
   noProfile?: boolean;
+  /** Data to feed on the child's STDIN (async path only). Used to keep a
+   *  credential OFF the command line: pass the secret in a `--json @/dev/stdin`
+   *  body here instead of as a `--string-value <cred>` argv element, so it never
+   *  appears in the process table / `ps`. */
+  input?: string;
 }
 
 /** A `databricks` CLI call failed. Message: `databricks <args> failed: <msg>\nstderr: <stderr>`. */
@@ -203,15 +208,50 @@ export function classifyDatabricksError(err: unknown, argv: string[], profile: s
 /** Run the `databricks` CLI (async), returning stdout. */
 export async function runDatabricks(args: string[], opts: DatabricksCliOptions = {}): Promise<string> {
   const { argv, env, profile } = buildInvocation(args, opts);
+  const timeout = opts.timeout ?? KIT_TIMEOUTS.cliDefault;
   try {
-    const { stdout } = await execFileP("databricks", argv, {
-      env,
-      timeout: opts.timeout ?? KIT_TIMEOUTS.cliDefault,
-    });
+    if (opts.input !== undefined) {
+      return await execDatabricksWithStdin(argv, opts.input, env, timeout);
+    }
+    const { stdout } = await execFileP("databricks", argv, { env, timeout });
     return stdout.toString();
   } catch (err) {
     throw classifyDatabricksError(err, argv, profile);
   }
+}
+
+/**
+ * Run `databricks` feeding `input` on STDIN, so a credential can travel in a
+ * `--json @/dev/stdin` body instead of a `--string-value <cred>` argv element
+ * that leaks into the process table. Buffers stdout/stderr and shapes
+ * the result like execFileP so classifyDatabricksError reads it uniformly.
+ *
+ * The stdin write is GUARDED: a child that exits/rejects the body before we finish
+ * writing raises EPIPE on the pipe, which is an UNHANDLED 'error' (crash) unless we
+ * listen for it. We swallow the pipe error and let the child's own exit code + stderr
+ * be the verdict (guard the write against EPIPE).
+ */
+function execDatabricksWithStdin(
+  argv: string[],
+  input: string,
+  env: NodeJS.ProcessEnv,
+  timeout: number,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = execFile("databricks", argv, { env, timeout }, (err, stdout, stderr) => {
+      if (err) {
+        (err as { stdout?: string; stderr?: string }).stdout = String(stdout ?? "");
+        (err as { stdout?: string; stderr?: string }).stderr = String(stderr ?? "");
+        reject(err);
+        return;
+      }
+      resolve(String(stdout ?? ""));
+    });
+    // Guard the pipe: without this an EPIPE (child gone before we finish) is an
+    // uncaught exception; the child's exit/stderr is the real verdict.
+    child.stdin?.on("error", () => {});
+    child.stdin?.end(input);
+  });
 }
 
 /** Run the `databricks` CLI (sync), returning stdout. */
