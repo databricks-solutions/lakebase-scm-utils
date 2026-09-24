@@ -271,8 +271,24 @@ export async function setupRunner(args: SetupRunnerArgs): Promise<RunnerInfo> {
   if (needsConfig) {
     report("Registering runner with GitHub...");
     const regToken = await createRegistrationToken(args.fullRepoName);
-    cp.execSync(
-      `./config.sh --url "https://github.com/${args.fullRepoName}" --token "${regToken}" --name "${name}" --labels self-hosted --unattended --replace`,
+    // Invoke config.sh with an argv array (execFileSync), NOT a shell-interpolated
+    // string (execSync). config.sh is GitHub's runner binary and only accepts the
+    // registration token as `--token <tok>`, so the token is unavoidably on its argv
+    // (a full off-`ps` fix would need the JIT-runner API — disproportionate for a
+    // SHORT-LIVED (~1h) reg token). But dropping the `/bin/sh -c` wrapper removes the
+    // extra shell process that also carried the token, closes the shell-trace /
+    // process-accounting exposure, and eliminates any shell-injection surface on the
+    // interpolated url/name.
+    cp.execFileSync(
+      "./config.sh",
+      [
+        "--url", `https://github.com/${args.fullRepoName}`,
+        "--token", regToken,
+        "--name", name,
+        "--labels", "self-hosted",
+        "--unattended",
+        "--replace",
+      ],
       { cwd: dir, timeout: KIT_TIMEOUTS.cliLong }
     );
   }

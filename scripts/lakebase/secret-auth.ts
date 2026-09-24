@@ -100,10 +100,17 @@ export async function ensureLakebaseSecretAuth(
     throw new Error("databricks tokens create returned no token_value");
   }
 
-  // 3. Store the PAT
-  await runDatabricks(["secrets", "put-secret", scopeName, keyName, "--string-value", pat], {
+  // 3. Store the PAT. Feed the secret in a `--json @/dev/stdin` body (via opts.input)
+  //    rather than a `--string-value <pat>` argv element, so the 90-day user PAT never
+  //    appears in the process table / `ps`. The JSON MUST use `string_value`
+  //    (not bytes_value): bare stdin would flip the CLI to a base64 `bytes_value` field,
+  //    which the app then cannot read back as its Lakebase password at runtime. `pat` is
+  //    already validated non-empty above, so the empty-stdin "silent success on no value"
+  //    trap cannot occur here.
+  await runDatabricks(["secrets", "put-secret", "--json", "@/dev/stdin"], {
     profile,
     timeout: timeoutMs,
+    input: JSON.stringify({ scope: scopeName, key: keyName, string_value: pat }),
   });
 
   // 4. ACL (best-effort)
