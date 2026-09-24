@@ -65,14 +65,20 @@ describe.each(["pr.yml", "merge.yml"] as const)(
         ...yaml.matchAll(/--package="\$\{SCM_UTILS_NPX_PKG\}"/g),
       ];
       expect(callSites.length).toBeGreaterThan(0);
-      // The resolve step maps the ref: registry spec for version tags (v stripped),
-      // the GitHub source form for branch/SHA refs (their only source).
+      // The resolve step computes the registry candidate for version tags (v
+      // stripped), PROBES the tarball (npm view + curl), and falls back to the
+      // GitHub source form when the registry can't serve it yet (a freshly-published
+      // version is blocked by the proxy's same-day screen for ~24h; branch/SHA refs
+      // only ever have GitHub).
       expect(yaml).toContain(
-        "SCM_UTILS_NPX_PKG=@databricks-solutions/lakebase-scm-utils@${SCM_UTILS_REF#v}",
+        'SPEC="@databricks-solutions/lakebase-scm-utils@${SCM_UTILS_REF#v}"',
       );
+      expect(yaml).toContain('npm view "${SPEC}" dist.tarball');
+      expect(yaml).toContain('curl -fsSI --max-time 15 "$TARBALL_URL"');
       expect(yaml).toContain(
-        "SCM_UTILS_NPX_PKG=github:databricks-solutions/lakebase-scm-utils#${SCM_UTILS_REF}",
+        'SPEC="github:databricks-solutions/lakebase-scm-utils#${SCM_UTILS_REF}"',
       );
+      expect(yaml).toContain('echo "SCM_UTILS_NPX_PKG=${SPEC}" >> "$GITHUB_ENV"');
       // No leftover literal-version pin anywhere in the invocation lines.
       expect(yaml).not.toMatch(/lakebase-scm-utils#v\d/);
       // And no lingering reference to the kit package in CI (all bins are substrate).
