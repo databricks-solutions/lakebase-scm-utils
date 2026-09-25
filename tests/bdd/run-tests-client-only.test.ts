@@ -80,6 +80,40 @@ describe("run-tests.sh SFTDD_CLIENT_ONLY (Finding 26)", () => {
     const { ok } = run(root, { SFTDD_CLIENT_ONLY: "1" });
     expect(ok).toBe(false);
   });
+
+  it("runs the strict typecheck BEFORE the tests, matching CI (a scaffolded typecheck script)", () => {
+    const root = scaffold();
+    fs.writeFileSync(
+      path.join(root, "client", "package.json"),
+      JSON.stringify({ name: "client", scripts: { typecheck: "echo TYPECHECK_RAN", test: "echo CLIENT_VITEST_RAN" } }) + "\n",
+    );
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/TYPECHECK_RAN/);
+    expect(out).toMatch(/CLIENT_VITEST_RAN/);
+    // Typecheck runs BEFORE the tests (so a type error fails fast, before the slow suite).
+    expect(out.indexOf("TYPECHECK_RAN")).toBeLessThan(out.indexOf("CLIENT_VITEST_RAN"));
+  });
+
+  it("FAILS the run on a strict type error (the CI-only gap: S3 made a field required, breaking S1)", () => {
+    const root = scaffold();
+    fs.writeFileSync(
+      path.join(root, "client", "package.json"),
+      // A failing typecheck stands in for `tsc --noEmit` finding a type error.
+      JSON.stringify({ name: "client", scripts: { typecheck: "exit 2", test: "echo CLIENT_VITEST_RAN" } }) + "\n",
+    );
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(false);
+    // It failed at typecheck, before the tests ran.
+    expect(out).not.toMatch(/CLIENT_VITEST_RAN/);
+  });
+
+  it("no-ops (back-compatible) when an older scaffold has no typecheck script (--if-present)", () => {
+    const root = scaffold(); // scaffold()'s client has test but NO typecheck script
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/CLIENT_VITEST_RAN/);
+  });
 });
 
 /** scaffold() + a client Playwright E2E surface: a playwright config, an e2e spec, a `test:e2e`

@@ -176,6 +176,16 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/client/package.json" ]; then
       ( cd "$REPO_ROOT/client" && npm install --include=dev )
     fi
   fi
+  # Strict typecheck BEFORE the tests, matching CI. CI builds the client with
+  # `tsc --noEmit && vite build` (strict), but the local test lanes run vitest +
+  # Playwright against the Vite dev server, which does NOT strict-typecheck the whole
+  # app — so a cross-story type regression (a later story making a field REQUIRED,
+  # breaking an earlier story's construction of that type) passed the local honest-GREEN
+  # + deploy feature-verify and was caught ONLY by CI, after promote. Run the SAME strict
+  # typecheck here so local GREEN matches CI. `--if-present` no-ops on an older scaffold
+  # with no `typecheck` script; a type error fails the run (set -e), exactly like a test.
+  echo "Running client strict typecheck (tsc --noEmit, matching CI's build)..."
+  ( cd "$REPO_ROOT/client" && npm run typecheck --if-present )
   echo "Running client unit tests (Vitest)..."
   ( cd "$REPO_ROOT/client" && npm test )
 fi
