@@ -86478,15 +86478,32 @@ stdout: ${stdout}` : killed || signal ? `
 }
 async function runDatabricks(args, opts = {}) {
   const { argv, env, profile } = buildInvocation(args, opts);
+  const timeout = opts.timeout ?? KIT_TIMEOUTS.cliDefault;
   try {
-    const { stdout } = await execFileP("databricks", argv, {
-      env,
-      timeout: opts.timeout ?? KIT_TIMEOUTS.cliDefault
-    });
+    if (opts.input !== void 0) {
+      return await execDatabricksWithStdin(argv, opts.input, env, timeout);
+    }
+    const { stdout } = await execFileP("databricks", argv, { env, timeout });
     return stdout.toString();
   } catch (err) {
     throw classifyDatabricksError(err, argv, profile);
   }
+}
+function execDatabricksWithStdin(argv, input, env, timeout) {
+  return new Promise((resolve2, reject) => {
+    const child = (0, import_node_child_process3.execFile)("databricks", argv, { env, timeout }, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = String(stdout ?? "");
+        err.stderr = String(stderr ?? "");
+        reject(err);
+        return;
+      }
+      resolve2(String(stdout ?? ""));
+    });
+    child.stdin?.on("error", () => {
+    });
+    child.stdin?.end(input);
+  });
 }
 function runDatabricksSync(args, opts = {}) {
   const { argv, env, profile } = buildInvocation(args, opts);
@@ -88899,8 +88916,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.43".length > 0) {
-    cached = "0.2.43";
+  if ("0.2.44".length > 0) {
+    cached = "0.2.44";
     return cached;
   }
   cached = "unknown";
@@ -92166,8 +92183,20 @@ async function setupRunner(args) {
   if (needsConfig) {
     report("Registering runner with GitHub...");
     const regToken = await createRegistrationToken(args.fullRepoName);
-    cp4.execSync(
-      `./config.sh --url "https://github.com/${args.fullRepoName}" --token "${regToken}" --name "${name}" --labels self-hosted --unattended --replace`,
+    cp4.execFileSync(
+      "./config.sh",
+      [
+        "--url",
+        `https://github.com/${args.fullRepoName}`,
+        "--token",
+        regToken,
+        "--name",
+        name,
+        "--labels",
+        "self-hosted",
+        "--unattended",
+        "--replace"
+      ],
       { cwd: dir, timeout: KIT_TIMEOUTS.cliLong }
     );
   }
@@ -96923,9 +96952,10 @@ async function ensureLakebaseSecretAuth(args) {
   if (typeof pat !== "string" || !pat) {
     throw new Error("databricks tokens create returned no token_value");
   }
-  await runDatabricks(["secrets", "put-secret", scopeName, keyName, "--string-value", pat], {
+  await runDatabricks(["secrets", "put-secret", "--json", "@/dev/stdin"], {
     profile,
-    timeout: timeoutMs
+    timeout: timeoutMs,
+    input: JSON.stringify({ scope: scopeName, key: keyName, string_value: pat })
   });
   let aclGranted = false;
   if (servicePrincipalClientId) {

@@ -2,6 +2,11 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.44
+
+- **The local client verify now runs the strict typecheck (`tsc --noEmit`), matching CI.** CI builds the client with `tsc --noEmit && vite build`, but the local build-lane honest-GREEN + deploy feature-verify ran only vitest + Playwright against the Vite dev server (loose), so a cross-story type regression — a later story making a field required, breaking an earlier story's construction of that type — passed local GREEN and was caught only by CI after promote. `run-tests.sh`'s client block now runs `npm run typecheck --if-present` before the Vitest suite (a type error fails the run, before the slow suite); `--if-present` no-ops on an older scaffold without the script. Covers both the full run and the `SFTDD_CLIENT_ONLY` build-honest-GREEN pass.
+- **Credentials are no longer passed as command-line arguments in secret-auth + runner-setup (security).** The 90-day user-identity PAT is fed to `secrets put-secret` via a `--json @/dev/stdin` body (a new `runDatabricks({ input })` stdin path, EPIPE-guarded, `string_value` preserved) instead of `--string-value <pat>`, so it never enters the process table. The self-hosted runner registration token is passed via `execFileSync` argv rather than a shell-interpolated `execSync` string, dropping the `/bin/sh -c` wrapper that also carried it and closing the shell-trace / injection surface.
+
 ## 0.2.43
 
 - **CI substrate resolve falls back to GitHub when the registry can't serve the tarball yet.** The registry-first resolve had no fallback for version-tag refs, so a freshly-published substrate version blocked by the proxy's same-day security screen (~24h) hard-failed CI on `npx` ETARGET. The resolve step now probes the tarball once (`npm view dist.tarball` + a `curl` HEAD) and falls back to the `github:` source form when the registry can't serve it, so a same-day publish never stalls CI.
