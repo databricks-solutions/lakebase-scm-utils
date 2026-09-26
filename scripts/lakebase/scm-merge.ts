@@ -20,7 +20,9 @@ import { getOwnerRepo } from "../git/remote.js";
 import { pollUntil } from "../util/poll-until.js";
 import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
+import { pushCurrentBranchForPr } from "../git/sync.js";
 import { resolveGitBase } from "./scm-git-base.js";
+import { detectWorkflowDrift, updateWorkflows } from "./workflow-drift.js";
 
 /**
  * Fast-forward the local tier ref to origin/<tier> after a remote merge, WITHOUT
@@ -149,6 +151,21 @@ export interface MergeArgs {
    * already on the parent branch after the merge).
    */
   localMigrateFallback?: () => Promise<{ ok: boolean; detail?: string }>;
+  /**
+   * Pre-merge workflow self-heal. Bumping SCM_UTILS_REF upgrades the CLI (e.g.
+   * the tier-migration guard) but leaves a scaffolded project's committed
+   * `.github/workflows/*.yml` at their older shape — so the promote's
+   * `migrate-target` can run a stale `lakebase-schema-migrate apply` against the
+   * parent TIER, which the guard refuses (CI red, cleanup skipped). This step
+   * refreshes drifted workflow files to the pinned template (so the promote uses
+   * `apply-tier`) and commits+pushes them onto the PR head BEFORE the merge, so
+   * the merge commit carries the corrected workflow and the triggered `<tier>
+   * Merge` run passes. BEST-EFFORT: it never blocks the merge — a detect/refresh/
+   * push failure is recorded as a warning and the merge proceeds (the local
+   * migrate fallback still keeps git and schema in sync). Defaults to the built-in
+   * implementation ({@link defaultRefreshPromoteWorkflows}); injected in tests.
+   */
+  refreshWorkflows?: () => Promise<{ refreshed: boolean; detail?: string }>;
 }
 
 export interface MergeResult {
@@ -219,6 +236,43 @@ function shaMigratePredicate(
     if (run.event && run.event !== "push") return false;
     return !!run.headSha && run.headSha === mergeCommitSha;
   };
+}
+
+/**
+ * Built-in {@link MergeArgs.refreshWorkflows}. Refreshes drifted scaffolded
+ * `.github/workflows/*.yml` to the pinned template and commits + pushes them onto
+ * the PR head, so the merge commit carries the corrected promote workflow (the
+ * `migrate-target` step's `lakebase-schema-migrate apply-tier`) and the triggered
+ * `<tier> Merge` run passes instead of failing on the tier guard. No-op when
+ * nothing drifted. Scoped to `.github/workflows` so it never sweeps unrelated
+ * working-tree changes. Callers invoke it BEST-EFFORT — a failure here must never
+ * block the merge (the local migrate fallback still keeps git + schema in sync).
+ */
+export async function defaultRefreshPromoteWorkflows(
+  projectDir: string,
+): Promise<{ refreshed: boolean; detail?: string }> {
+  const drift = detectWorkflowDrift({ projectDir });
+  // Only self-heal a stale EXISTING workflow (drifted). A project with no
+  // scaffolded workflows at all (all "missing") is not the stale-apply case, so
+  // the promote never scaffolds files it doesn't own.
+  const touched = drift.files.filter((f) => f.status === "drifted").map((f) => f.name);
+  if (touched.length === 0) return { refreshed: false };
+  const result = updateWorkflows({ projectDir });
+  if (!result.changed) return { refreshed: false };
+  await exec(`git add ${shellEscape(".github/workflows")}`, { cwd: projectDir, timeout: 10_000 });
+  const staged = await exec("git diff --cached --name-only -- .github/workflows", {
+    cwd: projectDir,
+    timeout: 10_000,
+  });
+  if (!staged.trim()) return { refreshed: false };
+  await exec(
+    `git commit -m ${shellEscape(
+      "chore(ci): refresh scaffolded workflows to pinned substrate (promote uses apply-tier)",
+    )} -- .github/workflows`,
+    { cwd: projectDir, timeout: 15_000 },
+  );
+  await pushCurrentBranchForPr({ cwd: projectDir });
+  return { refreshed: true, detail: `refreshed + pushed ${touched.join(", ") || "workflow(s)"} onto the PR head` };
 }
 
 export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
@@ -297,6 +351,31 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
     authVerified = true;
   }
 
+  // ─── Pre-merge workflow self-heal ───
+  // A scaffolded project's committed workflows can lag the pinned substrate ref
+  // (SCM_UTILS_REF bumped, workflow files not regenerated), so the promote's
+  // migrate-target runs a stale `lakebase-schema-migrate apply` against the parent
+  // TIER, which the guard refuses (CI red, cleanup skipped). Refresh drifted
+  // workflows onto the PR head BEFORE the merge so the merge commit carries the
+  // corrected `apply-tier` step. BEST-EFFORT: never blocks the merge.
+  // Runs regardless of waitMigrate: the promote workflow triggers on the tier
+  // push either way, so a stale merge.yml fails CI whether or not the caller waits.
+  const preflightNotes: string[] = [];
+  {
+    const refresh = args.refreshWorkflows ?? (() => defaultRefreshPromoteWorkflows(args.projectDir));
+    try {
+      const r = await refresh();
+      if (r.refreshed) {
+        preflightNotes.push(`Refreshed stale CI workflows before merge${r.detail ? ` (${r.detail})` : ""}.`);
+      }
+    } catch (err) {
+      preflightNotes.push(
+        `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's ` +
+          `migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`,
+      );
+    }
+  }
+
   let paired: Awaited<ReturnType<typeof mergePairedPullRequest>>;
   try {
     paired = await mergePairedPullRequest({
@@ -312,7 +391,7 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
     );
   }
 
-  const warnings: string[] = [...paired.warnings];
+  const warnings: string[] = [...preflightNotes, ...paired.warnings];
   let localBranchDeleted = false;
   let headAfter = current.branch;
   if (!args.skipLocalCleanup) {

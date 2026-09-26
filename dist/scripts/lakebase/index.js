@@ -2517,8 +2517,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.44".length > 0) {
-    cached = "0.2.44";
+  if ("0.2.45".length > 0) {
+    cached = "0.2.45";
     return cached;
   }
   cached = "unknown";
@@ -2746,6 +2746,14 @@ async function getCredential(args) {
 
 // scripts/git/status.ts
 init_esm_shims();
+async function hasUpstream(args) {
+  try {
+    await exec2("git rev-parse --abbrev-ref @{u}", { cwd: args.cwd });
+    return true;
+  } catch {
+    return false;
+  }
+}
 async function getAheadBehind(args) {
   const { cwd } = args;
   try {
@@ -15849,6 +15857,314 @@ function pickRunUrl(pr) {
 
 // scripts/lakebase/scm-merge.ts
 init_esm_shims();
+
+// scripts/git/sync.ts
+init_esm_shims();
+async function currentBranchName(cwd) {
+  try {
+    return await exec2("git rev-parse --abbrev-ref HEAD", { cwd });
+  } catch {
+    return "";
+  }
+}
+async function pushCurrentBranchForPr(args) {
+  const remote = args.remote ?? "origin";
+  const branch = await currentBranchName(args.cwd);
+  if (!branch) throw new Error("No current branch");
+  const upstreamSet = await hasUpstream({ cwd: args.cwd });
+  if (!upstreamSet) {
+    await exec2(`git push -u ${remote} ${shq(branch)}`, {
+      cwd: args.cwd
+    });
+  } else {
+    await exec2("git push", { cwd: args.cwd });
+  }
+}
+
+// scripts/lakebase/workflow-drift.ts
+init_esm_shims();
+import * as fs29 from "fs";
+import * as path29 from "path";
+function findKitTemplatesDir(start) {
+  let dir = start;
+  for (let i = 0; i < 6; i++) {
+    const candidate = path29.join(
+      dir,
+      "templates",
+      "project",
+      "common",
+      ".github",
+      "workflows"
+    );
+    if (fs29.existsSync(candidate)) return candidate;
+    const parent = path29.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  throw new Error(
+    `Could not locate templates/project/common/.github/workflows/ relative to ${start}. Pass explicit kitDir.`
+  );
+}
+function unifiedDiff(name, projectContent, templateContent) {
+  if (projectContent === templateContent) return "";
+  const a = projectContent.split("\n");
+  const b = templateContent.split("\n");
+  const out = [`--- project/${name}`, `+++ template/${name}`];
+  const max = Math.max(a.length, b.length);
+  for (let i = 0; i < max; i++) {
+    const av = a[i];
+    const bv = b[i];
+    if (av === bv) continue;
+    if (av !== void 0) out.push(`-${i + 1}: ${av}`);
+    if (bv !== void 0) out.push(`+${i + 1}: ${bv}`);
+  }
+  return out.join("\n");
+}
+function detectWorkflowDrift(args) {
+  const projectWorkflowsDir = path29.join(
+    args.projectDir,
+    ".github",
+    "workflows"
+  );
+  const here = path29.dirname(new URL(import.meta.url).pathname);
+  const kitWorkflowsDir = args.kitDir ? path29.join(
+    args.kitDir,
+    "templates",
+    "project",
+    "common",
+    ".github",
+    "workflows"
+  ) : findKitTemplatesDir(here);
+  const templateFiles = fs29.existsSync(kitWorkflowsDir) ? fs29.readdirSync(kitWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
+  const projectFiles = fs29.existsSync(projectWorkflowsDir) ? fs29.readdirSync(projectWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
+  const version = readKitVersion(kitWorkflowsDir);
+  const seen = /* @__PURE__ */ new Set();
+  const files = [];
+  for (const name of templateFiles) {
+    seen.add(name);
+    const projectPath2 = path29.join(projectWorkflowsDir, name);
+    const templatePath = path29.join(kitWorkflowsDir, name);
+    if (!fs29.existsSync(projectPath2)) {
+      files.push({ name, status: "missing" });
+      continue;
+    }
+    const projectContent = fs29.readFileSync(projectPath2, "utf8");
+    const templateContent = applyPlaceholders(fs29.readFileSync(templatePath, "utf8"), version);
+    if (projectContent === templateContent) {
+      files.push({ name, status: "unchanged" });
+    } else {
+      files.push({
+        name,
+        status: "drifted",
+        diff: unifiedDiff(name, projectContent, templateContent)
+      });
+    }
+  }
+  for (const name of projectFiles) {
+    if (seen.has(name)) continue;
+    files.push({ name, status: "extra" });
+  }
+  const order = {
+    drifted: 0,
+    missing: 1,
+    extra: 2,
+    unchanged: 3
+  };
+  files.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name));
+  const hasDrift = files.some((f) => f.status === "drifted" || f.status === "missing");
+  return {
+    overall: hasDrift ? "drift" : "ok",
+    files
+  };
+}
+function readKitVersion(kitWorkflowsDir) {
+  let dir = kitWorkflowsDir;
+  for (let i = 0; i < 5; i++) {
+    dir = path29.dirname(dir);
+  }
+  try {
+    const raw = fs29.readFileSync(path29.join(dir, "package.json"), "utf-8");
+    const pkg = JSON.parse(raw);
+    return typeof pkg.version === "string" ? pkg.version : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+function applyPlaceholders(content, version) {
+  return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
+}
+function applyCommandPlaceholders(content, version) {
+  return content.replace(/\$\{KIT_VERSION_AT_SCAFFOLD\}/g, version);
+}
+var COMMAND_HOOK_FILE_PATTERN = /\.(pre|post)-hook\.md$/;
+function findKitCommandsDir(start) {
+  let dir = start;
+  for (let i = 0; i < 6; i++) {
+    const candidate = path29.join(
+      dir,
+      "templates",
+      "project",
+      "common",
+      ".claude",
+      "commands"
+    );
+    if (fs29.existsSync(candidate)) return candidate;
+    const parent = path29.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  throw new Error(
+    `Could not locate templates/project/common/.claude/commands/ relative to ${start}. Pass explicit kitDir.`
+  );
+}
+function parsePinnedVersion(content) {
+  const m = content.match(/^\s*[*_>`\s]*pinned\s+to\s*:\s*[`*_]*([^\s`*_]+)[`*_]*\s*$/im);
+  return m ? m[1] : void 0;
+}
+function detectCommandDrift(args) {
+  const projectCommandsDir = path29.join(args.projectDir, ".claude", "commands");
+  const here = path29.dirname(new URL(import.meta.url).pathname);
+  const kitCommandsDir = args.kitDir ? path29.join(args.kitDir, "templates", "project", "common", ".claude", "commands") : findKitCommandsDir(here);
+  const kitVersion = readKitVersionFromCommandsDir(kitCommandsDir);
+  const templateFiles = fs29.existsSync(kitCommandsDir) ? fs29.readdirSync(kitCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
+  const projectFiles = fs29.existsSync(projectCommandsDir) ? fs29.readdirSync(projectCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
+  const seen = /* @__PURE__ */ new Set();
+  const files = [];
+  for (const name of templateFiles) {
+    seen.add(name);
+    const projectPath2 = path29.join(projectCommandsDir, name);
+    const templatePath = path29.join(kitCommandsDir, name);
+    const templateRaw = fs29.readFileSync(templatePath, "utf8");
+    if (!fs29.existsSync(projectPath2)) {
+      files.push({ name, status: "missing", kit_version: kitVersion });
+      continue;
+    }
+    const projectContent = fs29.readFileSync(projectPath2, "utf8");
+    const pinned = parsePinnedVersion(projectContent);
+    const versionForCompare = pinned ?? kitVersion;
+    const templateContent = applyCommandPlaceholders(templateRaw, versionForCompare);
+    if (projectContent === templateContent) {
+      files.push({
+        name,
+        status: "unchanged",
+        pinned_version: pinned,
+        kit_version: kitVersion
+      });
+    } else {
+      files.push({
+        name,
+        status: "drifted",
+        pinned_version: pinned,
+        kit_version: kitVersion,
+        diff: unifiedDiff(name, projectContent, templateContent)
+      });
+    }
+  }
+  for (const name of projectFiles) {
+    if (seen.has(name)) continue;
+    files.push({ name, status: "extra", kit_version: kitVersion });
+  }
+  const order = {
+    drifted: 0,
+    missing: 1,
+    extra: 2,
+    unchanged: 3
+  };
+  files.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name));
+  const hasDrift = files.some((f) => f.status === "drifted" || f.status === "missing");
+  return { overall: hasDrift ? "drift" : "ok", files };
+}
+function readKitVersionFromCommandsDir(kitCommandsDir) {
+  let dir = kitCommandsDir;
+  for (let i = 0; i < 5; i++) {
+    dir = path29.dirname(dir);
+  }
+  try {
+    const raw = fs29.readFileSync(path29.join(dir, "package.json"), "utf-8");
+    const pkg = JSON.parse(raw);
+    return typeof pkg.version === "string" ? pkg.version : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+function detectScaffoldedDrift(args) {
+  const workflows = detectWorkflowDrift(args);
+  const commands = detectCommandDrift(args);
+  return {
+    overall: workflows.overall === "drift" || commands.overall === "drift" ? "drift" : "ok",
+    workflows,
+    commands
+  };
+}
+function updateWorkflows(args) {
+  const projectWorkflowsDir = path29.join(
+    args.projectDir,
+    ".github",
+    "workflows"
+  );
+  const here = path29.dirname(new URL(import.meta.url).pathname);
+  const kitWorkflowsDir = args.kitDir ? path29.join(
+    args.kitDir,
+    "templates",
+    "project",
+    "common",
+    ".github",
+    "workflows"
+  ) : findKitTemplatesDir(here);
+  const substitute = args.substitute !== false;
+  const dryRun = args.dryRun === true;
+  const pruneExtras = args.pruneExtras === true;
+  const templateFiles = fs29.existsSync(kitWorkflowsDir) ? fs29.readdirSync(kitWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
+  const projectFiles = fs29.existsSync(projectWorkflowsDir) ? fs29.readdirSync(projectWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
+  if (!dryRun && templateFiles.length > 0 && !fs29.existsSync(projectWorkflowsDir)) {
+    fs29.mkdirSync(projectWorkflowsDir, { recursive: true });
+  }
+  const version = substitute ? readKitVersion(kitWorkflowsDir) : "";
+  const seen = /* @__PURE__ */ new Set();
+  const files = [];
+  for (const name of templateFiles) {
+    seen.add(name);
+    const projectPath2 = path29.join(projectWorkflowsDir, name);
+    const templatePath = path29.join(kitWorkflowsDir, name);
+    const templateRaw = fs29.readFileSync(templatePath, "utf-8");
+    const desired = substitute ? applyPlaceholders(templateRaw, version) : templateRaw;
+    const existed = fs29.existsSync(projectPath2);
+    const current = existed ? fs29.readFileSync(projectPath2, "utf-8") : "";
+    let outcome;
+    if (!existed) {
+      outcome = "added";
+    } else if (current === desired) {
+      outcome = "unchanged";
+    } else {
+      outcome = "updated";
+    }
+    if (!dryRun && outcome !== "unchanged") {
+      fs29.writeFileSync(projectPath2, desired);
+    }
+    files.push({ name, outcome });
+  }
+  if (pruneExtras) {
+    for (const name of projectFiles) {
+      if (seen.has(name)) continue;
+      const projectPath2 = path29.join(projectWorkflowsDir, name);
+      if (!dryRun) {
+        fs29.unlinkSync(projectPath2);
+      }
+      files.push({ name, outcome: "removed" });
+    }
+  }
+  const order = {
+    added: 0,
+    updated: 1,
+    removed: 2,
+    unchanged: 3
+  };
+  files.sort((a, b) => order[a.outcome] - order[b.outcome] || a.name.localeCompare(b.name));
+  const changed = files.some((f) => f.outcome !== "unchanged");
+  return { files, changed };
+}
+
+// scripts/lakebase/scm-merge.ts
 async function reconcileTierToOrigin(args) {
   const { cwd, tier } = args;
   try {
@@ -15885,6 +16201,27 @@ function shaMigratePredicate(mergeCommitSha) {
     if (run.event && run.event !== "push") return false;
     return !!run.headSha && run.headSha === mergeCommitSha;
   };
+}
+async function defaultRefreshPromoteWorkflows(projectDir) {
+  const drift = detectWorkflowDrift({ projectDir });
+  const touched = drift.files.filter((f) => f.status === "drifted").map((f) => f.name);
+  if (touched.length === 0) return { refreshed: false };
+  const result = updateWorkflows({ projectDir });
+  if (!result.changed) return { refreshed: false };
+  await exec2(`git add ${shellEscape2(".github/workflows")}`, { cwd: projectDir, timeout: 1e4 });
+  const staged = await exec2("git diff --cached --name-only -- .github/workflows", {
+    cwd: projectDir,
+    timeout: 1e4
+  });
+  if (!staged.trim()) return { refreshed: false };
+  await exec2(
+    `git commit -m ${shellEscape2(
+      "chore(ci): refresh scaffolded workflows to pinned substrate (promote uses apply-tier)"
+    )} -- .github/workflows`,
+    { cwd: projectDir, timeout: 15e3 }
+  );
+  await pushCurrentBranchForPr({ cwd: projectDir });
+  return { refreshed: true, detail: `refreshed + pushed ${touched.join(", ") || "workflow(s)"} onto the PR head` };
 }
 async function mergeFeature(args) {
   const current = readWorkflowState(args.projectDir);
@@ -15940,6 +16277,20 @@ async function mergeFeature(args) {
     }
     authVerified = true;
   }
+  const preflightNotes = [];
+  {
+    const refresh = args.refreshWorkflows ?? (() => defaultRefreshPromoteWorkflows(args.projectDir));
+    try {
+      const r = await refresh();
+      if (r.refreshed) {
+        preflightNotes.push(`Refreshed stale CI workflows before merge${r.detail ? ` (${r.detail})` : ""}.`);
+      }
+    } catch (err) {
+      preflightNotes.push(
+        `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`
+      );
+    }
+  }
   let paired;
   try {
     paired = await mergePairedPullRequest({
@@ -15954,7 +16305,7 @@ async function mergeFeature(args) {
       "merge-failed"
     );
   }
-  const warnings = [...paired.warnings];
+  const warnings = [...preflightNotes, ...paired.warnings];
   let localBranchDeleted = false;
   let headAfter = current.branch;
   if (!args.skipLocalCleanup) {
@@ -16151,7 +16502,7 @@ init_esm_shims();
 
 // scripts/git/branches.ts
 init_esm_shims();
-async function currentBranchName(cwd) {
+async function currentBranchName2(cwd) {
   try {
     return await exec2("git rev-parse --abbrev-ref HEAD", { cwd });
   } catch {
@@ -16170,7 +16521,7 @@ async function listLocalBranches(args) {
     return [];
   }
   if (!raw) return [];
-  const current = await currentBranchName(cwd);
+  const current = await currentBranchName2(cwd);
   return raw.split("\n").filter(Boolean).map((line) => {
     const [name, tracking, trackInfo] = line.split("|");
     let ahead = 0;
@@ -16335,15 +16686,15 @@ function parentForTopology(t, defaultLeaf) {
 
 // scripts/lakebase/scm-doctor.ts
 init_esm_shims();
-import * as fs29 from "fs";
-import * as path29 from "path";
+import * as fs30 from "fs";
+import * as path30 from "path";
 var FEATURE_PREFIX = "feature/";
 var TIER_LEAFS2 = DEFAULT_PROTECTED_TIER_NAMES;
 function readEnv(projectDir) {
-  const envPath = path29.join(projectDir, ".env");
+  const envPath = path30.join(projectDir, ".env");
   const out = /* @__PURE__ */ new Map();
-  if (!fs29.existsSync(envPath)) return out;
-  const lines = fs29.readFileSync(envPath, "utf8").split("\n");
+  if (!fs30.existsSync(envPath)) return out;
+  const lines = fs30.readFileSync(envPath, "utf8").split("\n");
   for (const line of lines) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.+?)\s*$/);
     if (m) out.set(m[1], m[2].replace(/^["']|["']$/g, ""));
@@ -16398,9 +16749,9 @@ async function runDoctor(args, deps = {}) {
   }
   for (const wf of ["pr.yml", "merge.yml"]) {
     try {
-      const p = path29.join(projectDir, ".github", "workflows", wf);
-      if (!fs29.existsSync(p)) continue;
-      const body = fs29.readFileSync(p, "utf8");
+      const p = path30.join(projectDir, ".github", "workflows", wf);
+      if (!fs30.existsSync(p)) continue;
+      const body = fs30.readFileSync(p, "utf8");
       if (/lakebase-scm-utils#v\d/.test(body)) {
         findings.push({
           id: "ci-workflow-substrate-pin",
@@ -16615,7 +16966,7 @@ async function fixFinding(args) {
           );
         }
         const sanitized = sanitizeBranchName(branch);
-        const envFile = path29.join(args.projectDir, ".env");
+        const envFile = path30.join(args.projectDir, ".env");
         updateEnvConnection({
           envPath: envFile,
           projectId: readEnvVar(envFile, "LAKEBASE_PROJECT_ID") ?? "",
@@ -16720,291 +17071,6 @@ init_esm_shims();
 import * as fs31 from "fs";
 import * as path31 from "path";
 import * as cp6 from "child_process";
-
-// scripts/lakebase/workflow-drift.ts
-init_esm_shims();
-import * as fs30 from "fs";
-import * as path30 from "path";
-function findKitTemplatesDir(start) {
-  let dir = start;
-  for (let i = 0; i < 6; i++) {
-    const candidate = path30.join(
-      dir,
-      "templates",
-      "project",
-      "common",
-      ".github",
-      "workflows"
-    );
-    if (fs30.existsSync(candidate)) return candidate;
-    const parent = path30.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  throw new Error(
-    `Could not locate templates/project/common/.github/workflows/ relative to ${start}. Pass explicit kitDir.`
-  );
-}
-function unifiedDiff(name, projectContent, templateContent) {
-  if (projectContent === templateContent) return "";
-  const a = projectContent.split("\n");
-  const b = templateContent.split("\n");
-  const out = [`--- project/${name}`, `+++ template/${name}`];
-  const max = Math.max(a.length, b.length);
-  for (let i = 0; i < max; i++) {
-    const av = a[i];
-    const bv = b[i];
-    if (av === bv) continue;
-    if (av !== void 0) out.push(`-${i + 1}: ${av}`);
-    if (bv !== void 0) out.push(`+${i + 1}: ${bv}`);
-  }
-  return out.join("\n");
-}
-function detectWorkflowDrift(args) {
-  const projectWorkflowsDir = path30.join(
-    args.projectDir,
-    ".github",
-    "workflows"
-  );
-  const here = path30.dirname(new URL(import.meta.url).pathname);
-  const kitWorkflowsDir = args.kitDir ? path30.join(
-    args.kitDir,
-    "templates",
-    "project",
-    "common",
-    ".github",
-    "workflows"
-  ) : findKitTemplatesDir(here);
-  const templateFiles = fs30.existsSync(kitWorkflowsDir) ? fs30.readdirSync(kitWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
-  const projectFiles = fs30.existsSync(projectWorkflowsDir) ? fs30.readdirSync(projectWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
-  const version = readKitVersion(kitWorkflowsDir);
-  const seen = /* @__PURE__ */ new Set();
-  const files = [];
-  for (const name of templateFiles) {
-    seen.add(name);
-    const projectPath2 = path30.join(projectWorkflowsDir, name);
-    const templatePath = path30.join(kitWorkflowsDir, name);
-    if (!fs30.existsSync(projectPath2)) {
-      files.push({ name, status: "missing" });
-      continue;
-    }
-    const projectContent = fs30.readFileSync(projectPath2, "utf8");
-    const templateContent = applyPlaceholders(fs30.readFileSync(templatePath, "utf8"), version);
-    if (projectContent === templateContent) {
-      files.push({ name, status: "unchanged" });
-    } else {
-      files.push({
-        name,
-        status: "drifted",
-        diff: unifiedDiff(name, projectContent, templateContent)
-      });
-    }
-  }
-  for (const name of projectFiles) {
-    if (seen.has(name)) continue;
-    files.push({ name, status: "extra" });
-  }
-  const order = {
-    drifted: 0,
-    missing: 1,
-    extra: 2,
-    unchanged: 3
-  };
-  files.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name));
-  const hasDrift = files.some((f) => f.status === "drifted" || f.status === "missing");
-  return {
-    overall: hasDrift ? "drift" : "ok",
-    files
-  };
-}
-function readKitVersion(kitWorkflowsDir) {
-  let dir = kitWorkflowsDir;
-  for (let i = 0; i < 5; i++) {
-    dir = path30.dirname(dir);
-  }
-  try {
-    const raw = fs30.readFileSync(path30.join(dir, "package.json"), "utf-8");
-    const pkg = JSON.parse(raw);
-    return typeof pkg.version === "string" ? pkg.version : "unknown";
-  } catch {
-    return "unknown";
-  }
-}
-function applyPlaceholders(content, version) {
-  return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
-}
-function applyCommandPlaceholders(content, version) {
-  return content.replace(/\$\{KIT_VERSION_AT_SCAFFOLD\}/g, version);
-}
-var COMMAND_HOOK_FILE_PATTERN = /\.(pre|post)-hook\.md$/;
-function findKitCommandsDir(start) {
-  let dir = start;
-  for (let i = 0; i < 6; i++) {
-    const candidate = path30.join(
-      dir,
-      "templates",
-      "project",
-      "common",
-      ".claude",
-      "commands"
-    );
-    if (fs30.existsSync(candidate)) return candidate;
-    const parent = path30.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  throw new Error(
-    `Could not locate templates/project/common/.claude/commands/ relative to ${start}. Pass explicit kitDir.`
-  );
-}
-function parsePinnedVersion(content) {
-  const m = content.match(/^\s*[*_>`\s]*pinned\s+to\s*:\s*[`*_]*([^\s`*_]+)[`*_]*\s*$/im);
-  return m ? m[1] : void 0;
-}
-function detectCommandDrift(args) {
-  const projectCommandsDir = path30.join(args.projectDir, ".claude", "commands");
-  const here = path30.dirname(new URL(import.meta.url).pathname);
-  const kitCommandsDir = args.kitDir ? path30.join(args.kitDir, "templates", "project", "common", ".claude", "commands") : findKitCommandsDir(here);
-  const kitVersion = readKitVersionFromCommandsDir(kitCommandsDir);
-  const templateFiles = fs30.existsSync(kitCommandsDir) ? fs30.readdirSync(kitCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
-  const projectFiles = fs30.existsSync(projectCommandsDir) ? fs30.readdirSync(projectCommandsDir).filter((f) => f.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f)) : [];
-  const seen = /* @__PURE__ */ new Set();
-  const files = [];
-  for (const name of templateFiles) {
-    seen.add(name);
-    const projectPath2 = path30.join(projectCommandsDir, name);
-    const templatePath = path30.join(kitCommandsDir, name);
-    const templateRaw = fs30.readFileSync(templatePath, "utf8");
-    if (!fs30.existsSync(projectPath2)) {
-      files.push({ name, status: "missing", kit_version: kitVersion });
-      continue;
-    }
-    const projectContent = fs30.readFileSync(projectPath2, "utf8");
-    const pinned = parsePinnedVersion(projectContent);
-    const versionForCompare = pinned ?? kitVersion;
-    const templateContent = applyCommandPlaceholders(templateRaw, versionForCompare);
-    if (projectContent === templateContent) {
-      files.push({
-        name,
-        status: "unchanged",
-        pinned_version: pinned,
-        kit_version: kitVersion
-      });
-    } else {
-      files.push({
-        name,
-        status: "drifted",
-        pinned_version: pinned,
-        kit_version: kitVersion,
-        diff: unifiedDiff(name, projectContent, templateContent)
-      });
-    }
-  }
-  for (const name of projectFiles) {
-    if (seen.has(name)) continue;
-    files.push({ name, status: "extra", kit_version: kitVersion });
-  }
-  const order = {
-    drifted: 0,
-    missing: 1,
-    extra: 2,
-    unchanged: 3
-  };
-  files.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name));
-  const hasDrift = files.some((f) => f.status === "drifted" || f.status === "missing");
-  return { overall: hasDrift ? "drift" : "ok", files };
-}
-function readKitVersionFromCommandsDir(kitCommandsDir) {
-  let dir = kitCommandsDir;
-  for (let i = 0; i < 5; i++) {
-    dir = path30.dirname(dir);
-  }
-  try {
-    const raw = fs30.readFileSync(path30.join(dir, "package.json"), "utf-8");
-    const pkg = JSON.parse(raw);
-    return typeof pkg.version === "string" ? pkg.version : "unknown";
-  } catch {
-    return "unknown";
-  }
-}
-function detectScaffoldedDrift(args) {
-  const workflows = detectWorkflowDrift(args);
-  const commands = detectCommandDrift(args);
-  return {
-    overall: workflows.overall === "drift" || commands.overall === "drift" ? "drift" : "ok",
-    workflows,
-    commands
-  };
-}
-function updateWorkflows(args) {
-  const projectWorkflowsDir = path30.join(
-    args.projectDir,
-    ".github",
-    "workflows"
-  );
-  const here = path30.dirname(new URL(import.meta.url).pathname);
-  const kitWorkflowsDir = args.kitDir ? path30.join(
-    args.kitDir,
-    "templates",
-    "project",
-    "common",
-    ".github",
-    "workflows"
-  ) : findKitTemplatesDir(here);
-  const substitute = args.substitute !== false;
-  const dryRun = args.dryRun === true;
-  const pruneExtras = args.pruneExtras === true;
-  const templateFiles = fs30.existsSync(kitWorkflowsDir) ? fs30.readdirSync(kitWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
-  const projectFiles = fs30.existsSync(projectWorkflowsDir) ? fs30.readdirSync(projectWorkflowsDir).filter((f) => f.endsWith(".yml")) : [];
-  if (!dryRun && templateFiles.length > 0 && !fs30.existsSync(projectWorkflowsDir)) {
-    fs30.mkdirSync(projectWorkflowsDir, { recursive: true });
-  }
-  const version = substitute ? readKitVersion(kitWorkflowsDir) : "";
-  const seen = /* @__PURE__ */ new Set();
-  const files = [];
-  for (const name of templateFiles) {
-    seen.add(name);
-    const projectPath2 = path30.join(projectWorkflowsDir, name);
-    const templatePath = path30.join(kitWorkflowsDir, name);
-    const templateRaw = fs30.readFileSync(templatePath, "utf-8");
-    const desired = substitute ? applyPlaceholders(templateRaw, version) : templateRaw;
-    const existed = fs30.existsSync(projectPath2);
-    const current = existed ? fs30.readFileSync(projectPath2, "utf-8") : "";
-    let outcome;
-    if (!existed) {
-      outcome = "added";
-    } else if (current === desired) {
-      outcome = "unchanged";
-    } else {
-      outcome = "updated";
-    }
-    if (!dryRun && outcome !== "unchanged") {
-      fs30.writeFileSync(projectPath2, desired);
-    }
-    files.push({ name, outcome });
-  }
-  if (pruneExtras) {
-    for (const name of projectFiles) {
-      if (seen.has(name)) continue;
-      const projectPath2 = path30.join(projectWorkflowsDir, name);
-      if (!dryRun) {
-        fs30.unlinkSync(projectPath2);
-      }
-      files.push({ name, outcome: "removed" });
-    }
-  }
-  const order = {
-    added: 0,
-    updated: 1,
-    removed: 2,
-    unchanged: 3
-  };
-  files.sort((a, b) => order[a.outcome] - order[b.outcome] || a.name.localeCompare(b.name));
-  const changed = files.some((f) => f.outcome !== "unchanged");
-  return { files, changed };
-}
-
-// scripts/lakebase/doctor.ts
 function readEnvFile(projectDir) {
   const envPath = path31.join(projectDir, ".env");
   if (!fs31.existsSync(envPath)) return {};
@@ -17437,7 +17503,7 @@ function checkWorkflowDrift(projectDir) {
       status: "warn",
       message: `Scaffolded workflows drift from kit: ${drifted} drifted, ${missing} missing`,
       detail: { files: report.files.map((f) => ({ name: f.name, status: f.status })) },
-      hint: "Inspect via the lakebase_workflow_drift MCP tool (or detectWorkflowDrift import). Refresh manually until updateWorkflows lands."
+      hint: "Refresh with updateWorkflows (or the lakebase_workflow_drift MCP tool). A stale merge.yml calling 'lakebase-schema-migrate apply' (not 'apply-tier') makes the promote's migrate-target fail on the tier guard; the scm-merge promote also self-heals drifted workflows onto the PR head before merging."
     };
   } catch (err) {
     return {
@@ -17745,6 +17811,7 @@ export {
   createUatPairedBranch,
   cutBackup,
   databricksAuthPrereqMessage,
+  defaultRefreshPromoteWorkflows,
   deleteAppEndpoint,
   deleteBranch,
   deleteLakebaseProject,

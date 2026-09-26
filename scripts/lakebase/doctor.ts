@@ -628,7 +628,7 @@ function checkWorkflowDrift(projectDir: string): CheckResult {
       status: "warn",
       message: `Scaffolded workflows drift from kit: ${drifted} drifted, ${missing} missing`,
       detail: { files: report.files.map((f) => ({ name: f.name, status: f.status })) },
-      hint: "Inspect via the lakebase_workflow_drift MCP tool (or detectWorkflowDrift import). Refresh manually until updateWorkflows lands.",
+      hint: "Refresh with updateWorkflows (or the lakebase_workflow_drift MCP tool). A stale merge.yml calling 'lakebase-schema-migrate apply' (not 'apply-tier') makes the promote's migrate-target fail on the tier guard; the scm-merge promote also self-heals drifted workflows onto the PR head before merging.",
     };
   } catch (err) {
     return {

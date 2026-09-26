@@ -5,7 +5,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { detectWorkflowDrift } from "../../scripts/lakebase/workflow-drift.js";
+import { detectWorkflowDrift, updateWorkflows } from "../../scripts/lakebase/workflow-drift.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 // A real scaffold substitutes {{LAKEBASE_SCM_UTILS_VERSION}} with the kit's version;
@@ -168,5 +168,40 @@ describe("detectWorkflowDrift", () => {
     const report = detectWorkflowDrift({ projectDir: dir });
     expect(report.overall).toBe("drift");
     expect(report.files.every((f) => f.status === "missing")).toBe(true);
+  });
+});
+
+describe("stale promote workflow (apply -> apply-tier) refresh", () => {
+  // The live regression: a project scaffolded BEFORE the tier-guard fix ships a
+  // merge.yml whose migrate-target calls `lakebase-schema-migrate apply`; after
+  // SCM_UTILS_REF is bumped, the new CLI guard refuses `apply` on the parent tier.
+  // The refresh must detect this drift and rewrite the file to `apply-tier`.
+  function seedStaleMergeYml(projectDir: string): void {
+    copyTemplate(projectDir, "merge.yml"); // current template (apply-tier)
+    const p = path.join(projectDir, ".github", "workflows", "merge.yml");
+    // Downgrade to the pre-fix shape: the migrate step calls plain `apply`.
+    fs.writeFileSync(p, fs.readFileSync(p, "utf8").replace(/apply-tier/g, "apply"));
+  }
+
+  it("detects the stale merge.yml as drifted", () => {
+    const dir = mkProject();
+    seedStaleMergeYml(dir);
+    const report = detectWorkflowDrift({ projectDir: dir });
+    expect(report.overall).toBe("drift");
+    const mergeStatus = report.files.find((f) => f.name === "merge.yml");
+    expect(mergeStatus?.status).toBe("drifted");
+  });
+
+  it("refreshes it back to apply-tier", () => {
+    const dir = mkProject();
+    seedStaleMergeYml(dir);
+    const result = updateWorkflows({ projectDir: dir });
+    expect(result.changed).toBe(true);
+    const refreshed = fs.readFileSync(path.join(dir, ".github", "workflows", "merge.yml"), "utf8");
+    expect(refreshed).toMatch(/lakebase-schema-migrate apply-tier/);
+    // and no longer a bare `apply` invocation (the guard-refused form)
+    expect(refreshed).not.toMatch(/lakebase-schema-migrate apply\s*\\/);
+    // a re-detect is now clean
+    expect(detectWorkflowDrift({ projectDir: dir }).overall).toBe("ok");
   });
 });

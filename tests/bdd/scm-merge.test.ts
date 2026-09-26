@@ -628,3 +628,55 @@ describe("mergeFeature migrate-auth precondition + local-migrate fallback (FEIP-
     expect(result.migrate?.appliedLocally).toBe(true);
   });
 });
+
+describe("mergeFeature: pre-merge workflow self-heal", () => {
+  it("refreshes drifted workflows BEFORE the merge and surfaces the note", async () => {
+    seedCiGreen();
+    const order: string[] = [];
+    mockMergePaired.mockImplementationOnce(async () => {
+      order.push("merge");
+      return { message: "Merged", headBranch: "feature/x", lakebaseBranchDeleted: true, warnings: [] };
+    });
+    const refreshWorkflows = vi.fn(async () => {
+      order.push("refresh");
+      return { refreshed: true, detail: "refreshed + pushed merge.yml onto the PR head" };
+    });
+    const result = await merge.mergeFeature({
+      projectDir: tmpDir,
+      waitMigrate: false,
+      refreshWorkflows,
+      now: () => new Date(),
+    });
+    expect(refreshWorkflows).toHaveBeenCalledOnce();
+    // The refresh must land in the merge commit, so it runs first.
+    expect(order).toEqual(["refresh", "merge"]);
+    expect(result.warnings.some((w) => /Refreshed stale CI workflows/.test(w))).toBe(true);
+  });
+
+  it("NEVER blocks the merge when the self-heal throws (best-effort)", async () => {
+    seedCiGreen();
+    const refreshWorkflows = vi.fn(async () => {
+      throw new Error("push rejected: protected branch");
+    });
+    const result = await merge.mergeFeature({
+      projectDir: tmpDir,
+      waitMigrate: false,
+      refreshWorkflows,
+      now: () => new Date(),
+    });
+    expect(mockMergePaired).toHaveBeenCalledOnce(); // merge still happened
+    expect(result.warnings.some((w) => /self-heal skipped.*apply-tier/s.test(w))).toBe(true);
+  });
+
+  it("adds no note when nothing drifted", async () => {
+    seedCiGreen();
+    const refreshWorkflows = vi.fn(async () => ({ refreshed: false }));
+    const result = await merge.mergeFeature({
+      projectDir: tmpDir,
+      waitMigrate: false,
+      refreshWorkflows,
+      now: () => new Date(),
+    });
+    expect(result.warnings.some((w) => /Refreshed stale CI workflows/.test(w))).toBe(false);
+  });
+});

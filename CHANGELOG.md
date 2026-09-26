@@ -2,6 +2,10 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## 0.2.45
+
+- **The promote self-heals a stale scaffolded `merge.yml` before merging.** A project whose `SCM_UTILS_REF` was bumped past the tier-guard fix keeps an older `merge.yml` whose `migrate-target` calls `lakebase-schema-migrate apply` against the parent tier — which the guard refuses ("pass allowTier: true"), so the promote's CI migrate fails and `cleanup-lakebase-branches` (needs: migrate-target) is skipped. `mergeFeature` now runs a BEST-EFFORT pre-merge workflow self-heal (`defaultRefreshPromoteWorkflows`): it `detectWorkflowDrift` + `updateWorkflows` + commits/pushes the drifted workflow onto the PR head BEFORE the merge, so the merge commit carries the corrected `apply-tier` step and the `<tier> Merge` run passes. Never blocks the merge (a detect/refresh/push failure is a warning; the local-migrate fallback still keeps git + schema in sync). The `lakebase-doctor` workflow-drift hint now names this `apply`→`apply-tier` skew and the self-heal.
+
 ## 0.2.44
 
 - **The local client verify now runs the strict typecheck (`tsc --noEmit`), matching CI.** CI builds the client with `tsc --noEmit && vite build`, but the local build-lane honest-GREEN + deploy feature-verify ran only vitest + Playwright against the Vite dev server (loose), so a cross-story type regression — a later story making a field required, breaking an earlier story's construction of that type — passed local GREEN and was caught only by CI after promote. `run-tests.sh`'s client block now runs `npm run typecheck --if-present` before the Vitest suite (a type error fails the run, before the slow suite); `--if-present` no-ops on an older scaffold without the script. Covers both the full run and the `SFTDD_CLIENT_ONLY` build-honest-GREEN pass.

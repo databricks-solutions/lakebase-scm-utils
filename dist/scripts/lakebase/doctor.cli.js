@@ -483,8 +483,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.44".length > 0) {
-    cached = "0.2.44";
+  if ("0.2.45".length > 0) {
+    cached = "0.2.45";
     return cached;
   }
   cached = "unknown";
@@ -2104,7 +2104,7 @@ function checkWorkflowDrift(projectDir) {
       status: "warn",
       message: `Scaffolded workflows drift from kit: ${drifted} drifted, ${missing} missing`,
       detail: { files: report.files.map((f) => ({ name: f.name, status: f.status })) },
-      hint: "Inspect via the lakebase_workflow_drift MCP tool (or detectWorkflowDrift import). Refresh manually until updateWorkflows lands."
+      hint: "Refresh with updateWorkflows (or the lakebase_workflow_drift MCP tool). A stale merge.yml calling 'lakebase-schema-migrate apply' (not 'apply-tier') makes the promote's migrate-target fail on the tier guard; the scm-merge promote also self-heals drifted workflows onto the PR head before merging."
     };
   } catch (err) {
     return {
