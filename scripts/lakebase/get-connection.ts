@@ -22,6 +22,8 @@ import {
   CONSORT_VERSION_ENV,
   DEFAULT_DATABASE,
   DEFAULT_ENDPOINT,
+  EXTENSION_APPLICATION_NAME,
+  EXTENSION_VERSION_ENV,
   POSTGRES_PORT,
   SCM_UTILS_APPLICATION_NAME,
 } from "./constants.js";
@@ -40,10 +42,12 @@ import { KIT_TIMEOUTS } from "./kit-config.js";
  * blank env is ignored), so labelling can never break a connection.
  */
 export function connectionApplicationName(): string {
+  // Precedence: consort > extension > scm-utils (the outermost caller wins).
   const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
-  return consortVersion
-    ? `${CONSORT_APPLICATION_NAME}/${consortVersion}`
-    : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  if (consortVersion) return `${CONSORT_APPLICATION_NAME}/${consortVersion}`;
+  const extensionVersion = process.env[EXTENSION_VERSION_ENV]?.trim();
+  if (extensionVersion) return `${EXTENSION_APPLICATION_NAME}/${extensionVersion}`;
+  return `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 // AppKit / @databricks/lakebase re-exports a WorkspaceClient type that
 // matches what createLakebasePool expects. We accept `unknown` at the API

@@ -2,9 +2,11 @@
 // `<brand>/<version>` , a transparent label (visible to the instance owner in their own
 // pg_stat_activity) reflecting WHO opened the connection:
 //   - `consort/<consort-version>` when the work comes from Consort (CONSORT_VERSION set);
-//   - `scm-utils/<scm-utils-version>` when scm-utils is invoked directly (extension / bare CLI).
-// Each carries its OWN version. These assert both branches + that the direct-use version
-// resolves from the real package.json (so a shipped build is never `scm-utils/unknown`).
+//   - `scm-extension/<ext-version>` when the VS Code / Cursor extension opened it
+//     (LAKEBASE_SCM_EXTENSION_VERSION set);
+//   - `scm-utils/<scm-utils-version>` when scm-utils is invoked directly via a bare CLI.
+// Precedence: consort > extension > scm-utils. Each carries its OWN version. These assert every
+// branch + that the direct-use version resolves from the real package.json (never `scm-utils/unknown`).
 
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -17,9 +19,12 @@ const PKG_VERSION = (
 
 describe("connection application_name label", () => {
   const prev = process.env.CONSORT_VERSION;
+  const prevExt = process.env.LAKEBASE_SCM_EXTENSION_VERSION;
   afterEach(() => {
     if (prev === undefined) delete process.env.CONSORT_VERSION;
     else process.env.CONSORT_VERSION = prev;
+    if (prevExt === undefined) delete process.env.LAKEBASE_SCM_EXTENSION_VERSION;
+    else process.env.LAKEBASE_SCM_EXTENSION_VERSION = prevExt;
   });
 
   it("substrateSelfVersion() resolves to this package's version (never 'unknown' in-tree)", () => {
@@ -39,6 +44,24 @@ describe("connection application_name label", () => {
 
   it("a blank/whitespace CONSORT_VERSION is ignored (falls back to scm-utils brand)", () => {
     process.env.CONSORT_VERSION = "   ";
+    expect(connectionApplicationName()).toBe(`scm-utils/${PKG_VERSION}`);
+  });
+
+  it("from the VS Code / Cursor extension (LAKEBASE_SCM_EXTENSION_VERSION set) => `scm-extension/<ext-version>`", () => {
+    delete process.env.CONSORT_VERSION;
+    process.env.LAKEBASE_SCM_EXTENSION_VERSION = "0.6.24";
+    expect(connectionApplicationName()).toBe("scm-extension/0.6.24");
+  });
+
+  it("precedence: CONSORT_VERSION wins over the extension env when both are set", () => {
+    process.env.CONSORT_VERSION = "0.3.59";
+    process.env.LAKEBASE_SCM_EXTENSION_VERSION = "0.6.24";
+    expect(connectionApplicationName()).toBe("consort/0.3.59");
+  });
+
+  it("a blank extension version is ignored (falls back to scm-utils brand)", () => {
+    delete process.env.CONSORT_VERSION;
+    process.env.LAKEBASE_SCM_EXTENSION_VERSION = "  ";
     expect(connectionApplicationName()).toBe(`scm-utils/${PKG_VERSION}`);
   });
 

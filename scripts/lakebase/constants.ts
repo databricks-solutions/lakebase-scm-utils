@@ -60,8 +60,11 @@ export const DEFAULT_ENDPOINT = "primary";
 // reflects WHICH tool opened the connection:
 //   - `consort/<consort-version>` when the connection is made UNDER a Consort run (Consort
 //     exports its version via CONSORT_VERSION_ENV; scm-utils reads it);
-//   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY (the VS Code extension,
-//     a bare `lakebase-*` CLI) , no env set, so the label falls back to this package's brand.
+//   - `scm-extension/<ext-version>` when the connection is made by the VS Code / Cursor
+//     extension (it exports its version via EXTENSION_VERSION_ENV; scm-utils reads it);
+//   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY via a bare `lakebase-*`
+//     CLI , no env set, so the label falls back to this package's own brand.
+// Precedence: consort > extension > scm-utils (the outermost caller wins).
 // A TRANSPARENT label , standard practice (psql, ORMs set one) , visible to the database OWNER
 // in their own `pg_stat_activity`, so support + the owner's own diagnostics can tell which
 // tooling connected versus their application. Reads no table contents; carries only brand + version.
@@ -69,8 +72,24 @@ export const DEFAULT_ENDPOINT = "primary";
 /** Brand when the connection is made under a Consort run (CONSORT_VERSION_ENV set). */
 export const CONSORT_APPLICATION_NAME = "consort";
 
-/** Brand when scm-utils is used directly (extension / bare CLI); the default. */
+/** Brand when scm-utils is used directly via a bare `lakebase-*` CLI; the default. */
 export const SCM_UTILS_APPLICATION_NAME = "scm-utils";
+
+/** Brand when the connection is made by the VS Code / Cursor extension (EXTENSION_VERSION_ENV
+ *  set), so extension-driven connections are distinguishable from a bare CLI in pg_stat_activity.
+ *  `scm-extension` mirrors the `scm-utils` brand (both drop the `lakebase-` package-name prefix:
+ *  lakebase-scm-utils -> scm-utils, lakebase-scm-extension -> scm-extension). */
+export const EXTENSION_APPLICATION_NAME = "scm-extension";
+
+/**
+ * Env var the VS Code / Cursor extension sets to its OWN version, so a connection it opens is
+ * labelled `scm-extension/<ext-version>` rather than the generic `scm-utils/<scm-utils-version>`.
+ * Same cross-package contract shape as {@link CONSORT_VERSION_ENV}: the extension writes it (from
+ * its package.json version, at activation, before any substrate connection); scm-utils reads it in
+ * connectionApplicationName(). Consort takes precedence — a connection opened under a Consort run
+ * stays `consort/<v>` even if this is also set.
+ */
+export const EXTENSION_VERSION_ENV = "LAKEBASE_SCM_EXTENSION_VERSION";
 
 /**
  * Env var Consort sets to its OWN version so a connection opened under a Consort run is
