@@ -22,9 +22,8 @@ import {
   CONSORT_VERSION_ENV,
   DEFAULT_DATABASE,
   DEFAULT_ENDPOINT,
-  EXTENSION_APPLICATION_NAME,
-  EXTENSION_VERSION_ENV,
   POSTGRES_PORT,
+  SCM_CLIENT_ENV,
   SCM_UTILS_APPLICATION_NAME,
 } from "./constants.js";
 import { substrateSelfVersion } from "./self-version.js";
@@ -41,12 +40,23 @@ import { KIT_TIMEOUTS } from "./kit-config.js";
  * `pg_stat_activity`. Never throws (an unreadable scm-utils version -> `scm-utils/unknown`; a
  * blank env is ignored), so labelling can never break a connection.
  */
+/** Sanitize a consumer-provided application_name label: printable ASCII only (runs of control
+ *  chars / whitespace collapse to a single '-'), trimmed of leading/trailing '-', and capped to
+ *  Postgres's 63-byte application_name limit. Empty after cleaning -> the scm-utils default. */
+function sanitizeApplicationName(raw: string): string {
+  const cleaned = raw.replace(/[^\x21-\x7e]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!cleaned) return `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  // Printable-ASCII only, so byte length == char length; trim to the 63-byte cap.
+  return cleaned.length > 63 ? cleaned.slice(0, 63) : cleaned;
+}
+
 export function connectionApplicationName(): string {
-  // Precedence: consort > extension > scm-utils (the outermost caller wins).
+  // Precedence: a consumer's generic self-brand > Consort back-compat > scm-utils default.
+  // A NEW consumer just sets LAKEBASE_SCM_CLIENT="<brand>/<version>" — no scm-utils change needed.
+  const client = process.env[SCM_CLIENT_ENV]?.trim();
+  if (client) return sanitizeApplicationName(client);
   const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
   if (consortVersion) return `${CONSORT_APPLICATION_NAME}/${consortVersion}`;
-  const extensionVersion = process.env[EXTENSION_VERSION_ENV]?.trim();
-  if (extensionVersion) return `${EXTENSION_APPLICATION_NAME}/${extensionVersion}`;
   return `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 // AppKit / @databricks/lakebase re-exports a WorkspaceClient type that
