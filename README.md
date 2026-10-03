@@ -1,9 +1,18 @@
 # @databricks-solutions/lakebase-scm-utils
 
-The Lakebase SCM + substrate engine. This package is the portable core extracted from
-`consort`: it owns database branching, the paired-branch SCM workflow state
-machine, connection + credential minting, schema migration, project scaffold + deploy
-primitives, and the shared git / github / util layer.
+The engine that makes **application code and database schema travel together** through one
+SCM workflow. It drives a single state machine (claim a feature branch, prepare a PR, wait
+for CI, merge) in which every git branch is paired with its own Lakebase Postgres branch, so
+the schema evolves in lockstep with the code and moves through the same gates. On every PR it
+forks a database branch, applies migrations, runs the tests against real Postgres, and posts
+the schema diff; a red run blocks the merge. On merge it migrates the target tier, then tears
+the feature and PR branches down. The same commands run whether a human drives them from the
+CLI / VS Code extension or an agent orchestrator (`consort`) drives them headless.
+
+Under the hood it owns database branching, the paired-branch SCM workflow state machine,
+connection and credential minting, schema migration, project scaffold and deploy primitives,
+and the shared git / github / util layer: the portable substrate core shared by the
+`lakebase-scm-extension` IDE extension and the `consort` orchestration kit.
 
 It ships two consumption surfaces:
 

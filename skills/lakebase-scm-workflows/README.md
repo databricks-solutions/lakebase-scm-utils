@@ -228,7 +228,8 @@ The same flow applies to the `--enable-e2e`-scaffolded `playwright.config.ts` + 
 | `lakebase-infra-runner` | Run the `[Infra]`-tag suite (schema-diff + migration status + endpoint readiness) for a branch. Used by scaffolded `test:infra` scripts. |
 | `lakebase-update-commands` | Refresh a scaffolded project's `.claude/commands/{design,build}.md` from the kit's current templates. Interactive per-file confirm by default; `--force` skips prompts, `--dry-run` previews, `--json` emits a structured report. Hook files (`<name>.{pre,post}-hook.md`) are NEVER touched. |
 | `lakebase-feature-status` | One-screen snapshot of a TDD feature's workflow state. Pairs with `consort`. |
-| `lakebase-mcp-server` | Stdio MCP server exposing the full tool surface (parity with the CLI bins). For Claude Desktop / OpenAI Codex / Cursor-via-MCP / Genie Code consumers. |
+
+> An MCP presentation of this same substrate surface ships in the `consort` package as `lakebase-mcp-server` (stdio; for Claude Desktop / OpenAI Codex / Cursor-via-MCP / Genie Code consumers). It is not an scm-utils bin.
 
 ## JS/TS exports
 
