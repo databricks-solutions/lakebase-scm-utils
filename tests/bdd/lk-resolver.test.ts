@@ -239,6 +239,28 @@ describe("lk resolver shim", () => {
     expect(r.status).not.toBe(0);
     expect(r.stderr).toMatch(/kit package not configured|kit-package/i);
   });
+
+  it("a --help request on a COLD cache does NOT install: it short-circuits with a 'warm first' note", () => {
+    // Printing usage must have no side effects. The cache for this ref is cold and the
+    // package IS configured, so without the help short-circuit the shim would kick off a
+    // one-time (here: doomed/offline) install just to show --help — the alarming "my
+    // --help refreshed the cache?!" surprise. Instead it exits 0 with a clear note and
+    // never execs the bin. (No network: a real install attempt would time out/fail.)
+    const r = runLk(["lakebase-sftdd-log", "--help"], { XDG_CACHE_HOME: join(work, "cache"), LAKEBASE_KIT_REF: "coldref", LAKEBASE_KIT_PACKAGE: PKG });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stderr).toMatch(/not downloading the toolkit just to show '--help'|lk --warm/i);
+    expect(r.stdout).toBe(""); // the bin never ran, so no echoed argv
+  });
+
+  it("a --help request on a WARM cache still runs the bin and forwards --help", () => {
+    // The short-circuit is cold-cache ONLY: when the kit is already installed, help
+    // prints instantly exactly as before (the flag is forwarded to the bin).
+    const cache = join(work, "cache");
+    fakeKitDir(join(cache, PKG_BASE, "warmref", "node_modules", PKG));
+    const r = runLk(["lakebase-sftdd-log", "--help"], { XDG_CACHE_HOME: cache, LAKEBASE_KIT_REF: "warmref", LAKEBASE_KIT_PACKAGE: PKG });
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout)).toEqual(["--help"]);
+  });
 });
 
 describe("lk substrate routing (default, non-sftdd bins)", () => {
