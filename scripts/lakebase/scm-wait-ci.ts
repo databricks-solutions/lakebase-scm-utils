@@ -24,6 +24,7 @@ export class ScmWaitCiError extends Error {
       | "bad-precondition"
       | "no-github-remote"
       | "ci-failed"
+      | "pr-conflicting"
       | "timeout"
       | "pr-not-found",
   ) {
@@ -122,6 +123,18 @@ export async function waitForCi(args: WaitCiArgs): Promise<WaitCiResult> {
       }
       if (lastPr.ciStatus === "success") {
         return { done: true, value: lastPr };
+      }
+      // A CONFLICTING PR (merge conflict with base) has no mergeable ref, so GitHub never
+      // dispatches the `pull_request` workflow — CI stays at 0 runs forever. Detect it and
+      // surface at once (resolve + re-push re-triggers), rather than spinning to the timeout
+      // on a `pending` that can never advance. Guard on `mergeableState==="dirty"` AND no
+      // checks yet, so a transient null/unknown while GitHub computes mergeability doesn't
+      // false-trip, and a PR that already has runs is judged by ciStatus as before.
+      if (lastPr.mergeableState === "dirty" && lastPr.checks.length === 0) {
+        throw new ScmWaitCiError(
+          `PR ${lastPr.url} is CONFLICTING with ${lastPr.baseBranch} — GitHub will not dispatch CI (0 runs) until the conflict is resolved. Reconcile the branch and re-push; the synchronize event will trigger CI.`,
+          "pr-conflicting",
+        );
       }
       if (lastPr.ciStatus === "failure") {
         const failed = lastPr.checks
