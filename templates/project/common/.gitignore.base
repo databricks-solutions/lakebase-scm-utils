@@ -29,7 +29,13 @@ application-local.properties
 # it on the feature branch at each cut so the spec history survives for later stories).
 .consort/cycles/
 .consort/experiments/
+# The live build-pipeline pointer. It lives PER-FEATURE (.consort/features/<id>/pipeline.json);
+# the bare `.consort/pipeline.json` is kept for older layouts. Matching only the top-level path
+# left the per-feature file TRACKED — so it travelled onto staging/main and collided at the
+# promotion merge (two branches editing one run's gate-bookkeeping), the exact "pipeline.json
+# conflict blocks promotion" defect. Both forms are run-state, never the design corpus.
 .consort/pipeline.json
+.consort/features/*/pipeline.json
 # The turn recorder's per-run observability: its internal file-hash map
 # (.recorder-state.json, used for delta computation), the routing-decision
 # diagnostic stream (routing-decisions.jsonl), and the per-turn record dirs
