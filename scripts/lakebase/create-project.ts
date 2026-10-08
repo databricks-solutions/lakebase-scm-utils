@@ -30,7 +30,7 @@ import { createLongRunningBranch } from "./long-running-branch.js";
 import { enableE2eForProject } from "./enable-e2e.js";
 import { enableInfraForProject } from "./enable-infra.js";
 import { setupRunner } from "./runner-setup.js";
-import { syncCiSecrets } from "../util/ci-secrets.js";
+import { syncCiSecrets, missingCiSecrets } from "../util/ci-secrets.js";
 import { delay } from "../util/delay.js";
 import {
   initWorkflowState,
@@ -437,10 +437,21 @@ export async function createProject(
         lifetimeSeconds: 86_400,
         ownerRepo: fullRepoName,
       });
+      // VERIFY the secrets actually landed — syncCiSecrets fail-softs a dropped PAT, and a
+      // swallowed failure here only surfaces at the first promotion CI run (no DATABASE_URL),
+      // an entire feature later. Name the exact gaps + the one-command repair so it is actionable
+      // NOW, not a buried warning.
+      const missing = await missingCiSecrets(fullRepoName);
+      if (missing.length > 0) {
+        const m = `CI auth incomplete — repo secret(s) MISSING: ${missing.join(", ")}. CI cannot provision a per-PR Lakebase branch until fixed. Repair with: lakebase-sync-ci-secrets (run in the project).`;
+        warnings.push(m);
+        report(`WARNING: ${m}`);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      warnings.push(`CI auth setup failed: ${msg}`);
-      report(`Warning: CI auth setup failed (${msg})`);
+      const m = `CI auth setup failed: ${msg}. CI will fail (no DATABASE_URL) until repaired — run: lakebase-sync-ci-secrets (in the project).`;
+      warnings.push(m);
+      report(`WARNING: ${m}`);
     }
   }
 

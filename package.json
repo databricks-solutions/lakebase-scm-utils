@@ -105,7 +105,8 @@
     "lakebase-scm-prepare-pr": "./dist/scripts/lakebase/scm-prepare-pr.cli.js",
     "lakebase-scm-recover-orphans": "./dist/scripts/lakebase/scm-recover-orphans.cli.js",
     "lakebase-scm-state": "./dist/scripts/lakebase/scm-state.cli.js",
-    "lakebase-scm-wait-ci": "./dist/scripts/lakebase/scm-wait-ci.cli.js"
+    "lakebase-scm-wait-ci": "./dist/scripts/lakebase/scm-wait-ci.cli.js",
+    "lakebase-sync-ci-secrets": "./dist/scripts/lakebase/sync-ci-secrets.cli.js"
   },
   "scripts": {
     "build": "tsup",
