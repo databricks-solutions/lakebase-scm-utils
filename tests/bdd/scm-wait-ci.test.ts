@@ -146,6 +146,52 @@ describe("waitForCi poll loop", () => {
     expect(state.readWorkflowState(tmpDir)?.state).toBe("pr-ready");
   });
 
+  it("throws pr-conflicting (not timeout) when the PR has a merge conflict and no CI dispatched", async () => {
+    // A CONFLICTING PR has no mergeable ref, so GitHub never dispatches the pull_request
+    // workflow — it sits at 0 runs forever. The waiter must surface this at once rather than
+    // spin to the timeout on a `pending` that can never advance (the drive hung on wait-ci).
+    seedPrReady();
+    const conflicting = {
+      ...makePr("pending"),
+      checks: [], // 0 runs — GitHub never dispatched CI
+      mergeable: false,
+      mergeableState: "dirty", // merge conflict with base
+    };
+    const fetchPr = vi.fn().mockResolvedValue(conflicting);
+    await expect(
+      wait.waitForCi({
+        projectDir: tmpDir,
+        fetchPr,
+        sleep: () => Promise.resolve(),
+        pollMs: 1,
+        timeoutMs: 1_000_000,
+        now: () => new Date("2026-06-03T12:00:00Z"),
+      }),
+    ).rejects.toMatchObject({ code: "pr-conflicting" });
+    // One poll is enough to detect it — it does NOT spin to the timeout.
+    expect(fetchPr).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT false-trip on a transient dirty-with-checks or unknown mergeability", async () => {
+    // While GitHub computes mergeability the state can be `unknown`/null; and once checks exist
+    // the PR already dispatched CI, so judge by ciStatus. Neither should throw pr-conflicting.
+    seedPrReady();
+    const seq = [
+      { ...makePr("pending"), checks: [], mergeableState: "unknown", mergeable: null }, // still computing
+      makePr("success"), // then CI dispatched + passed
+    ];
+    const fetchPr = vi.fn().mockImplementation(() => Promise.resolve(seq.shift()));
+    const result = await wait.waitForCi({
+      projectDir: tmpDir,
+      fetchPr,
+      sleep: () => Promise.resolve(),
+      pollMs: 1,
+      timeoutMs: 1_000_000,
+      now: () => new Date("2026-06-03T12:00:00Z"),
+    });
+    expect(result.state.state).toBe("ci-green");
+  });
+
   it("throws pr-not-found when fetchPr returns undefined", async () => {
     seedPrReady();
     await expect(
