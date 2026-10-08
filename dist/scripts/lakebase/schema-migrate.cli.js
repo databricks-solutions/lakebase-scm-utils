@@ -416,6 +416,7 @@ var DEFAULT_DATABASE = "databricks_postgres";
 var DEFAULT_ENDPOINT = "primary";
 var CONSORT_APPLICATION_NAME = "consort";
 var SCM_UTILS_APPLICATION_NAME = "scm-utils";
+var SCM_CLIENT_ENV = "LAKEBASE_SCM_CLIENT";
 var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 
 // scripts/lakebase/self-version.ts
@@ -426,8 +427,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.45".length > 0) {
-    cached = "0.2.45";
+  if ("0.2.46".length > 0) {
+    cached = "0.2.46";
     return cached;
   }
   cached = "unknown";
@@ -455,9 +456,17 @@ function substrateSelfVersion() {
 }
 
 // scripts/lakebase/get-connection.ts
+function sanitizeApplicationName(raw) {
+  const cleaned = raw.replace(/[^\x21-\x7e]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!cleaned) return `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  return cleaned.length > 63 ? cleaned.slice(0, 63) : cleaned;
+}
 function connectionApplicationName() {
+  const client = process.env[SCM_CLIENT_ENV]?.trim();
+  if (client) return sanitizeApplicationName(client);
   const consortVersion = process.env[CONSORT_VERSION_ENV]?.trim();
-  return consortVersion ? `${CONSORT_APPLICATION_NAME}/${consortVersion}` : `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
+  if (consortVersion) return `${CONSORT_APPLICATION_NAME}/${consortVersion}`;
+  return `${SCM_UTILS_APPLICATION_NAME}/${substrateSelfVersion()}`;
 }
 async function getConnection(args) {
   const endpointName = args.endpointName ?? DEFAULT_ENDPOINT;

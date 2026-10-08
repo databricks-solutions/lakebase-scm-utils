@@ -2510,17 +2510,6 @@ interface EnableInfraForProjectResult {
  */
 declare function enableInfraForProject(args: EnableInfraForProjectArgs): EnableInfraForProjectResult;
 
-/**
- * The `application_name` stamped on the substrate's Postgres connections , `<brand>/<version>`,
- * reflecting WHO opened the connection:
- *   - `consort/<consort-version>` when the work comes FROM Consort (Consort exports its version
- *     in CONSORT_VERSION_ENV; we read it here);
- *   - `scm-utils/<scm-utils-version>` when scm-utils is invoked DIRECTLY (the VS Code extension,
- *     a bare `lakebase-*` CLI) , no env, so it falls back to this package's own brand + SemVer.
- * Each carries its OWN version. A TRANSPARENT label visible to the database owner in their own
- * `pg_stat_activity`. Never throws (an unreadable scm-utils version -> `scm-utils/unknown`; a
- * blank env is ignored), so labelling can never break a connection.
- */
 declare function connectionApplicationName(): string;
 interface GetConnectionArgs {
     /**
