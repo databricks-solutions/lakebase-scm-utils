@@ -33,6 +33,14 @@ declare function copyDirSubstituted(srcDir: string, destDir: string, args?: Copy
 declare const LAKEBASE_BRANCH_NAME_MAX = 63;
 declare function sanitizeBranchName(gitBranch: string): string;
 
+/** The repo Actions secrets CI needs to provision a per-PR Lakebase branch. Missing ANY of
+ *  these leaves CI unable to produce a DATABASE_URL, so the test step aborts — the failure
+ *  that otherwise only surfaces at promotion, an entire feature after creation. */
+declare const REQUIRED_CI_SECRETS: readonly ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+/** Which required CI secrets are NOT present on the repo (empty = fully provisioned). Used to
+ *  VERIFY a sync landed — a `databricks tokens create` or `gh secret set` that fails must be
+ *  caught here, not swallowed, so CI-auth is never silently absent. */
+declare function missingCiSecrets(ownerRepo: string): Promise<string[]>;
 interface SyncCiSecretsArgs {
     /** Project root (used to resolve ownerRepo from `git remote` when not given,
      *  and as the cwd for the `databricks tokens create` call). */
@@ -161,4 +169,4 @@ declare function pollUntilDefined<T>(probe: (ctx: {
     elapsedMs: number;
 }) => Promise<T | undefined>, opts: Omit<PollUntilArgs<T>, "probe">): Promise<PollUntilResult<T>>;
 
-export { type CopyDirSubstitutedArgs, LAKEBASE_BRANCH_NAME_MAX, type OwnerRepo, PROXY_ENV_KEYS, type PollProbeDone, type PollProbePending, type PollProbeResult, type PollUntilArgs, type PollUntilDoneResult, type PollUntilResult, type PollUntilTimeoutResult, type SyncCiSecretsArgs, copyDirSubstituted, delay, extractZipToDir, formatOwnerRepo, isCliEntry, parseOwnerRepo, patchPomForLakebase, pollUntil, pollUntilDefined, proxyEnvSubset, sanitizeArtifactId, sanitizeBranchName, syncCiSecrets, withProxyEnv };
+export { type CopyDirSubstitutedArgs, LAKEBASE_BRANCH_NAME_MAX, type OwnerRepo, PROXY_ENV_KEYS, type PollProbeDone, type PollProbePending, type PollProbeResult, type PollUntilArgs, type PollUntilDoneResult, type PollUntilResult, type PollUntilTimeoutResult, REQUIRED_CI_SECRETS, type SyncCiSecretsArgs, copyDirSubstituted, delay, extractZipToDir, formatOwnerRepo, isCliEntry, missingCiSecrets, parseOwnerRepo, patchPomForLakebase, pollUntil, pollUntilDefined, proxyEnvSubset, sanitizeArtifactId, sanitizeBranchName, syncCiSecrets, withProxyEnv };

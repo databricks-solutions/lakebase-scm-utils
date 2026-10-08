@@ -28,6 +28,12 @@ interface PullRequestInfo {
     isDraft: boolean;
     ciStatus: "pending" | "success" | "failure";
     checks: PullRequestCheck[];
+    /** GitHub's mergeability triple: true/false/null (null = still computing). */
+    mergeable?: boolean | null;
+    /** GitHub's `mergeable_state`: `clean`/`unstable`/`behind`/`blocked`/`dirty`/`unknown`.
+     *  `dirty` = merge conflict with the base — a `pull_request` CI run can't be dispatched
+     *  (there is no mergeable ref), so a waiter must surface this, not poll until timeout. */
+    mergeableState?: string;
     headBranch: string;
     baseBranch: string;
     body?: string;

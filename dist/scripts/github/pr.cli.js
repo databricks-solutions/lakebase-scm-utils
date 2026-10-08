@@ -8525,6 +8525,8 @@ async function getPullRequest(ownerRepo, headBranch) {
       isDraft: pr.draft || false,
       ciStatus,
       checks,
+      mergeable: pr.mergeable,
+      mergeableState: pr.mergeable_state,
       headBranch: pr.head?.ref || headBranch,
       baseBranch: pr.base?.ref || "",
       body: pr.body || void 0,

@@ -1630,8 +1630,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.46".length > 0) {
-    cached = "0.2.46";
+  if ("0.2.47".length > 0) {
+    cached = "0.2.47";
     return cached;
   }
   cached = "unknown";
@@ -8551,6 +8551,16 @@ async function setRepoSecrets(ownerRepo, secrets) {
     await setRepoSecret(ownerRepo, name, value);
   }
 }
+async function listSecretNames(ownerRepo) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit = await getOctokit();
+    const { data } = await octokit.rest.actions.listRepoSecrets({ owner, repo });
+    return data.secrets.map((s) => s.name);
+  } catch {
+    return [];
+  }
+}
 
 // scripts/git/remote.ts
 init_esm_shims();
@@ -8590,6 +8600,11 @@ async function getOwnerRepo(cwd) {
 }
 
 // scripts/util/ci-secrets.ts
+var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+async function missingCiSecrets(ownerRepo) {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
+}
 async function syncCiSecrets(args) {
   const lifetime = args.lifetimeSeconds ?? 86400;
   const comment = args.comment ?? "GitHub Actions CI";
@@ -8727,12 +8742,14 @@ async function pollUntilDefined(probe, opts) {
 export {
   LAKEBASE_BRANCH_NAME_MAX,
   PROXY_ENV_KEYS,
+  REQUIRED_CI_SECRETS,
   copyDirSubstituted,
   delay,
   exec2 as exec,
   extractZipToDir,
   formatOwnerRepo,
   isCliEntry,
+  missingCiSecrets,
   parseOwnerRepo,
   patchPomForLakebase,
   pollUntil,

@@ -81589,8 +81589,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.46".length > 0) {
-    cached = "0.2.46";
+  if ("0.2.47".length > 0) {
+    cached = "0.2.47";
     return cached;
   }
   cached = "unknown";
@@ -89745,6 +89745,8 @@ async function getPullRequest(ownerRepo, headBranch) {
       isDraft: pr.draft || false,
       ciStatus,
       checks,
+      mergeable: pr.mergeable,
+      mergeableState: pr.mergeable_state,
       headBranch: pr.head?.ref || headBranch,
       baseBranch: pr.base?.ref || "",
       body: pr.body || void 0,
@@ -91993,6 +91995,16 @@ async function setRepoSecrets(ownerRepo, secrets) {
     await setRepoSecret(ownerRepo, name, value);
   }
 }
+async function listSecretNames(ownerRepo) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit2 = await getOctokit2();
+    const { data } = await octokit2.rest.actions.listRepoSecrets({ owner, repo });
+    return data.secrets.map((s2) => s2.name);
+  } catch {
+    return [];
+  }
+}
 
 // scripts/git/remote.ts
 init_cjs_shims();
@@ -92032,6 +92044,11 @@ async function getOwnerRepo(cwd) {
 }
 
 // scripts/util/ci-secrets.ts
+var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+async function missingCiSecrets(ownerRepo) {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
+}
 async function syncCiSecrets(args) {
   const lifetime = args.lifetimeSeconds ?? 86400;
   const comment = args.comment ?? "GitHub Actions CI";
@@ -92548,10 +92565,17 @@ Last probe error:
             lifetimeSeconds: 86400,
             ownerRepo: fullRepoName
           });
+          const missing = await missingCiSecrets(fullRepoName);
+          if (missing.length > 0) {
+            const m2 = `CI auth incomplete \u2014 repo secret(s) MISSING: ${missing.join(", ")}. CI cannot provision a per-PR Lakebase branch until fixed. Repair with: lakebase-sync-ci-secrets (run in the project).`;
+            warnings.push(m2);
+            report(`WARNING: ${m2}`);
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          warnings.push(`CI auth setup failed: ${msg}`);
-          report(`Warning: CI auth setup failed (${msg})`);
+          const m2 = `CI auth setup failed: ${msg}. CI will fail (no DATABASE_URL) until repaired \u2014 run: lakebase-sync-ci-secrets (in the project).`;
+          warnings.push(m2);
+          report(`WARNING: ${m2}`);
         }
       }
       if (useGithub && runnerType === "self-hosted") {
@@ -94902,6 +94926,12 @@ async function waitForCi(args) {
       }
       if (lastPr.ciStatus === "success") {
         return { done: true, value: lastPr };
+      }
+      if (lastPr.mergeableState === "dirty" && lastPr.checks.length === 0) {
+        throw new ScmWaitCiError(
+          `PR ${lastPr.url} is CONFLICTING with ${lastPr.baseBranch} \u2014 GitHub will not dispatch CI (0 runs) until the conflict is resolved. Reconcile the branch and re-push; the synchronize event will trigger CI.`,
+          "pr-conflicting"
+        );
       }
       if (lastPr.ciStatus === "failure") {
         const failed = lastPr.checks.filter((c) => /(FAILURE|TIMED_OUT|CANCELLED|ACTION_REQUIRED)/i.test(c.conclusion)).map((c) => `${c.name} (${c.conclusion})`);

@@ -1,4 +1,4 @@
-import { W as WorkflowRunSummary, e as PullRequestInfo, o as mergePairedPullRequest } from '../../pr-D3CteJaf.cjs';
+import { W as WorkflowRunSummary, e as PullRequestInfo, o as mergePairedPullRequest } from '../../pr-e-E4aP4j.cjs';
 import { Pool } from 'pg';
 
 declare const BRAND: unique symbol;
@@ -3122,8 +3122,8 @@ declare function preparePr(args: PreparePrArgs): Promise<PreparePrResult>;
 declare function pushFailureHint(rawMessage: string): string;
 
 declare class ScmWaitCiError extends Error {
-    readonly code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "timeout" | "pr-not-found";
-    constructor(message: string, code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "timeout" | "pr-not-found");
+    readonly code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "timeout" | "pr-not-found";
+    constructor(message: string, code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "timeout" | "pr-not-found");
 }
 interface WaitCiArgs {
     projectDir: string;

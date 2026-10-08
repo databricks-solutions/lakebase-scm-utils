@@ -8235,6 +8235,8 @@ async function getPullRequest(ownerRepo, headBranch) {
       isDraft: pr.draft || false,
       ciStatus,
       checks,
+      mergeable: pr.mergeable,
+      mergeableState: pr.mergeable_state,
       headBranch: pr.head?.ref || headBranch,
       baseBranch: pr.base?.ref || "",
       body: pr.body || void 0,
@@ -8661,6 +8663,12 @@ async function waitForCi(args) {
       }
       if (lastPr.ciStatus === "success") {
         return { done: true, value: lastPr };
+      }
+      if (lastPr.mergeableState === "dirty" && lastPr.checks.length === 0) {
+        throw new ScmWaitCiError(
+          `PR ${lastPr.url} is CONFLICTING with ${lastPr.baseBranch} \u2014 GitHub will not dispatch CI (0 runs) until the conflict is resolved. Reconcile the branch and re-push; the synchronize event will trigger CI.`,
+          "pr-conflicting"
+        );
       }
       if (lastPr.ciStatus === "failure") {
         const failed = lastPr.checks.filter((c) => /(FAILURE|TIMED_OUT|CANCELLED|ACTION_REQUIRED)/i.test(c.conclusion)).map((c) => `${c.name} (${c.conclusion})`);

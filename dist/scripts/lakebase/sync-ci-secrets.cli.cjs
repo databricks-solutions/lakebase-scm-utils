@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -10,6 +11,10 @@ var __esm = (fn, res) => function __init() {
 };
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -27,21 +32,23 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// node_modules/tsup/assets/esm_shims.js
-import path from "path";
-import { fileURLToPath } from "url";
-var init_esm_shims = __esm({
-  "node_modules/tsup/assets/esm_shims.js"() {
+// node_modules/tsup/assets/cjs_shims.js
+var getImportMetaUrl, importMetaUrl;
+var init_cjs_shims = __esm({
+  "node_modules/tsup/assets/cjs_shims.js"() {
     "use strict";
+    getImportMetaUrl = () => typeof document === "undefined" ? new URL(`file:${__filename}`).href : document.currentScript && document.currentScript.tagName.toUpperCase() === "SCRIPT" ? document.currentScript.src : new URL("main.js", document.baseURI).href;
+    importMetaUrl = /* @__PURE__ */ getImportMetaUrl();
   }
 });
 
 // node_modules/fast-content-type-parse/index.js
 var require_fast_content_type_parse = __commonJS({
-  "node_modules/fast-content-type-parse/index.js"(exports, module) {
+  "node_modules/fast-content-type-parse/index.js"(exports2, module2) {
     "use strict";
-    init_esm_shims();
+    init_cjs_shims();
     var NullObject = function NullObject2() {
     };
     NullObject.prototype = /* @__PURE__ */ Object.create(null);
@@ -127,21 +134,21 @@ var require_fast_content_type_parse = __commonJS({
       }
       return result;
     }
-    module.exports.default = { parse: parse2, safeParse: safeParse2 };
-    module.exports.parse = parse2;
-    module.exports.safeParse = safeParse2;
-    module.exports.defaultContentType = defaultContentType;
+    module2.exports.default = { parse: parse2, safeParse: safeParse2 };
+    module2.exports.parse = parse2;
+    module2.exports.safeParse = safeParse2;
+    module2.exports.defaultContentType = defaultContentType;
   }
 });
 
 // node_modules/bottleneck/light.js
 var require_light = __commonJS({
-  "node_modules/bottleneck/light.js"(exports, module) {
+  "node_modules/bottleneck/light.js"(exports2, module2) {
     "use strict";
-    init_esm_shims();
+    init_cjs_shims();
     (function(global2, factory) {
-      typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : global2.Bottleneck = factory();
-    })(exports, (function() {
+      typeof exports2 === "object" && typeof module2 !== "undefined" ? module2.exports = factory() : typeof define === "function" && define.amd ? define(factory) : global2.Bottleneck = factory();
+    })(exports2, (function() {
       "use strict";
       var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
       function getCjsExportFromNamespace(n) {
@@ -1455,46 +1462,371 @@ var require_light = __commonJS({
   }
 });
 
-// scripts/lakebase/scm-wait-ci.cli.ts
-init_esm_shims();
-import * as path4 from "path";
+// scripts/lakebase/sync-ci-secrets.cli.ts
+var sync_ci_secrets_cli_exports = {};
+__export(sync_ci_secrets_cli_exports, {
+  runSyncCiSecretsCli: () => runSyncCiSecretsCli
+});
+module.exports = __toCommonJS(sync_ci_secrets_cli_exports);
+init_cjs_shims();
+var path2 = __toESM(require("path"), 1);
 
 // scripts/util/cli-entry.ts
-init_esm_shims();
-import { realpathSync } from "fs";
-import { fileURLToPath as fileURLToPath2 } from "url";
-function isCliEntry(importMetaUrl) {
+init_cjs_shims();
+var import_node_fs = require("fs");
+var import_node_url = require("url");
+function isCliEntry(importMetaUrl2) {
   const invokedRaw = process.argv[1];
   if (!invokedRaw) return false;
   let invokedResolved;
   let moduleResolved;
   try {
-    invokedResolved = realpathSync(invokedRaw);
+    invokedResolved = (0, import_node_fs.realpathSync)(invokedRaw);
   } catch {
     return false;
   }
   try {
-    moduleResolved = realpathSync(fileURLToPath2(importMetaUrl));
+    moduleResolved = (0, import_node_fs.realpathSync)((0, import_node_url.fileURLToPath)(importMetaUrl2));
   } catch {
     return false;
   }
   return invokedResolved === moduleResolved;
 }
 
-// scripts/lakebase/scm-wait-ci.ts
-init_esm_shims();
+// scripts/lakebase/env-file.ts
+init_cjs_shims();
+var fs = __toESM(require("fs"), 1);
+var path = __toESM(require("path"), 1);
+function readEnvVar(envPath, key) {
+  if (!fs.existsSync(envPath)) return void 0;
+  let value;
+  for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
+    value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
+  }
+  return value && value.length > 0 ? value : void 0;
+}
 
-// scripts/github/pr.ts
-init_esm_shims();
+// scripts/git/remote.ts
+init_cjs_shims();
+
+// scripts/util/exec.ts
+init_cjs_shims();
+var cp = __toESM(require("child_process"), 1);
+function exec2(command, opts = {}) {
+  return new Promise((resolve2, reject) => {
+    const options = {
+      cwd: opts.cwd,
+      timeout: opts.timeout ?? 6e4
+    };
+    if (opts.env) {
+      options.env = { ...process.env, ...opts.env };
+    }
+    cp.exec(command, options, (err, stdout, stderr) => {
+      if (err) {
+        const msg = String(stderr || err.message);
+        reject(new Error(`${command}: ${msg}`));
+        return;
+      }
+      resolve2(String(stdout).trim());
+    });
+  });
+}
+
+// scripts/util/parse-owner-repo.ts
+init_cjs_shims();
+function parseOwnerRepo(urlOrSlug) {
+  const trimmed = urlOrSlug.trim().replace(/\.git$/, "");
+  if (trimmed.includes("/")) {
+    const slugMatch = trimmed.match(/github\.com[/:]([^/]+)\/([^/]+)/);
+    if (slugMatch) {
+      return { owner: slugMatch[1], repo: slugMatch[2] };
+    }
+    const parts = trimmed.split("/");
+    if (parts.length >= 2) {
+      return {
+        owner: parts[parts.length - 2],
+        repo: parts[parts.length - 1]
+      };
+    }
+  }
+  throw new Error(`Invalid GitHub repo reference: ${urlOrSlug}`);
+}
+function formatOwnerRepo(owner, repo) {
+  return `${owner}/${repo}`;
+}
+
+// scripts/git/remote.ts
+async function getGitHubUrl(cwd) {
+  try {
+    const raw = (await exec2("git remote get-url origin", { cwd, timeout: 5e3 })).trim();
+    if (!raw) {
+      return "";
+    }
+    const url = raw.replace(/\.git$/, "");
+    const scp = url.match(/^(?:[^@/]+@)?[^/:]+:([^/].*)$/);
+    if (scp) {
+      return `https://github.com/${scp[1]}`;
+    }
+    const ssh = url.match(/^ssh:\/\/(?:[^@/]+@)?[^/]+\/(.+)$/);
+    if (ssh) {
+      return `https://github.com/${ssh[1]}`;
+    }
+    const https = url.match(/^https?:\/\/[^/]+\/(.+)$/);
+    if (https) {
+      return `https://github.com/${https[1]}`;
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+async function getOwnerRepo(cwd) {
+  const url = await getGitHubUrl(cwd);
+  if (!url) return "";
+  try {
+    const { owner, repo } = parseOwnerRepo(url);
+    return formatOwnerRepo(owner, repo);
+  } catch {
+    return "";
+  }
+}
+
+// scripts/util/ci-secrets.ts
+init_cjs_shims();
+
+// scripts/lakebase/databricks-cli.ts
+init_cjs_shims();
+var import_node_child_process2 = require("child_process");
+var import_node_util = require("util");
+var import_node_path = require("path");
+
+// scripts/lakebase/kit-config.ts
+init_cjs_shims();
+function intFromEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+var DAY_MS = 24 * 60 * 60 * 1e3;
+var KIT_TIMEOUTS = {
+  cliDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_DEFAULT_MS", 3e4),
+  cliCreateProject: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_PROJECT_MS", 18e4),
+  cliCreateBranch: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_BRANCH_MS", 6e4),
+  cliCreateEndpoint: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_ENDPOINT_MS", 6e4),
+  readyWait: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_WAIT_MS", 12e4),
+  readyPoll: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_POLL_MS", 5e3),
+  pgConnect: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_CONNECT_MS", 1e4),
+  pgStatement: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_STATEMENT_MS", 15e3),
+  gitDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_DEFAULT_MS", 5e3),
+  gitCheckout: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_CHECKOUT_MS", 1e4),
+  gitNetwork: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_NETWORK_MS", 15e3),
+  gitPush: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_PUSH_MS", 3e4),
+  cliLong: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_LONG_MS", 6e4),
+  cmdShort: intFromEnv("LAKEBASE_KIT_TIMEOUT_CMD_SHORT_MS", 5e3),
+  initializrCacheTtl: intFromEnv("LAKEBASE_KIT_INITIALIZR_CACHE_TTL_MS", 10 * 60 * 1e3),
+  featureBranchTtlMs: intFromEnv("LAKEBASE_KIT_FEATURE_BRANCH_TTL_MS", 30 * DAY_MS),
+  testBranchTtlMs: intFromEnv("LAKEBASE_KIT_TEST_BRANCH_TTL_MS", 14 * DAY_MS),
+  uatBranchTtlMs: intFromEnv("LAKEBASE_KIT_UAT_BRANCH_TTL_MS", 14 * DAY_MS),
+  perfBranchTtlMs: intFromEnv("LAKEBASE_KIT_PERF_BRANCH_TTL_MS", 7 * DAY_MS)
+};
+function urlFromEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  return raw.replace(/\/+$/, "");
+}
+var KIT_REGISTRIES = {
+  mavenCentral: urlFromEnv("LAKEBASE_KIT_REGISTRY_MAVEN_CENTRAL", "https://repo1.maven.org/maven2"),
+  springInitializr: urlFromEnv("LAKEBASE_KIT_REGISTRY_SPRING_INITIALIZR", "https://start.spring.io")
+};
+
+// scripts/lakebase/databricks-profile.ts
+init_cjs_shims();
+var fs2 = __toESM(require("fs"), 1);
+var import_node_child_process = require("child_process");
+function normalizeHost(host) {
+  return host.trim().replace(/\/+$/, "").toLowerCase();
+}
+function selectProfileForHost(profilesJson, host) {
+  const target = normalizeHost(host);
+  if (!target) return void 0;
+  const start = profilesJson.indexOf("{");
+  if (start < 0) return void 0;
+  let parsed;
+  try {
+    parsed = JSON.parse(profilesJson.slice(start));
+  } catch {
+    return void 0;
+  }
+  const profiles = parsed.profiles;
+  if (!Array.isArray(profiles)) return void 0;
+  const names = profiles.filter((p) => {
+    if (!p || typeof p !== "object") return false;
+    const rec = p;
+    return typeof rec.name === "string" && typeof rec.host === "string" && rec.valid === true && normalizeHost(rec.host) === target;
+  }).map((p) => p.name);
+  const distinct = Array.from(new Set(names));
+  return distinct.length === 1 ? distinct[0] : void 0;
+}
+function resolveProfileForHostSync(host, timeoutMs = KIT_TIMEOUTS.cliDefault) {
+  if (!normalizeHost(host)) return void 0;
+  let out;
+  try {
+    out = (0, import_node_child_process.execFileSync)("databricks", ["auth", "profiles", "-o", "json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: timeoutMs
+    });
+  } catch {
+    return void 0;
+  }
+  return selectProfileForHost(out, host);
+}
+
+// scripts/lakebase/databricks-cli.ts
+var execFileP = (0, import_node_util.promisify)(import_node_child_process2.execFile);
+var DatabricksCliError = class extends Error {
+  constructor(message, profile, stderr) {
+    super(message);
+    this.profile = profile;
+    this.stderr = stderr;
+    this.name = "DatabricksCliError";
+  }
+  profile;
+  stderr;
+};
+var DatabricksAuthError = class extends DatabricksCliError {
+  constructor(profile, detail) {
+    const login = `databricks auth login${profile ? ` --profile ${profile}` : ""}`;
+    super(
+      `Databricks authentication failed${profile ? ` for profile "${profile}"` : ""}: the cached token is missing or expired. Re-authenticate, then re-run:
+  ${login}
+${detail}`,
+      profile,
+      detail
+    );
+    this.name = "DatabricksAuthError";
+  }
+};
+var profileByHost = /* @__PURE__ */ new Map();
+var profileByEnvFile = /* @__PURE__ */ new Map();
+var hostByEnvFile = /* @__PURE__ */ new Map();
+function envFileHost(cwd) {
+  if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
+  const v = readEnvVar((0, import_node_path.join)(cwd, ".env"), "DATABRICKS_HOST");
+  hostByEnvFile.set(cwd, v);
+  return v;
+}
+function effectiveHost(opts) {
+  const base = opts.env ?? process.env;
+  const cwd = opts.cwd ?? process.cwd();
+  const h = opts.host ?? base.DATABRICKS_HOST ?? envFileHost(cwd);
+  return h?.trim() || void 0;
+}
+function isAuthFailure(text) {
+  return /refresh token is invalid|auth login|could not be retrieved because|not authenticated|no valid.*(credential|token)|invalid.*(access token|credential)|\b401\b|unauthorized/i.test(
+    text
+  );
+}
+function resolveProfile(opts) {
+  const base = opts.env ?? process.env;
+  if (opts.profile) return opts.profile;
+  const envProfile = base.DATABRICKS_CONFIG_PROFILE?.trim();
+  if (envProfile) return envProfile;
+  const cwd = opts.cwd ?? process.cwd();
+  let fromEnvFile;
+  if (profileByEnvFile.has(cwd)) {
+    fromEnvFile = profileByEnvFile.get(cwd);
+  } else {
+    fromEnvFile = readEnvVar((0, import_node_path.join)(cwd, ".env"), "DATABRICKS_CONFIG_PROFILE");
+    profileByEnvFile.set(cwd, fromEnvFile);
+  }
+  if (fromEnvFile) return fromEnvFile;
+  const host = effectiveHost(opts);
+  if (!host) return void 0;
+  if (profileByHost.has(host)) return profileByHost.get(host);
+  const resolved = resolveProfileForHostSync(host, opts.timeout);
+  profileByHost.set(host, resolved);
+  return resolved;
+}
+function buildInvocation(args, opts) {
+  const base = opts.env ?? process.env;
+  const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
+  const profile = resolveProfile(opts);
+  const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  return { argv, env, profile };
+}
+function classifyDatabricksError(err, argv, profile) {
+  const e = err;
+  const asText = (v) => typeof v === "string" ? v : Buffer.isBuffer(v) ? v.toString("utf8") : "";
+  const stderr = asText(e.stderr).trim();
+  const stdout = asText(e.stdout).trim();
+  const haystack = `${e.message ?? ""}
+${stderr}
+${stdout}`;
+  if (isAuthFailure(haystack)) {
+    return new DatabricksAuthError(profile, stderr || stdout || (e.message ?? ""));
+  }
+  const killed = e.killed === true;
+  const signal = e.signal ?? void 0;
+  const detail = stderr ? `
+stderr: ${stderr}` : stdout ? `
+stdout: ${stdout}` : killed || signal ? `
+(no output; the CLI was killed${signal ? ` by ${signal}` : ""}, likely a TIMEOUT; raise the budget via the matching LAKEBASE_KIT_TIMEOUT_* env var)` : e.code !== void 0 ? `
+(no stderr/stdout; exit ${e.code})` : "";
+  return new DatabricksCliError(
+    `databricks ${argv.join(" ")} failed: ${e.message}${detail}`,
+    profile,
+    stderr || stdout
+  );
+}
+async function runDatabricks(args, opts = {}) {
+  const { argv, env, profile } = buildInvocation(args, opts);
+  const timeout = opts.timeout ?? KIT_TIMEOUTS.cliDefault;
+  try {
+    if (opts.input !== void 0) {
+      return await execDatabricksWithStdin(argv, opts.input, env, timeout);
+    }
+    const { stdout } = await execFileP("databricks", argv, { env, timeout });
+    return stdout.toString();
+  } catch (err) {
+    throw classifyDatabricksError(err, argv, profile);
+  }
+}
+function execDatabricksWithStdin(argv, input, env, timeout) {
+  return new Promise((resolve2, reject) => {
+    const child = (0, import_node_child_process2.execFile)("databricks", argv, { env, timeout }, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = String(stdout ?? "");
+        err.stderr = String(stderr ?? "");
+        reject(err);
+        return;
+      }
+      resolve2(String(stdout ?? ""));
+    });
+    child.stdin?.on("error", () => {
+    });
+    child.stdin?.end(input);
+  });
+}
+
+// scripts/github/secrets.ts
+init_cjs_shims();
 
 // node_modules/octokit/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/core/dist-src/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/universal-user-agent/index.js
-init_esm_shims();
+init_cjs_shims();
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
     return navigator.userAgent;
@@ -1506,10 +1838,10 @@ function getUserAgent() {
 }
 
 // node_modules/before-after-hook/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/before-after-hook/lib/register.js
-init_esm_shims();
+init_cjs_shims();
 function register(state, name, method, options) {
   if (typeof method !== "function") {
     throw new Error("method for before hook must be a function");
@@ -1533,7 +1865,7 @@ function register(state, name, method, options) {
 }
 
 // node_modules/before-after-hook/lib/add.js
-init_esm_shims();
+init_cjs_shims();
 function addHook(state, kind, name, hook7) {
   const orig = hook7;
   if (!state.registry[name]) {
@@ -1569,7 +1901,7 @@ function addHook(state, kind, name, hook7) {
 }
 
 // node_modules/before-after-hook/lib/remove.js
-init_esm_shims();
+init_cjs_shims();
 function removeHook(state, name, method) {
   if (!state.registry[name]) {
     return;
@@ -1618,10 +1950,10 @@ function Collection() {
 var before_after_hook_default = { Singular, Collection };
 
 // node_modules/@octokit/request/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/endpoint/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var VERSION = "0.0.0-development";
 var userAgent = `octokit-endpoint.js/${VERSION} ${getUserAgent()}`;
 var DEFAULTS = {
@@ -1938,7 +2270,7 @@ var endpoint = withDefaults(null, DEFAULTS);
 var import_fast_content_type_parse = __toESM(require_fast_content_type_parse(), 1);
 
 // node_modules/@octokit/request-error/dist-src/index.js
-init_esm_shims();
+init_cjs_shims();
 var RequestError = class extends Error {
   name;
   /**
@@ -2152,7 +2484,7 @@ function withDefaults2(oldEndpoint, newDefaults) {
 var request = withDefaults2(endpoint, defaults_default);
 
 // node_modules/@octokit/graphql/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var VERSION3 = "0.0.0-development";
 function _buildMessageForResponseErrors(data) {
   return `Request failed due to following response errors:
@@ -2260,7 +2592,7 @@ function withCustomRequest(customRequest) {
 }
 
 // node_modules/@octokit/auth-token/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var b64url = "(?:[a-zA-Z0-9_-]+)";
 var sep = "\\.";
 var jwtRE = new RegExp(`^${b64url}${sep}${b64url}${sep}${b64url}$`);
@@ -2306,7 +2638,7 @@ var createTokenAuth = function createTokenAuth2(token) {
 };
 
 // node_modules/@octokit/core/dist-src/version.js
-init_esm_shims();
+init_cjs_shims();
 var VERSION4 = "6.1.6";
 
 // node_modules/@octokit/core/dist-src/index.js
@@ -2444,7 +2776,7 @@ var Octokit = class {
 };
 
 // node_modules/@octokit/plugin-paginate-rest/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var VERSION5 = "0.0.0-development";
 function normalizePaginatedListResponse(response) {
   if (!response.data) {
@@ -2473,9 +2805,9 @@ function normalizePaginatedListResponse(response) {
   response.data.total_count = totalCount;
   return response;
 }
-function iterator(octokit2, route, parameters) {
-  const options = typeof route === "function" ? route.endpoint(parameters) : octokit2.request.endpoint(route, parameters);
-  const requestMethod = typeof route === "function" ? route : octokit2.request;
+function iterator(octokit, route, parameters) {
+  const options = typeof route === "function" ? route.endpoint(parameters) : octokit.request.endpoint(route, parameters);
+  const requestMethod = typeof route === "function" ? route : octokit.request;
   const method = options.method;
   const headers = options.headers;
   let url = options.url;
@@ -2505,19 +2837,19 @@ function iterator(octokit2, route, parameters) {
     })
   };
 }
-function paginate(octokit2, route, parameters, mapFn) {
+function paginate(octokit, route, parameters, mapFn) {
   if (typeof parameters === "function") {
     mapFn = parameters;
     parameters = void 0;
   }
   return gather(
-    octokit2,
+    octokit,
     [],
-    iterator(octokit2, route, parameters)[Symbol.asyncIterator](),
+    iterator(octokit, route, parameters)[Symbol.asyncIterator](),
     mapFn
   );
 }
-function gather(octokit2, results, iterator2, mapFn) {
+function gather(octokit, results, iterator2, mapFn) {
   return iterator2.next().then((result) => {
     if (result.done) {
       return results;
@@ -2532,24 +2864,24 @@ function gather(octokit2, results, iterator2, mapFn) {
     if (earlyExit) {
       return results;
     }
-    return gather(octokit2, results, iterator2, mapFn);
+    return gather(octokit, results, iterator2, mapFn);
   });
 }
 var composePaginateRest = Object.assign(paginate, {
   iterator
 });
-function paginateRest(octokit2) {
+function paginateRest(octokit) {
   return {
-    paginate: Object.assign(paginate.bind(null, octokit2), {
-      iterator: iterator.bind(null, octokit2)
+    paginate: Object.assign(paginate.bind(null, octokit), {
+      iterator: iterator.bind(null, octokit)
     })
   };
 }
 paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
-init_esm_shims();
-var generateMessage = (path5, cursorValue) => `The cursor at "${path5.join(
+init_cjs_shims();
+var generateMessage = (path3, cursorValue) => `The cursor at "${path3.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -2590,9 +2922,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path5 = []) => {
+var deepFindPathToProperty = (object, searchProp, path3 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path5, key];
+    const currentPath = [...path3, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -2610,12 +2942,12 @@ var deepFindPathToProperty = (object, searchProp, path5 = []) => {
   }
   return [];
 };
-var get = (object, path5) => {
-  return path5.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path3) => {
+  return path3.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path5, mutator) => {
-  const lastProperty = path5[path5.length - 1];
-  const parentPath = [...path5].slice(0, -1);
+var set = (object, path3, mutator) => {
+  const lastProperty = path3[path3.length - 1];
+  const parentPath = [...path3].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -2635,7 +2967,7 @@ var isForwardSearch = (givenPageInfo) => {
 };
 var getCursorFrom = (pageInfo) => isForwardSearch(pageInfo) ? pageInfo.endCursor : pageInfo.startCursor;
 var hasAnotherPage = (pageInfo) => isForwardSearch(pageInfo) ? pageInfo.hasNextPage : pageInfo.hasPreviousPage;
-var createIterator = (octokit2) => {
+var createIterator = (octokit) => {
   return (query, initialParameters = {}) => {
     let nextPageExists = true;
     let parameters = { ...initialParameters };
@@ -2643,7 +2975,7 @@ var createIterator = (octokit2) => {
       [Symbol.asyncIterator]: () => ({
         async next() {
           if (!nextPageExists) return { done: true, value: {} };
-          const response = await octokit2.graphql(
+          const response = await octokit.graphql(
             query,
             parameters
           );
@@ -2667,27 +2999,27 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path5 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path5, "nodes"];
+  const path3 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path3, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path5, "edges"];
+  const edgesPath = [...path3, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path5, "pageInfo"];
+  const pageInfoPath = [...path3, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
-var createPaginate = (octokit2) => {
-  const iterator2 = createIterator(octokit2);
+var createPaginate = (octokit) => {
+  const iterator2 = createIterator(octokit);
   return async (query, initialParameters = {}) => {
     let mergedResponse = {};
     for await (const response of iterator2(
@@ -2699,28 +3031,28 @@ var createPaginate = (octokit2) => {
     return mergedResponse;
   };
 };
-function paginateGraphQL(octokit2) {
+function paginateGraphQL(octokit) {
   return {
-    graphql: Object.assign(octokit2.graphql, {
-      paginate: Object.assign(createPaginate(octokit2), {
-        iterator: createIterator(octokit2)
+    graphql: Object.assign(octokit.graphql, {
+      paginate: Object.assign(createPaginate(octokit), {
+        iterator: createIterator(octokit)
       })
     })
   };
 }
 
 // node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/version.js
-init_esm_shims();
+init_cjs_shims();
 var VERSION6 = "14.0.0";
 
 // node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/endpoints-to-methods.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/generated/endpoints.js
-init_esm_shims();
+init_cjs_shims();
 var Endpoints = {
   actions: {
     addCustomLabelsToSelfHostedRunnerForOrg: [
@@ -4872,7 +5204,7 @@ var handler = {
   set(target, methodName, value) {
     return target.cache[methodName] = value;
   },
-  get({ octokit: octokit2, scope, cache }, methodName) {
+  get({ octokit, scope, cache }, methodName) {
     if (cache[methodName]) {
       return cache[methodName];
     }
@@ -4883,27 +5215,27 @@ var handler = {
     const { endpointDefaults, decorations } = method;
     if (decorations) {
       cache[methodName] = decorate(
-        octokit2,
+        octokit,
         scope,
         methodName,
         endpointDefaults,
         decorations
       );
     } else {
-      cache[methodName] = octokit2.request.defaults(endpointDefaults);
+      cache[methodName] = octokit.request.defaults(endpointDefaults);
     }
     return cache[methodName];
   }
 };
-function endpointsToMethods(octokit2) {
+function endpointsToMethods(octokit) {
   const newMethods = {};
   for (const scope of endpointMethodsMap.keys()) {
-    newMethods[scope] = new Proxy({ octokit: octokit2, scope, cache: {} }, handler);
+    newMethods[scope] = new Proxy({ octokit, scope, cache: {} }, handler);
   }
   return newMethods;
 }
-function decorate(octokit2, scope, methodName, defaults, decorations) {
-  const requestWithDefaults = octokit2.request.defaults(defaults);
+function decorate(octokit, scope, methodName, defaults, decorations) {
+  const requestWithDefaults = octokit.request.defaults(defaults);
   function withDecorations(...args) {
     let options = requestWithDefaults.endpoint.merge(...args);
     if (decorations.mapToData) {
@@ -4915,12 +5247,12 @@ function decorate(octokit2, scope, methodName, defaults, decorations) {
     }
     if (decorations.renamed) {
       const [newScope, newMethodName] = decorations.renamed;
-      octokit2.log.warn(
+      octokit.log.warn(
         `octokit.${scope}.${methodName}() has been renamed to octokit.${newScope}.${newMethodName}()`
       );
     }
     if (decorations.deprecated) {
-      octokit2.log.warn(decorations.deprecated);
+      octokit.log.warn(decorations.deprecated);
     }
     if (decorations.renamedParameters) {
       const options2 = requestWithDefaults.endpoint.merge(...args);
@@ -4928,7 +5260,7 @@ function decorate(octokit2, scope, methodName, defaults, decorations) {
         decorations.renamedParameters
       )) {
         if (name in options2) {
-          octokit2.log.warn(
+          octokit.log.warn(
             `"${name}" parameter is deprecated for "octokit.${scope}.${methodName}()". Use "${alias}" instead`
           );
           if (!(alias in options2)) {
@@ -4945,15 +5277,15 @@ function decorate(octokit2, scope, methodName, defaults, decorations) {
 }
 
 // node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
-function restEndpointMethods(octokit2) {
-  const api = endpointsToMethods(octokit2);
+function restEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit);
   return {
     rest: api
   };
 }
 restEndpointMethods.VERSION = VERSION6;
-function legacyRestEndpointMethods(octokit2) {
-  const api = endpointsToMethods(octokit2);
+function legacyRestEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit);
   return {
     ...api,
     rest: api
@@ -4962,21 +5294,21 @@ function legacyRestEndpointMethods(octokit2) {
 legacyRestEndpointMethods.VERSION = VERSION6;
 
 // node_modules/@octokit/plugin-retry/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var import_light = __toESM(require_light(), 1);
 var VERSION7 = "0.0.0-development";
-async function errorRequest(state, octokit2, error, options) {
+async function errorRequest(state, octokit, error, options) {
   if (!error.request || !error.request.request) {
     throw error;
   }
   if (error.status >= 400 && !state.doNotRetry.includes(error.status)) {
     const retries = options.request.retries != null ? options.request.retries : state.retries;
     const retryAfter = Math.pow((options.request.retryCount || 0) + 1, 2);
-    throw octokit2.retry.retryRequest(error, retries, retryAfter);
+    throw octokit.retry.retryRequest(error, retries, retryAfter);
   }
   throw error;
 }
-async function wrapRequest(state, octokit2, request2, options) {
+async function wrapRequest(state, octokit, request2, options) {
   const limiter = new import_light.default();
   limiter.on("failed", function(error, info) {
     const maxRetries = ~~error.request.request.retries;
@@ -4987,11 +5319,11 @@ async function wrapRequest(state, octokit2, request2, options) {
     }
   });
   return limiter.schedule(
-    requestWithGraphqlErrorHandling.bind(null, state, octokit2, request2),
+    requestWithGraphqlErrorHandling.bind(null, state, octokit, request2),
     options
   );
 }
-async function requestWithGraphqlErrorHandling(state, octokit2, request2, options) {
+async function requestWithGraphqlErrorHandling(state, octokit, request2, options) {
   const response = await request2(request2, options);
   if (response.data && response.data.errors && response.data.errors.length > 0 && /Something went wrong while executing your query/.test(
     response.data.errors[0].message
@@ -5000,11 +5332,11 @@ async function requestWithGraphqlErrorHandling(state, octokit2, request2, option
       request: options,
       response
     });
-    return errorRequest(state, octokit2, error, options);
+    return errorRequest(state, octokit, error, options);
   }
   return response;
 }
-function retry(octokit2, octokitOptions) {
+function retry(octokit, octokitOptions) {
   const state = Object.assign(
     {
       enabled: true,
@@ -5015,8 +5347,8 @@ function retry(octokit2, octokitOptions) {
     octokitOptions.retry
   );
   if (state.enabled) {
-    octokit2.hook.error("request", errorRequest.bind(null, state, octokit2));
-    octokit2.hook.wrap("request", wrapRequest.bind(null, state, octokit2));
+    octokit.hook.error("request", errorRequest.bind(null, state, octokit));
+    octokit.hook.wrap("request", wrapRequest.bind(null, state, octokit));
   }
   return {
     retry: {
@@ -5033,7 +5365,7 @@ function retry(octokit2, octokitOptions) {
 retry.VERSION = VERSION7;
 
 // node_modules/@octokit/plugin-throttling/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 var import_light2 = __toESM(require_light(), 1);
 var VERSION8 = "0.0.0-development";
 var noop2 = () => Promise.resolve();
@@ -5103,7 +5435,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path5) => path5.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path3) => path3.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -5141,7 +5473,7 @@ var createGroups = function(Bottleneck2, common) {
     ...common
   });
 };
-function throttling(octokit2, octokitOptions) {
+function throttling(octokit, octokitOptions) {
   const {
     enabled = true,
     Bottleneck: Bottleneck2 = import_light2.default,
@@ -5191,7 +5523,7 @@ function throttling(octokit2, octokitOptions) {
   events.on("rate-limit", state.onRateLimit);
   events.on(
     "error",
-    (e) => octokit2.log.warn("Error in throttling-plugin limit handler", e)
+    (e) => octokit.log.warn("Error in throttling-plugin limit handler", e)
   );
   state.retryLimiter.on("failed", async function(error, info) {
     const [state2, request2, options] = info.args;
@@ -5210,7 +5542,7 @@ function throttling(octokit2, octokitOptions) {
           "secondary-limit",
           retryAfter2,
           options,
-          octokit2,
+          octokit,
           retryCount
         );
         return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
@@ -5231,7 +5563,7 @@ function throttling(octokit2, octokitOptions) {
           "rate-limit",
           retryAfter2,
           options,
-          octokit2,
+          octokit,
           retryCount
         );
         return { wantRetry: wantRetry2, retryAfter: retryAfter2 };
@@ -5243,32 +5575,32 @@ function throttling(octokit2, octokitOptions) {
       return retryAfter * state2.retryAfterBaseValue;
     }
   });
-  octokit2.hook.wrap("request", wrapRequest2.bind(null, state));
+  octokit.hook.wrap("request", wrapRequest2.bind(null, state));
   return {};
 }
 throttling.VERSION = VERSION8;
 throttling.triggersNotification = triggersNotification;
 
 // node_modules/@octokit/app/dist-node/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/auth-app/dist-node/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/auth-oauth-app/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/auth-oauth-user/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/auth-oauth-device/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/oauth-methods/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/oauth-authorization-url/dist-src/index.js
-init_esm_shims();
+init_cjs_shims();
 function oauthAuthorizationUrl(options) {
   const clientType = options.clientType || "oauth-app";
   const baseUrl = options.baseUrl || "https://github.com";
@@ -5963,13 +6295,13 @@ function createOAuthAppAuth(options) {
 }
 
 // node_modules/universal-github-app-jwt/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/universal-github-app-jwt/lib/get-token.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/universal-github-app-jwt/lib/utils.js
-init_esm_shims();
+init_cjs_shims();
 function isPkcs1(privateKey) {
   return privateKey.includes("-----BEGIN RSA PRIVATE KEY-----");
 }
@@ -6009,12 +6341,12 @@ function base64encodeJSON(obj) {
 }
 
 // node_modules/universal-github-app-jwt/lib/crypto-node.js
-init_esm_shims();
-import { subtle } from "crypto";
-import { createPrivateKey } from "crypto";
+init_cjs_shims();
+var import_node_crypto = require("crypto");
+var import_node_crypto2 = require("crypto");
 function convertPrivateKey(privateKey) {
   if (!isPkcs1(privateKey)) return privateKey;
-  return createPrivateKey(privateKey).export({
+  return (0, import_node_crypto2.createPrivateKey)(privateKey).export({
     type: "pkcs8",
     format: "pem"
   });
@@ -6039,7 +6371,7 @@ async function getToken({ privateKey, payload }) {
   };
   const header = { alg: "RS256", typ: "JWT" };
   const privateKeyDER = getDERfromPEM(convertedPrivateKey);
-  const importedKey = await subtle.importKey(
+  const importedKey = await import_node_crypto.subtle.importKey(
     "pkcs8",
     privateKeyDER,
     algorithm,
@@ -6048,7 +6380,7 @@ async function getToken({ privateKey, payload }) {
   );
   const encodedMessage = getEncodedMessage(header, payload);
   const encodedMessageArrBuf = string2ArrayBuffer(encodedMessage);
-  const signatureArrBuf = await subtle.sign(
+  const signatureArrBuf = await import_node_crypto.subtle.sign(
     algorithm.name,
     importedKey,
     encodedMessageArrBuf
@@ -6084,7 +6416,7 @@ async function githubAppJwt({
 }
 
 // node_modules/toad-cache/dist/toad-cache.mjs
-init_esm_shims();
+init_cjs_shims();
 function validateCacheParams(max, ttlInMsecs) {
   if (typeof max !== "number" || !Number.isInteger(max) || max < 0) {
     throw new Error("Invalid max value");
@@ -6665,10 +6997,10 @@ function createAppAuth(options) {
 }
 
 // node_modules/@octokit/oauth-app/dist-node/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/auth-unauthenticated/dist-node/index.js
-init_esm_shims();
+init_cjs_shims();
 async function auth6(reason) {
   return {
     type: "unauthenticated",
@@ -6768,11 +7100,11 @@ async function getUserOctokitWithState(state, options) {
     type: "oauth-user",
     ...options,
     async factory(options2) {
-      const octokit2 = new state.Octokit({
+      const octokit = new state.Octokit({
         authStrategy: createOAuthUserAuth,
         auth: options2
       });
-      const authentication = await octokit2.auth({
+      const authentication = await octokit.auth({
         type: "get"
       });
       await emitEvent(state, {
@@ -6781,9 +7113,9 @@ async function getUserOctokitWithState(state, options) {
         token: authentication.token,
         scopes: authentication.scopes,
         authentication,
-        octokit: octokit2
+        octokit
       });
-      return octokit2;
+      return octokit;
     }
   });
 }
@@ -7055,7 +7387,7 @@ var OAuthApp = class {
   constructor(options) {
     const Octokit22 = options.Octokit || OAuthAppOctokit;
     this.type = options.clientType || "oauth-app";
-    const octokit2 = new Octokit22({
+    const octokit = new Octokit22({
       authStrategy: createOAuthAppAuth,
       auth: {
         clientType: this.type,
@@ -7074,11 +7406,11 @@ var OAuthApp = class {
       redirectUrl: options.redirectUrl,
       log: options.log,
       Octokit: Octokit22,
-      octokit: octokit2,
+      octokit,
       eventHandlers: {}
     };
     this.on = addEventHandler.bind(null, state);
-    this.octokit = octokit2;
+    this.octokit = octokit;
     this.getUserOctokit = getUserOctokitWithState.bind(null, state);
     this.getWebFlowAuthorizationUrl = getWebFlowAuthorizationUrlWithState.bind(
       null,
@@ -7123,13 +7455,13 @@ var OAuthApp = class {
 };
 
 // node_modules/@octokit/webhooks/dist-bundle/index.js
-init_esm_shims();
+init_cjs_shims();
 
 // node_modules/@octokit/webhooks-methods/dist-node/index.js
-init_esm_shims();
-import { createHmac } from "crypto";
-import { timingSafeEqual } from "crypto";
-import { Buffer as Buffer2 } from "buffer";
+init_cjs_shims();
+var import_node_crypto3 = require("crypto");
+var import_node_crypto4 = require("crypto");
+var import_node_buffer = require("buffer");
 var VERSION14 = "5.1.1";
 async function sign(secret, payload) {
   if (!secret || !payload) {
@@ -7141,7 +7473,7 @@ async function sign(secret, payload) {
     throw new TypeError("[@octokit/webhooks-methods] payload must be a string");
   }
   const algorithm = "sha256";
-  return `${algorithm}=${createHmac(algorithm, secret).update(payload).digest("hex")}`;
+  return `${algorithm}=${(0, import_node_crypto3.createHmac)(algorithm, secret).update(payload).digest("hex")}`;
 }
 sign.VERSION = VERSION14;
 async function verify(secret, eventPayload, signature) {
@@ -7155,12 +7487,12 @@ async function verify(secret, eventPayload, signature) {
       "[@octokit/webhooks-methods] eventPayload must be a string"
     );
   }
-  const signatureBuffer = Buffer2.from(signature);
-  const verificationBuffer = Buffer2.from(await sign(secret, eventPayload));
+  const signatureBuffer = import_node_buffer.Buffer.from(signature);
+  const verificationBuffer = import_node_buffer.Buffer.from(await sign(secret, eventPayload));
   if (signatureBuffer.length !== verificationBuffer.length) {
     return false;
   }
-  return timingSafeEqual(signatureBuffer, verificationBuffer);
+  return (0, import_node_crypto4.timingSafeEqual)(signatureBuffer, verificationBuffer);
 }
 verify.VERSION = VERSION14;
 async function verifyWithFallback(secret, payload, signature, additionalSecrets) {
@@ -7720,7 +8052,7 @@ function webhooks(appOctokit, options) {
     secret: options.secret,
     transform: async (event) => {
       if (!("installation" in event.payload) || typeof event.payload.installation !== "object") {
-        const octokit22 = new appOctokit.constructor({
+        const octokit2 = new appOctokit.constructor({
           authStrategy: createUnauthenticatedAuth,
           auth: {
             reason: `"installation" key missing in webhook event payload`
@@ -7728,11 +8060,11 @@ function webhooks(appOctokit, options) {
         });
         return {
           ...event,
-          octokit: octokit22
+          octokit: octokit2
         };
       }
       const installationId = event.payload.installation.id;
-      const octokit2 = await appOctokit.auth({
+      const octokit = await appOctokit.auth({
         type: "installation",
         installationId,
         factory(auth7) {
@@ -7748,12 +8080,12 @@ function webhooks(appOctokit, options) {
           });
         }
       });
-      octokit2.hook.before("request", (options2) => {
+      octokit.hook.before("request", (options2) => {
         options2.headers["x-github-delivery"] = event.id;
       });
       return {
         ...event,
-        octokit: octokit2
+        octokit
       };
     }
   });
@@ -7837,14 +8169,14 @@ function eachRepositoryIterator(app, query) {
   return {
     async *[Symbol.asyncIterator]() {
       const iterator2 = query ? singleInstallationIterator(app, query.installationId) : app.eachInstallation.iterator();
-      for await (const { octokit: octokit2 } of iterator2) {
+      for await (const { octokit } of iterator2) {
         const repositoriesIterator = composePaginateRest.iterator(
-          octokit2,
+          octokit,
           "GET /installation/repositories"
         );
         for await (const { data: repositories } of repositoriesIterator) {
           for (const repository of repositories) {
-            yield { octokit: octokit2, repository };
+            yield { octokit, repository };
           }
         }
       }
@@ -7986,30 +8318,33 @@ var Octokit2 = Octokit.plugin(
     onSecondaryRateLimit
   }
 });
-function onRateLimit(retryAfter, options, octokit2) {
-  octokit2.log.warn(
+function onRateLimit(retryAfter, options, octokit) {
+  octokit.log.warn(
     `Request quota exhausted for request ${options.method} ${options.url}`
   );
   if (options.request.retryCount === 0) {
-    octokit2.log.info(`Retrying after ${retryAfter} seconds!`);
+    octokit.log.info(`Retrying after ${retryAfter} seconds!`);
     return true;
   }
 }
-function onSecondaryRateLimit(retryAfter, options, octokit2) {
-  octokit2.log.warn(
+function onSecondaryRateLimit(retryAfter, options, octokit) {
+  octokit.log.warn(
     `SecondaryRateLimit detected for request ${options.method} ${options.url}`
   );
   if (options.request.retryCount === 0) {
-    octokit2.log.info(`Retrying after ${retryAfter} seconds!`);
+    octokit.log.info(`Retrying after ${retryAfter} seconds!`);
     return true;
   }
 }
 var App2 = App.defaults({ Octokit: Octokit2 });
 var OAuthApp2 = OAuthApp.defaults({ Octokit: Octokit2 });
 
+// scripts/github/secrets.ts
+var import_tweetsodium = __toESM(require("tweetsodium"), 1);
+
 // scripts/github/auth.ts
-init_esm_shims();
-import { execFileSync } from "child_process";
+init_cjs_shims();
+var import_node_child_process3 = require("child_process");
 var GITHUB_SCOPES = ["repo", "workflow", "delete_repo"];
 async function resolveGitHubToken(scopes = GITHUB_SCOPES) {
   const fromEnv = process.env.GITHUB_TOKEN?.trim();
@@ -8037,7 +8372,7 @@ async function tryVsCodeSession(opts = {}) {
 }
 function tryGhAuthToken() {
   try {
-    const raw = execFileSync("gh", ["auth", "token"], {
+    const raw = (0, import_node_child_process3.execFileSync)("gh", ["auth", "token"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 5e3
@@ -8049,648 +8384,110 @@ function tryGhAuthToken() {
   }
 }
 
-// scripts/util/parse-owner-repo.ts
-init_esm_shims();
-function parseOwnerRepo(urlOrSlug) {
-  const trimmed = urlOrSlug.trim().replace(/\.git$/, "");
-  if (trimmed.includes("/")) {
-    const slugMatch = trimmed.match(/github\.com[/:]([^/]+)\/([^/]+)/);
-    if (slugMatch) {
-      return { owner: slugMatch[1], repo: slugMatch[2] };
-    }
-    const parts = trimmed.split("/");
-    if (parts.length >= 2) {
-      return {
-        owner: parts[parts.length - 2],
-        repo: parts[parts.length - 1]
-      };
-    }
+// scripts/github/secrets.ts
+var GitHubSecretsError = class extends Error {
+  status;
+  constructor(message, status) {
+    super(message);
+    this.name = "GitHubSecretsError";
+    this.status = status;
   }
-  throw new Error(`Invalid GitHub repo reference: ${urlOrSlug}`);
-}
-function formatOwnerRepo(owner, repo) {
-  return `${owner}/${repo}`;
-}
-
-// scripts/lakebase/branch-delete.ts
-init_esm_shims();
-
-// scripts/lakebase/branch-utils.ts
-init_esm_shims();
-
-// scripts/lakebase/databricks-cli.ts
-init_esm_shims();
-import { execFile, execFileSync as execFileSync3 } from "child_process";
-import { promisify } from "util";
-import { join as join2 } from "path";
-
-// scripts/lakebase/kit-config.ts
-init_esm_shims();
-function intFromEnv(name, fallback) {
-  const raw = process.env[name];
-  if (!raw) return fallback;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return parsed;
-}
-var DAY_MS = 24 * 60 * 60 * 1e3;
-var KIT_TIMEOUTS = {
-  cliDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_DEFAULT_MS", 3e4),
-  cliCreateProject: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_PROJECT_MS", 18e4),
-  cliCreateBranch: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_BRANCH_MS", 6e4),
-  cliCreateEndpoint: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_ENDPOINT_MS", 6e4),
-  readyWait: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_WAIT_MS", 12e4),
-  readyPoll: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_POLL_MS", 5e3),
-  pgConnect: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_CONNECT_MS", 1e4),
-  pgStatement: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_STATEMENT_MS", 15e3),
-  gitDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_DEFAULT_MS", 5e3),
-  gitCheckout: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_CHECKOUT_MS", 1e4),
-  gitNetwork: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_NETWORK_MS", 15e3),
-  gitPush: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_PUSH_MS", 3e4),
-  cliLong: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_LONG_MS", 6e4),
-  cmdShort: intFromEnv("LAKEBASE_KIT_TIMEOUT_CMD_SHORT_MS", 5e3),
-  initializrCacheTtl: intFromEnv("LAKEBASE_KIT_INITIALIZR_CACHE_TTL_MS", 10 * 60 * 1e3),
-  featureBranchTtlMs: intFromEnv("LAKEBASE_KIT_FEATURE_BRANCH_TTL_MS", 30 * DAY_MS),
-  testBranchTtlMs: intFromEnv("LAKEBASE_KIT_TEST_BRANCH_TTL_MS", 14 * DAY_MS),
-  uatBranchTtlMs: intFromEnv("LAKEBASE_KIT_UAT_BRANCH_TTL_MS", 14 * DAY_MS),
-  perfBranchTtlMs: intFromEnv("LAKEBASE_KIT_PERF_BRANCH_TTL_MS", 7 * DAY_MS)
 };
-function urlFromEnv(name, fallback) {
-  const raw = process.env[name];
-  if (!raw) return fallback;
-  return raw.replace(/\/+$/, "");
-}
-var KIT_REGISTRIES = {
-  mavenCentral: urlFromEnv("LAKEBASE_KIT_REGISTRY_MAVEN_CENTRAL", "https://repo1.maven.org/maven2"),
-  springInitializr: urlFromEnv("LAKEBASE_KIT_REGISTRY_SPRING_INITIALIZR", "https://start.spring.io")
-};
-
-// scripts/lakebase/databricks-profile.ts
-init_esm_shims();
-import * as fs from "fs";
-import { execFileSync as execFileSync2 } from "child_process";
-
-// scripts/util/exec.ts
-init_esm_shims();
-import * as cp from "child_process";
-function exec2(command, opts = {}) {
-  return new Promise((resolve2, reject) => {
-    const options = {
-      cwd: opts.cwd,
-      timeout: opts.timeout ?? 6e4
-    };
-    if (opts.env) {
-      options.env = { ...process.env, ...opts.env };
-    }
-    cp.exec(command, options, (err, stdout, stderr) => {
-      if (err) {
-        const msg = String(stderr || err.message);
-        reject(new Error(`${command}: ${msg}`));
-        return;
-      }
-      resolve2(String(stdout).trim());
-    });
-  });
-}
-
-// scripts/lakebase/env-file.ts
-init_esm_shims();
-import * as fs2 from "fs";
-import * as path2 from "path";
-
-// scripts/lakebase/databricks-cli.ts
-var execFileP = promisify(execFile);
-
-// scripts/lakebase/branch-id.ts
-init_esm_shims();
-
-// scripts/git/inspect.ts
-init_esm_shims();
-
-// scripts/util/sanitize-branch-name.ts
-init_esm_shims();
-
-// scripts/github/pr.ts
-async function octokit() {
+async function getOctokit() {
   const token = await resolveGitHubToken();
   return new Octokit2({ auth: token });
 }
-async function getPullRequest(ownerRepo, headBranch) {
+function wrap(err, context) {
+  if (err instanceof RequestError) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`, err.status);
+  }
+  if (err instanceof Error) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`);
+  }
+  throw new GitHubSecretsError(context);
+}
+function encryptSecret(publicKey, secretValue) {
+  const keyBytes = Buffer.from(publicKey, "base64");
+  const messageBytes = Buffer.from(secretValue);
+  const encryptedBytes = import_tweetsodium.default.seal(messageBytes, keyBytes);
+  return Buffer.from(encryptedBytes).toString("base64");
+}
+async function setRepoSecret(ownerRepo, secretName, secretValue) {
   try {
     const { owner, repo } = parseOwnerRepo(ownerRepo);
-    const ok = await octokit();
-    const { data: pulls } = await ok.rest.pulls.list({
+    const octokit = await getOctokit();
+    const { data: keyData } = await octokit.rest.actions.getRepoPublicKey({ owner, repo });
+    const encryptedValue = encryptSecret(keyData.key, secretValue);
+    await octokit.rest.actions.createOrUpdateRepoSecret({
       owner,
       repo,
-      state: "open",
-      head: `${owner}:${headBranch}`,
-      per_page: 1
+      secret_name: secretName,
+      encrypted_value: encryptedValue,
+      key_id: keyData.key_id
     });
-    if (pulls.length === 0) return void 0;
-    const { data: pr } = await ok.rest.pulls.get({
-      owner,
-      repo,
-      pull_number: pulls[0].number
-    });
-    if (pr.state !== "open") return void 0;
-    let checks = [];
-    let ciStatus = "pending";
-    const headSha = pr.head?.sha;
-    if (headSha) {
-      try {
-        const { data: checksData } = await ok.rest.checks.listForRef({
-          owner,
-          repo,
-          ref: headSha
-        });
-        const runs = checksData.check_runs || [];
-        checks = runs.map((c) => ({
-          name: c.name || "unknown",
-          status: (c.status || "").toUpperCase(),
-          conclusion: (c.conclusion || "").toUpperCase(),
-          detailsUrl: c.details_url || void 0
-        }));
-        ciStatus = parseCiStatus(runs);
-      } catch {
-        ciStatus = "pending";
-      }
+  } catch (err) {
+    if (err instanceof GitHubSecretsError) throw err;
+    wrap(err, `Failed to set secret ${secretName} on ${ownerRepo}`);
+  }
+}
+async function setRepoSecrets(ownerRepo, secrets) {
+  for (const [name, value] of Object.entries(secrets)) {
+    if (!value) {
+      throw new GitHubSecretsError(`Missing value for secret ${name}`);
     }
-    return {
-      number: pr.number,
-      title: pr.title,
-      url: pr.html_url || "",
-      state: (pr.state || "open").toUpperCase(),
-      isDraft: pr.draft || false,
-      ciStatus,
-      checks,
-      mergeable: pr.mergeable,
-      mergeableState: pr.mergeable_state,
-      headBranch: pr.head?.ref || headBranch,
-      baseBranch: pr.base?.ref || "",
-      body: pr.body || void 0,
-      additions: pr.additions,
-      deletions: pr.deletions,
-      changedFiles: pr.changed_files
-    };
-  } catch {
-    return void 0;
+  }
+  for (const [name, value] of Object.entries(secrets)) {
+    await setRepoSecret(ownerRepo, name, value);
   }
 }
-function parseCiStatus(rawChecks) {
-  if (rawChecks.length === 0) return "pending";
-  const latestByName = /* @__PURE__ */ new Map();
-  for (const c of rawChecks) {
-    latestByName.set(c.name || "unknown", c);
-  }
-  const states = Array.from(latestByName.values()).map(
-    (c) => (c.conclusion || c.status || "").toUpperCase()
-  );
-  if (states.some((s) => s === "FAILURE" || s === "ERROR" || s === "ACTION_REQUIRED")) {
-    return "failure";
-  }
-  if (states.every((s) => s === "SUCCESS" || s === "NEUTRAL" || s === "SKIPPED")) {
-    return "success";
-  }
-  return "pending";
-}
-
-// scripts/git/remote.ts
-init_esm_shims();
-async function getGitHubUrl(cwd) {
+async function listSecretNames(ownerRepo) {
   try {
-    const raw = (await exec2("git remote get-url origin", { cwd, timeout: 5e3 })).trim();
-    if (!raw) {
-      return "";
-    }
-    const url = raw.replace(/\.git$/, "");
-    const scp = url.match(/^(?:[^@/]+@)?[^/:]+:([^/].*)$/);
-    if (scp) {
-      return `https://github.com/${scp[1]}`;
-    }
-    const ssh = url.match(/^ssh:\/\/(?:[^@/]+@)?[^/]+\/(.+)$/);
-    if (ssh) {
-      return `https://github.com/${ssh[1]}`;
-    }
-    const https = url.match(/^https?:\/\/[^/]+\/(.+)$/);
-    if (https) {
-      return `https://github.com/${https[1]}`;
-    }
-    return "";
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit = await getOctokit();
+    const { data } = await octokit.rest.actions.listRepoSecrets({ owner, repo });
+    return data.secrets.map((s) => s.name);
   } catch {
-    return "";
-  }
-}
-async function getOwnerRepo(cwd) {
-  const url = await getGitHubUrl(cwd);
-  if (!url) return "";
-  try {
-    const { owner, repo } = parseOwnerRepo(url);
-    return formatOwnerRepo(owner, repo);
-  } catch {
-    return "";
+    return [];
   }
 }
 
-// scripts/util/poll-until.ts
-init_esm_shims();
-
-// scripts/util/delay.ts
-init_esm_shims();
-function delay(ms) {
-  return new Promise((resolve2) => setTimeout(resolve2, ms));
+// scripts/util/ci-secrets.ts
+var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+async function missingCiSecrets(ownerRepo) {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
 }
-
-// scripts/util/poll-until.ts
-async function pollUntil(args) {
-  const now = args.now ?? (() => /* @__PURE__ */ new Date());
-  const sleep = args.sleep ?? delay;
-  const startedAt = now().getTime();
-  let polls = 0;
-  while (true) {
-    const elapsedMs = now().getTime() - startedAt;
-    if (elapsedMs >= args.timeoutMs && polls > 0) {
-      return { outcome: "timeout", polls, elapsedMs };
-    }
-    polls += 1;
-    const result = await args.probe({ pollIndex: polls, elapsedMs });
-    const afterProbeElapsed = now().getTime() - startedAt;
-    if (args.onPoll) {
-      args.onPoll({ pollIndex: polls, elapsedMs: afterProbeElapsed, result });
-    } else if (args.label && !result.done) {
-      const seconds = Math.round(afterProbeElapsed / 1e3);
-      console.log(
-        `[${args.label}] still pending after ${seconds}s (poll ${polls})`
-      );
-    }
-    if (result.done) {
-      return {
-        outcome: "done",
-        value: result.value,
-        polls,
-        elapsedMs: afterProbeElapsed
-      };
-    }
-    if (afterProbeElapsed >= args.timeoutMs) {
-      return { outcome: "timeout", polls, elapsedMs: afterProbeElapsed };
-    }
-    await sleep(args.intervalMs);
-  }
-}
-
-// scripts/lakebase/scm-workflow-state.ts
-init_esm_shims();
-import * as fs3 from "fs";
-import * as path3 from "path";
-import { execFileSync as execFileSync4 } from "child_process";
-function isGitTracked(projectDir, rel) {
-  try {
-    execFileSync4("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-}
-function ensureWorkflowStateUntracked(projectDir) {
-  const rel = ".lakebase/workflow-state.json";
-  try {
-    if (isGitTracked(projectDir, rel)) {
-      execFileSync4("git", ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", rel], { cwd: projectDir, stdio: "ignore" });
-    }
-  } catch {
-  }
-  try {
-    const gitignore = path3.join(projectDir, ".gitignore");
-    const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
-    if (!existing.split("\n").some((l) => l.trim() === rel)) {
-      const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
-      fs3.appendFileSync(
-        gitignore,
-        `${sep2}# Runtime SCM claim state (per working tree): a branch checkout must never restore
-# a stale committed claim over the live one (issue #203 / Finding 28).
-${rel}
-`
-      );
-    }
-  } catch {
-  }
-}
-var SCM_STATES = [
-  "scaffold-complete",
-  "feature-claimed",
-  "pr-ready",
-  "ci-green",
-  "merged"
-];
-var STATE_INDEX = SCM_STATES.reduce(
-  (acc, s, i) => ({ ...acc, [s]: i }),
-  {}
-);
-var STATE_FILE_REL = ".lakebase/workflow-state.json";
-function stateFilePath(projectDir) {
-  return path3.join(projectDir, STATE_FILE_REL);
-}
-function readWorkflowState(projectDir) {
-  const p = stateFilePath(projectDir);
-  if (!fs3.existsSync(p)) return null;
-  const raw = fs3.readFileSync(p, "utf8");
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    throw new Error(
-      `Failed to parse ${STATE_FILE_REL}: ${e.message}`
-    );
-  }
-  const result = validateWorkflowState(parsed);
-  if (!result.ok) {
-    const summary = result.errors.map((e) => `  - ${e.path}: ${e.message}`).join("\n");
-    throw new Error(
-      `Invalid ${STATE_FILE_REL}:
-${summary}
-
-Fix the file or delete it to re-init.`
-    );
-  }
-  return result.value;
-}
-function writeWorkflowState(projectDir, state) {
-  const result = validateWorkflowState(state);
-  if (!result.ok) {
-    const summary = result.errors.map((e) => `  - ${e.path}: ${e.message}`).join("\n");
-    throw new Error(`Refusing to write invalid SCM state:
-${summary}`);
-  }
-  ensureWorkflowStateUntracked(projectDir);
-  const dir = path3.join(projectDir, ".lakebase");
-  fs3.mkdirSync(dir, { recursive: true });
-  const target = stateFilePath(projectDir);
-  const tmp = `${target}.tmp`;
-  const ordered = orderForOutput(result.value);
-  fs3.writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}
-`, "utf8");
-  fs3.renameSync(tmp, target);
-}
-function validateWorkflowState(value) {
-  const errors = [];
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {
-      ok: false,
-      errors: [{ path: "$", message: "must be an object" }]
-    };
-  }
-  const v = value;
-  if (v.version !== 1) {
-    errors.push({ path: "version", message: `must be 1, got ${String(v.version)}` });
-  }
-  if (typeof v.state !== "string" || !SCM_STATES.includes(v.state)) {
-    errors.push({
-      path: "state",
-      message: `must be one of ${SCM_STATES.join(" | ")}`
-    });
-  }
-  if (v.tier_topology !== 1 && v.tier_topology !== 2 && v.tier_topology !== 3) {
-    errors.push({
-      path: "tier_topology",
-      message: "must be 1, 2, or 3"
-    });
-  }
-  if (typeof v.project_id !== "string" || v.project_id.length === 0) {
-    errors.push({
-      path: "project_id",
-      message: "must be a non-empty string"
-    });
-  }
-  const stringFields = [
-    "feature_id",
-    "branch",
-    "parent_branch",
-    "lakebase_branch_uid",
-    "claimed_at",
-    "pr_url",
-    "pushed_at",
-    "ci_run_url",
-    "ci_green_at",
-    "merged_at",
-    "migrate_run_url",
-    "migrate_completed_at",
-    "$schema"
-  ];
-  for (const key of stringFields) {
-    if (v[key] === void 0) continue;
-    if (typeof v[key] !== "string" || v[key].length === 0) {
-      errors.push({
-        path: key,
-        message: "must be a non-empty string when present"
-      });
-    }
-  }
-  const requiredForState = {
-    "scaffold-complete": [],
-    "feature-claimed": [
-      "feature_id",
-      "branch",
-      "parent_branch",
-      "lakebase_branch_uid",
-      "claimed_at"
-    ],
-    "pr-ready": [
-      "feature_id",
-      "branch",
-      "parent_branch",
-      "lakebase_branch_uid",
-      "claimed_at",
-      "pr_url",
-      "pushed_at"
-    ],
-    "ci-green": [
-      "feature_id",
-      "branch",
-      "parent_branch",
-      "lakebase_branch_uid",
-      "claimed_at",
-      "pr_url",
-      "pushed_at",
-      "ci_run_url",
-      "ci_green_at"
-    ],
-    merged: [
-      "feature_id",
-      "branch",
-      "parent_branch",
-      "lakebase_branch_uid",
-      "claimed_at",
-      "pr_url",
-      "pushed_at",
-      "ci_run_url",
-      "ci_green_at",
-      "merged_at"
-    ]
-  };
-  if (typeof v.state === "string" && SCM_STATES.includes(v.state)) {
-    for (const key of requiredForState[v.state]) {
-      if (v[key] === void 0) {
-        errors.push({
-          path: key,
-          message: `required when state is "${v.state}"`
-        });
-      }
-    }
-  }
-  const allowedKeys = /* @__PURE__ */ new Set([
-    "$schema",
-    "version",
-    "state",
-    "tier_topology",
-    "project_id",
-    "feature_id",
-    "branch",
-    "parent_branch",
-    "lakebase_branch_uid",
-    "claimed_at",
-    "pr_url",
-    "pushed_at",
-    "ci_run_url",
-    "ci_green_at",
-    "merged_at",
-    "migrate_run_url",
-    "migrate_completed_at"
-  ]);
-  for (const key of Object.keys(v)) {
-    if (!allowedKeys.has(key)) {
-      errors.push({ path: key, message: "unknown property" });
-    }
-  }
-  if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, value: v };
-}
-function orderForOutput(state) {
-  const keyOrder = [
-    "$schema",
-    "version",
-    "state",
-    "tier_topology",
-    "project_id",
-    "feature_id",
-    "branch",
-    "parent_branch",
-    "lakebase_branch_uid",
-    "claimed_at",
-    "pr_url",
-    "pushed_at",
-    "ci_run_url",
-    "ci_green_at",
-    "merged_at",
-    "migrate_run_url",
-    "migrate_completed_at"
-  ];
-  const out = {};
-  for (const k of keyOrder) {
-    if (state[k] !== void 0) {
-      out[k] = state[k];
-    }
-  }
-  return out;
-}
-
-// scripts/lakebase/scm-wait-ci.ts
-var ScmWaitCiError = class extends Error {
-  constructor(message, code) {
-    super(message);
-    this.code = code;
-    this.name = "ScmWaitCiError";
-  }
-  code;
-};
-var DEFAULT_TIMEOUT_MS = 30 * 60 * 1e3;
-var DEFAULT_POLL_MS = 30 * 1e3;
-async function waitForCi(args) {
-  const current = readWorkflowState(args.projectDir);
-  if (!current) {
-    throw new ScmWaitCiError(
-      "No SCM workflow state. Claim + prepare-pr first.",
-      "no-state-file"
-    );
-  }
-  if (current.state !== "pr-ready") {
-    throw new ScmWaitCiError(
-      `wait-ci refuses state "${current.state}". Allowed predecessor: pr-ready.`,
-      "bad-precondition"
-    );
-  }
-  if (!current.branch) {
-    throw new ScmWaitCiError(
-      "pr-ready row is missing branch; cannot resolve the PR.",
-      "bad-precondition"
-    );
-  }
-  const ownerRepo = await getOwnerRepo(args.projectDir);
+async function syncCiSecrets(args) {
+  const lifetime = args.lifetimeSeconds ?? 86400;
+  const comment = args.comment ?? "GitHub Actions CI";
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
   if (!ownerRepo) {
-    throw new ScmWaitCiError(
-      "No GitHub remote found at origin.",
-      "no-github-remote"
-    );
+    throw new Error("Could not resolve GitHub repository from git remote");
   }
-  const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pollMs = args.pollMs ?? DEFAULT_POLL_MS;
-  const fetchPr = args.fetchPr ?? getPullRequest;
-  const now = args.now ?? (() => /* @__PURE__ */ new Date());
-  const headBranch = current.branch;
-  let lastPr;
-  const result = await pollUntil({
-    timeoutMs,
-    intervalMs: pollMs,
-    now,
-    sleep: args.sleep,
-    probe: async () => {
-      lastPr = await fetchPr(ownerRepo, headBranch);
-      if (!lastPr) {
-        throw new ScmWaitCiError(
-          `No open PR found for head=${headBranch} on ${ownerRepo}. Did the PR get closed?`,
-          "pr-not-found"
-        );
-      }
-      if (lastPr.ciStatus === "success") {
-        return { done: true, value: lastPr };
-      }
-      if (lastPr.mergeableState === "dirty" && lastPr.checks.length === 0) {
-        throw new ScmWaitCiError(
-          `PR ${lastPr.url} is CONFLICTING with ${lastPr.baseBranch} \u2014 GitHub will not dispatch CI (0 runs) until the conflict is resolved. Reconcile the branch and re-push; the synchronize event will trigger CI.`,
-          "pr-conflicting"
-        );
-      }
-      if (lastPr.ciStatus === "failure") {
-        const failed = lastPr.checks.filter((c) => /(FAILURE|TIMED_OUT|CANCELLED|ACTION_REQUIRED)/i.test(c.conclusion)).map((c) => `${c.name} (${c.conclusion})`);
-        throw new ScmWaitCiError(
-          `CI failed for PR ${lastPr.url}. Failed checks: ${failed.join(", ") || "(unknown)"}.`,
-          "ci-failed"
-        );
-      }
-      return { done: false };
-    }
-  });
-  if (result.outcome === "timeout") {
-    throw new ScmWaitCiError(
-      `Timed out after ${Math.round(timeoutMs / 1e3)}s waiting for CI on PR ${lastPr?.url ?? current.pr_url ?? "(unknown)"}. Last status: ${lastPr?.ciStatus ?? "(no poll completed)"}.`,
-      "timeout"
-    );
+  if (!args.databricksHost) {
+    throw new Error("syncCiSecrets: databricksHost is required");
   }
-  const greenPr = result.value;
-  const runUrl = pickRunUrl(greenPr);
-  const next = {
-    ...current,
-    state: "ci-green",
-    ci_run_url: runUrl,
-    ci_green_at: now().toISOString()
+  if (!args.lakebaseProjectId) {
+    throw new Error("syncCiSecrets: lakebaseProjectId is required");
+  }
+  const secrets = {
+    DATABRICKS_HOST: args.databricksHost,
+    LAKEBASE_PROJECT_ID: args.lakebaseProjectId
   };
-  writeWorkflowState(args.projectDir, next);
-  return { state: next, pr: greenPr, polls: result.polls };
-}
-function pickRunUrl(pr) {
-  const withUrl = pr.checks.find((c) => c.detailsUrl);
-  return withUrl?.detailsUrl ?? pr.url;
+  try {
+    const tokenRaw = await runDatabricks(
+      ["tokens", "create", "--comment", comment, "--lifetime-seconds", String(lifetime), "-o", "json"],
+      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
+    );
+    const parsed = JSON.parse(tokenRaw);
+    const token = parsed.token_value || parsed.token || "";
+    if (token) secrets.DATABRICKS_TOKEN = token;
+  } catch {
+  }
+  await setRepoSecrets(ownerRepo, secrets);
 }
 
-// scripts/lakebase/scm-wait-ci.cli.ts
+// scripts/lakebase/sync-ci-secrets.cli.ts
 function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
@@ -8700,17 +8497,20 @@ function parseArgs(argv) {
       case "--cwd":
         out.projectDir = argv[++i];
         break;
-      case "--timeout-sec":
-        out.timeoutSec = Number.parseInt(argv[++i], 10);
+      case "--host":
+        out.host = argv[++i];
         break;
-      case "--poll-sec":
-        out.pollSec = Number.parseInt(argv[++i], 10);
+      case "--project-id":
+        out.projectId = argv[++i];
         break;
-      case "--json":
-        out.json = true;
+      case "--repo":
+        out.repo = argv[++i];
         break;
-      case "--pretty":
-        out.pretty = true;
+      case "--lifetime-sec":
+        out.lifetimeSec = Number.parseInt(argv[++i], 10);
+        break;
+      case "--comment":
+        out.comment = argv[++i];
         break;
       case "--help":
       case "-h":
@@ -8720,111 +8520,83 @@ function parseArgs(argv) {
   }
   return out;
 }
-var HELP = `lakebase-scm-wait-ci (phase B+)
+var HELP = `lakebase-sync-ci-secrets
 
-Block until the PR's CI checks turn green, then transition
-pr-ready -> ci-green. On CI failure or timeout, exits non-zero
-without advancing state.
+(Re)provision the GitHub repo's CI auth: mint a fresh Databricks CI PAT and set
+DATABRICKS_HOST, LAKEBASE_PROJECT_ID, and DATABRICKS_TOKEN as repo Actions secrets,
+then verify all three are present. The standalone repair for the create-time
+"CI auth setup failed" warning \u2014 run it from the project, no recreate needed.
 
 Usage:
-  lakebase-scm-wait-ci [flags]
+  lakebase-sync-ci-secrets [flags]
 
 Flags:
-  --project-dir <dir>     Project root (default: cwd)
-  --timeout-sec <n>       Total poll budget (default: 1800 = 30 minutes)
-  --poll-sec <n>          Seconds between polls (default: 30)
-  --json                  Machine-readable JSON output
-  --pretty                Pretty-print JSON
-  -h, --help              Show this help
+  --project-dir <dir>   Project root (default: cwd); resolves host/project-id from its .env
+  --host <url>          DATABRICKS_HOST (default: .env DATABRICKS_HOST)
+  --project-id <id>     LAKEBASE_PROJECT_ID (default: .env LAKEBASE_PROJECT_ID)
+  --repo <owner/name>   Target repo (default: origin remote)
+  --lifetime-sec <n>    CI PAT lifetime (default: 86400 = 24h)
+  --comment <text>      Token comment (default: "GitHub Actions CI")
+  -h, --help            Show this help
 
 Exit codes:
-  0 = ci-green (state advanced)
-  1 = no state file
-  2 = precondition refused (wrong state, missing branch)
-  3 = CI failed (state unchanged; re-push fixes + re-run)
-  4 = timeout (state unchanged; re-run with a larger budget)
+  0 = all three secrets present after sync
+  2 = could not resolve host / project-id / repo
+  3 = sync ran but a required secret is still missing (e.g. PAT mint failed)
 `;
-function renderHuman(r) {
-  if (!r.ok) {
-    return `lakebase-scm-wait-ci: ${r.error?.code}
-
-  ${r.error?.message}`;
-  }
-  const res = r.result;
-  const lines = ["CI green:"];
-  lines.push(`  state        : ${res.state.state}`);
-  lines.push(`  pr_url       : ${res.state.pr_url}`);
-  lines.push(`  ci_run_url   : ${res.state.ci_run_url}`);
-  lines.push(`  ci_green_at  : ${res.state.ci_green_at}`);
-  lines.push(`  polls        : ${res.polls}`);
-  return lines.join("\n");
-}
-function exitCodeForError(err) {
-  if (err instanceof ScmWaitCiError) {
-    switch (err.code) {
-      case "no-state-file":
-        return 1;
-      case "bad-precondition":
-        return 2;
-      case "ci-failed":
-        return 3;
-      case "timeout":
-        return 4;
-      case "no-github-remote":
-      case "pr-not-found":
-        return 2;
-    }
-  }
-  return 3;
-}
-async function runScmWaitCiCli(argv) {
+async function runSyncCiSecretsCli(argv) {
   const args = parseArgs(argv);
   if (args.help) {
     process.stdout.write(`${HELP}
 `);
     return 0;
   }
-  const projectDir = path4.resolve(args.projectDir ?? process.cwd());
-  try {
-    const result = await waitForCi({
-      projectDir,
-      timeoutMs: args.timeoutSec ? args.timeoutSec * 1e3 : void 0,
-      pollMs: args.pollSec ? args.pollSec * 1e3 : void 0
-    });
-    const report = { ok: true, result };
-    if (args.json) {
-      const indent = args.pretty ? 2 : 0;
-      process.stdout.write(`${JSON.stringify(report, null, indent)}
-`);
-    } else {
-      process.stdout.write(`${renderHuman(report)}
-`);
-    }
-    return 0;
-  } catch (e) {
-    const err = e;
-    const code = err instanceof ScmWaitCiError ? err.code : "substrate-failure";
-    const report = {
-      ok: false,
-      error: { code, message: err.message }
-    };
-    if (args.json) {
-      const indent = args.pretty ? 2 : 0;
-      process.stdout.write(`${JSON.stringify(report, null, indent)}
-`);
-    } else {
-      process.stderr.write(`${renderHuman(report)}
-`);
-    }
-    return exitCodeForError(err);
+  const projectDir = path2.resolve(args.projectDir ?? process.cwd());
+  const envPath = path2.join(projectDir, ".env");
+  const host = args.host ?? readEnvVar(envPath, "DATABRICKS_HOST");
+  const projectId = args.projectId ?? readEnvVar(envPath, "LAKEBASE_PROJECT_ID");
+  const ownerRepo = args.repo ?? await getOwnerRepo(projectDir);
+  if (!ownerRepo) {
+    process.stderr.write("lakebase-sync-ci-secrets: no GitHub repo (pass --repo or run inside a repo with an origin remote).\n");
+    return 2;
   }
+  if (!host || !projectId) {
+    process.stderr.write(
+      `lakebase-sync-ci-secrets: missing ${!host ? "DATABRICKS_HOST" : ""}${!host && !projectId ? " and " : ""}${!projectId ? "LAKEBASE_PROJECT_ID" : ""} \u2014 not in ${envPath}; pass --host / --project-id.
+`
+    );
+    return 2;
+  }
+  process.stdout.write(`Provisioning CI auth for ${ownerRepo} (host ${host}, project ${projectId})\u2026
+`);
+  await syncCiSecrets({
+    projectDir,
+    databricksHost: host,
+    lakebaseProjectId: projectId,
+    ownerRepo,
+    ...args.comment ? { comment: args.comment } : {},
+    ...args.lifetimeSec ? { lifetimeSeconds: args.lifetimeSec } : {}
+  });
+  const missing = await missingCiSecrets(ownerRepo);
+  if (missing.length > 0) {
+    process.stderr.write(
+      `lakebase-sync-ci-secrets: sync ran but these secrets are still MISSING on ${ownerRepo}: ${missing.join(", ")}.
+` + (missing.includes("DATABRICKS_TOKEN") ? `  DATABRICKS_TOKEN missing usually means 'databricks tokens create' failed \u2014 check your auth for ${host} (e.g. 'databricks auth login --host ${host}'), then re-run.
+` : "")
+    );
+    return 3;
+  }
+  process.stdout.write(`CI auth ready: ${REQUIRED_CI_SECRETS.join(", ")} set on ${ownerRepo}.
+`);
+  return 0;
 }
-if (isCliEntry(import.meta.url)) {
-  void runScmWaitCiCli(process.argv.slice(2)).then((c) => process.exit(c));
+if (isCliEntry(importMetaUrl)) {
+  void runSyncCiSecretsCli(process.argv.slice(2)).then((c) => process.exit(c));
 }
-export {
-  runScmWaitCiCli
-};
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  runSyncCiSecretsCli
+});
 /*! Bundled license information:
 
 toad-cache/dist/toad-cache.mjs:
