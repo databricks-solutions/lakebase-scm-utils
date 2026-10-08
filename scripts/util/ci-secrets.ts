@@ -7,8 +7,21 @@
 // be set), the values have to come from the create-project caller's scope.
 
 import { runDatabricks } from "../lakebase/databricks-cli.js";
-import { setRepoSecrets } from "../github/secrets.js";
+import { setRepoSecrets, listSecretNames } from "../github/secrets.js";
 import { getOwnerRepo } from "../git/remote.js";
+
+/** The repo Actions secrets CI needs to provision a per-PR Lakebase branch. Missing ANY of
+ *  these leaves CI unable to produce a DATABASE_URL, so the test step aborts — the failure
+ *  that otherwise only surfaces at promotion, an entire feature after creation. */
+export const REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"] as const;
+
+/** Which required CI secrets are NOT present on the repo (empty = fully provisioned). Used to
+ *  VERIFY a sync landed — a `databricks tokens create` or `gh secret set` that fails must be
+ *  caught here, not swallowed, so CI-auth is never silently absent. */
+export async function missingCiSecrets(ownerRepo: string): Promise<string[]> {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
+}
 
 export interface SyncCiSecretsArgs {
   /** Project root (used to resolve ownerRepo from `git remote` when not given,
