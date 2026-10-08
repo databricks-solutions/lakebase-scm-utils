@@ -58,10 +58,15 @@ export const DEFAULT_ENDPOINT = "primary";
 // branch/schema/ping connections this package opens). The full label is
 // `<brand>/<version>` , see `connectionApplicationName()` in get-connection.ts , and it
 // reflects WHICH tool opened the connection:
-//   - `consort/<consort-version>` when the connection is made UNDER a Consort run (Consort
-//     exports its version via CONSORT_VERSION_ENV; scm-utils reads it);
-//   - `scm-utils/<scm-utils-version>` when scm-utils is used DIRECTLY (the VS Code extension,
-//     a bare `lakebase-*` CLI) , no env set, so the label falls back to this package's brand.
+//   - ANY consumer that sets SCM_CLIENT_ENV (`LAKEBASE_SCM_CLIENT="<brand>/<version>"`) — the
+//     GENERIC, extensible path: a new consumer self-brands with NO scm-utils change. scm-utils
+//     sanitizes the value and uses it verbatim (e.g. the VS Code / Cursor extension sets
+//     `scm-extension/<ext-version>`);
+//   - `consort/<consort-version>` — BACK-COMPAT for Consort, which sets CONSORT_VERSION_ENV
+//     (older Consorts predate the generic env; keeping this means Consort needs no change);
+//   - `scm-utils/<scm-utils-version>` when nothing is set — a bare `lakebase-*` CLI falls back
+//     to this package's own brand.
+// Precedence: SCM_CLIENT_ENV > CONSORT_VERSION_ENV > scm-utils default.
 // A TRANSPARENT label , standard practice (psql, ORMs set one) , visible to the database OWNER
 // in their own `pg_stat_activity`, so support + the owner's own diagnostics can tell which
 // tooling connected versus their application. Reads no table contents; carries only brand + version.
@@ -69,8 +74,21 @@ export const DEFAULT_ENDPOINT = "primary";
 /** Brand when the connection is made under a Consort run (CONSORT_VERSION_ENV set). */
 export const CONSORT_APPLICATION_NAME = "consort";
 
-/** Brand when scm-utils is used directly (extension / bare CLI); the default. */
+/** Brand when scm-utils is used directly via a bare `lakebase-*` CLI; the default. */
 export const SCM_UTILS_APPLICATION_NAME = "scm-utils";
+
+/**
+ * GENERIC consumer-brand env: any tool that opens substrate connections can set
+ * `LAKEBASE_SCM_CLIENT="<brand>/<version>"` (e.g. the VS Code / Cursor extension sets
+ * `scm-extension/<ext-version>`), and connectionApplicationName() uses it (sanitized) as the
+ * Postgres application_name. This is the extensibility point: adding a NEW consumer needs ZERO
+ * scm-utils changes — the consumer just sets this env before its first connection. Takes
+ * precedence over the CONSORT_VERSION back-compat path. The value is a full `<brand>/<version>`
+ * label owned by the consumer (scm-utils no longer hardcodes per-consumer brand constants).
+ * Brand convention: drop the `lakebase-` package prefix (lakebase-scm-utils -> scm-utils,
+ * lakebase-scm-extension -> scm-extension).
+ */
+export const SCM_CLIENT_ENV = "LAKEBASE_SCM_CLIENT";
 
 /**
  * Env var Consort sets to its OWN version so a connection opened under a Consort run is
