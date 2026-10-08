@@ -297,6 +297,14 @@ if [ "$first" = "--warm" ] || [ "$first" = "--rewarm" ]; then
 fi
 
 bin="$first"; shift
+# A help request (`-h`/`--help`) must NEVER trigger a one-time cold-cache install:
+# printing usage should have no side effects. Treat it like LK_NO_INSTALL so a cold
+# cache SHORT-CIRCUITS with a clear "warm first" note instead of silently kicking off a
+# multi-minute download (the "my --help refreshed the cache?!" surprise). When the cache
+# is already warm, help still prints instantly, exactly as before.
+help_req=0
+for _a in "$@"; do case "$_a" in -h|--help) help_req=1; break ;; esac; done
+[ "$help_req" -eq 1 ] && export LK_NO_INSTALL=1
 # Deprecation: lakebase-sftdd-* / lakebase-tdd-* are legacy aliases from the
 # pre-Consort skill names. They still run (routed to the kit below), but are
 # scheduled for removal in consort v0.4.0 , prefer the consort-* / lakebase-*
@@ -306,8 +314,15 @@ case "$bin" in
     echo "lk: [deprecated] '${bin}' is a legacy sftdd/tdd-era alias; use the consort-* / lakebase-* name (removed in consort v0.4.0). Still running." >&2 ;;
 esac
 slug="$(pkg_for_bin "$bin")"
-resolve_pkg "$slug" run; rc=$?
-[ "$rc" -eq 97 ] && exit 97
+# Capture the status with `|| rc=$?` so `set -e` does NOT abort on resolve_pkg's
+# non-zero returns (notably 97 = cold cache under LK_NO_INSTALL / a help request) —
+# a bare `resolve_pkg …; rc=$?` exits before rc is ever read.
+rc=0; resolve_pkg "$slug" run || rc=$?
+if [ "$rc" -eq 97 ]; then
+  # Cold cache + a help request: do NOT install just to print usage.
+  [ "$help_req" -eq 1 ] && { echo "lk: not downloading the toolkit just to show '--help'. The ${slug} cache for this ref is cold; run 'lk --warm' to install it (one-time), then retry '${bin} --help'. A help request never triggers a download." >&2; exit 0; }
+  exit 97
+fi
 [ "$rc" -ne 0 ] && exit "$rc"
 rel="$(bin_rel "$pkg_dir" "$bin")"
 
@@ -317,8 +332,11 @@ rel="$(bin_rel "$pkg_dir" "$bin")"
 # route to the kit up front and never reach here, so an unknown kit bin still fails
 # fast with no substrate round-trip.
 if [ -z "$rel" ] && [ "$slug" = "scm-utils" ] && project_uses_kit; then
-  resolve_pkg kit run; krc=$?
-  [ "$krc" -eq 97 ] && exit 97
+  krc=0; resolve_pkg kit run || krc=$?
+  if [ "$krc" -eq 97 ]; then
+    [ "$help_req" -eq 1 ] && { echo "lk: not downloading the toolkit just to show '--help'. The kit cache for this ref is cold; run 'lk --warm' to install it (one-time), then retry '${bin} --help'. A help request never triggers a download." >&2; exit 0; }
+    exit 97
+  fi
   if [ "$krc" -eq 0 ]; then
     rel="$(bin_rel "$pkg_dir" "$bin")"
     [ -n "$rel" ] && slug="kit"
