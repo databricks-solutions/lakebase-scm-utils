@@ -89,20 +89,17 @@ describe("deployGitignore", () => {
     expect(content).not.toMatch(/^\.consort\/\*/m);
   });
 
-  it("ignores the live build-pipeline pointer at BOTH the top-level AND the per-feature path", async () => {
-    // Regression guard: pipeline.json is per-run gate bookkeeping, meant to be untracked. The
-    // ignore pattern listed only `.consort/pipeline.json`, but the file moved to
-    // `.consort/features/<id>/pipeline.json` — so the per-feature copy was TRACKED, travelled onto
-    // staging/main, and collided at the promotion merge. Both paths must be ignored; the feature's
-    // DESIGN corpus (feature-request/spec/architecture/test-list) stays trackable.
+  it("ignores the TOP-LEVEL pipeline pointer but NEVER the per-feature ledger (it's tracked by design)", async () => {
+    // The per-feature .consort/features/<id>/pipeline.json is the DURABLE per-story ledger,
+    // persisted on the feature branch so it survives across sessions — it must stay TRACKED.
+    // A brief change ignored it, which lost the ledger and desynced consort-next; this guards the
+    // revert. (A promotion-merge conflict on it is resolved at the merge layer, not by ignoring it.)
     const dir = mkTmp();
     await deployGitignore(dir, "python");
     const content = fs.readFileSync(path.join(dir, ".gitignore"), "utf-8");
-    expect(content).toMatch(/^\.consort\/pipeline\.json$/m);
-    expect(content).toMatch(/^\.consort\/features\/\*\/pipeline\.json$/m);
-    // Still not a blanket ignore of features/ (the design corpus under it stays trackable).
-    expect(content).not.toMatch(/^\.consort\/features\/?\s*$/m);
-    expect(content).not.toMatch(/^\.consort\/features\/\*\/?\s*$/m);
+    expect(content).toMatch(/^\.consort\/pipeline\.json$/m); // transient top-level pointer: ignored
+    expect(content).not.toMatch(/features\/\*\/pipeline\.json/); // per-feature ledger: NOT ignored
+    expect(content).not.toMatch(/^\.consort\/features\/?\s*$/m); // and never a blanket features/ ignore
   });
 
   it("ignores both run pins (.lakebase/{kit,scm-utils}-ref.local) but NOT the committed refs (Finding 28)", async () => {
