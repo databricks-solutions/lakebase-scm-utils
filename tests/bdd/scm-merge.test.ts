@@ -221,6 +221,34 @@ describe("mergeFeature happy path", () => {
   });
 });
 
+describe("mergeFeature pre-merge pipeline.json-ledger reconcile", () => {
+  it("reconciles ONLY when the PR is CONFLICTING (dirty), passing the git base", async () => {
+    seedCiGreen();
+    const reconcile = vi.fn().mockResolvedValue({ reconciled: true, detail: "x" });
+    await merge.mergeFeature({
+      projectDir: tmpDir,
+      waitMigrate: false,
+      now: () => new Date(),
+      fetchPrState: async () => ({ mergeableState: "dirty" }),
+      reconcileRunState: reconcile,
+    });
+    expect(reconcile).toHaveBeenCalledTimes(1); // dirty ⇒ reconcile runs (before the merge)
+  });
+
+  it("does NOT reconcile when the PR is already mergeable (clean promote adds no merge commit)", async () => {
+    seedCiGreen();
+    const reconcile = vi.fn().mockResolvedValue({ reconciled: false });
+    await merge.mergeFeature({
+      projectDir: tmpDir,
+      waitMigrate: false,
+      now: () => new Date(),
+      fetchPrState: async () => ({ mergeableState: "clean" }),
+      reconcileRunState: reconcile,
+    });
+    expect(reconcile).not.toHaveBeenCalled();
+  });
+});
+
 describe("mergeFeature wait-migrate", () => {
   function makeRun(
     status: string,

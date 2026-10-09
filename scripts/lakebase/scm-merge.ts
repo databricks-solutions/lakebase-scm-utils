@@ -12,6 +12,7 @@
 // stable surface for that signal.
 
 import {
+  getPullRequest,
   listWorkflowRuns,
   mergePairedPullRequest,
   type WorkflowRunSummary,
@@ -68,6 +69,7 @@ export class ScmMergeError extends Error {
       | "no-pr-url"
       | "bad-pr-url"
       | "merge-failed"
+      | "promote-conflict"
       | "migrate-failed"
       | "migrate-timeout"
       | "migrate-auth",
@@ -166,6 +168,13 @@ export interface MergeArgs {
    * implementation ({@link defaultRefreshPromoteWorkflows}); injected in tests.
    */
   refreshWorkflows?: () => Promise<{ refreshed: boolean; detail?: string }>;
+  /** Pre-merge reconcile of a pipeline.json-ledger promotion conflict to the run side (keeps it
+   *  tracked). Called ONLY when the PR is CONFLICTING. Defaults to {@link reconcilePromoteRunState};
+   *  injected in tests. */
+  reconcileRunState?: (baseBranch: string) => Promise<{ reconciled: boolean; detail?: string }>;
+  /** Fetch the PR's mergeability (to gate the reconcile). Defaults to the real getPullRequest;
+   *  injected in tests so the gate is exercised without the network. */
+  fetchPrState?: (ownerRepo: string, headBranch: string) => Promise<{ mergeableState?: string } | undefined>;
 }
 
 export interface MergeResult {
@@ -248,6 +257,71 @@ function shaMigratePredicate(
  * working-tree changes. Callers invoke it BEST-EFFORT — a failure here must never
  * block the merge (the local migrate fallback still keeps git + schema in sync).
  */
+/** The ONLY paths a promotion merge may auto-resolve to the RUN (feature/head) side: the per-story
+ *  pipeline.json ledger (per-feature, and the legacy top-level pointer). It is the feature branch's
+ *  own durable bookkeeping — the tier has no authoritative copy — so on a promotion conflict the
+ *  head side always wins. Everything else is real divergence and must surface, never auto-resolve. */
+const PROMOTE_RUNSTATE_CONFLICT = /(^|\/)\.consort\/(features\/[^/]+\/)?pipeline\.json$/;
+
+/**
+ * Clear a promotion-merge conflict that is ONLY the pipeline.json ledger, so GitHub can dispatch CI
+ * and merge — WITHOUT untracking the ledger (it's durable run-state that must persist). Merges the
+ * base into the PR head and resolves the ledger path(s) to the head (run) side, then pushes. This is
+ * the merge-layer fix for the "pipeline.json conflict blocks promotion" defect, replacing the wrong
+ * earlier approach of gitignoring/untracking it. Behavior:
+ *   - a dirty tree under `.consort/` only is checkpointed first (the run's own bookkeeping);
+ *   - a dirty tree OUTSIDE `.consort/` aborts (never auto-commit app code);
+ *   - a conflict on any NON-ledger path aborts the merge + surfaces (real divergence isn't resolved);
+ *   - a clean merge (no conflict) is a no-op (reconciled:false).
+ * Only call this when the PR is actually CONFLICTING — a clean promote needs no merge commit.
+ */
+export async function reconcilePromoteRunState(
+  projectDir: string,
+  baseBranch: string,
+): Promise<{ reconciled: boolean; detail?: string }> {
+  const o = { cwd: projectDir, timeout: 30_000 };
+  // Working tree must be clean to merge. Checkpoint run-state (.consort/) if that's all that's dirty;
+  // refuse on anything else so we never auto-commit app code during a promotion.
+  const dirty = (await exec("git status --porcelain", o).catch(() => "")).split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
+  const nonRunStateDirty = dirty.filter((p) => !p.startsWith(".consort/"));
+  if (nonRunStateDirty.length > 0) {
+    throw new ScmMergeError(
+      `working tree has uncommitted non-run-state changes (${nonRunStateDirty.slice(0, 5).join(", ")}${nonRunStateDirty.length > 5 ? ", …" : ""}); commit or stash before promoting.`,
+      "promote-conflict",
+    );
+  }
+  if (dirty.length > 0) {
+    await exec(`git add ${shellEscape(".consort")}`, o);
+    await exec(`git commit -m ${shellEscape("chore(run): checkpoint run state before promotion")}`, o);
+  }
+  await exec(`git fetch origin ${shellEscape(baseBranch)}`, o).catch(() => {});
+  let conflicted = false;
+  try {
+    await exec(`git merge --no-ff -m ${shellEscape(`merge ${baseBranch} for promotion`)} ${shellEscape(`origin/${baseBranch}`)}`, o);
+  } catch {
+    conflicted = true;
+  }
+  if (!conflicted) return { reconciled: false }; // clean merge (or already up to date) — nothing to resolve
+  const u = (await exec("git diff --name-only --diff-filter=U", o).catch(() => "")).split("\n").map((s) => s.trim()).filter(Boolean);
+  const other = u.filter((p) => !PROMOTE_RUNSTATE_CONFLICT.test(p));
+  if (u.length === 0 || other.length > 0) {
+    await exec("git merge --abort", o).catch(() => {});
+    throw new ScmMergeError(
+      other.length > 0
+        ? `promotion conflicts on non-ledger file(s): ${other.join(", ")}. Resolve the real divergence manually, then re-run the promote.`
+        : `promotion merge failed with no resolvable conflicts; resolve manually and re-run.`,
+      "promote-conflict",
+    );
+  }
+  for (const p of u) {
+    await exec(`git checkout --ours -- ${shellEscape(p)}`, o); // keep the run (feature) ledger
+    await exec(`git add -- ${shellEscape(p)}`, o);
+  }
+  await exec(`git commit -m ${shellEscape(`merge ${baseBranch} for promotion (pipeline.json ledger kept at run state)`)}`, o);
+  await pushCurrentBranchForPr({ cwd: projectDir });
+  return { reconciled: true, detail: `reconciled ${u.length} ledger path(s) to the run side + pushed` };
+}
+
 export async function defaultRefreshPromoteWorkflows(
   projectDir: string,
 ): Promise<{ refreshed: boolean; detail?: string }> {
@@ -373,6 +447,23 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
         `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's ` +
           `migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`,
       );
+    }
+  }
+
+  // ─── Pre-merge pipeline.json-ledger reconcile ───
+  // The per-feature pipeline.json ledger is TRACKED (durable run-state) and can diverge between the
+  // feature branch and its tier, so the promotion PR lands CONFLICTING — GitHub won't dispatch CI or
+  // merge. When that happens, reconcile the ledger to the run (head) side at the MERGE layer and push,
+  // so the PR goes mergeable WITHOUT untracking the ledger. Only runs when the PR is actually dirty;
+  // a non-ledger conflict throws (real divergence surfaces). This is the correct replacement for the
+  // withdrawn gitignore/untrack approach.
+  {
+    const fetchState = args.fetchPrState ?? ((o, h) => getPullRequest(o, h));
+    const prState = await fetchState(ownerRepo, current.branch).catch(() => undefined);
+    if (prState?.mergeableState === "dirty") {
+      const reconcile = args.reconcileRunState ?? ((base: string) => reconcilePromoteRunState(args.projectDir, base));
+      const r = await reconcile(gitBase); // throws ScmMergeError on a non-ledger conflict (surfaces)
+      if (r.reconciled) preflightNotes.push(`Reconciled a pipeline.json-ledger promotion conflict to the run side${r.detail ? ` (${r.detail})` : ""}.`);
     }
   }
 
