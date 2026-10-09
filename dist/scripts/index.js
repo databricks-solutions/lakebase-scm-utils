@@ -9722,8 +9722,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.47".length > 0) {
-    cached = "0.2.47";
+  if ("0.2.48".length > 0) {
+    cached = "0.2.48";
     return cached;
   }
   cached = "unknown";
@@ -16429,6 +16429,48 @@ function shaMigratePredicate(mergeCommitSha) {
     return !!run.headSha && run.headSha === mergeCommitSha;
   };
 }
+var PROMOTE_RUNSTATE_CONFLICT = /(^|\/)\.consort\/(features\/[^/]+\/)?pipeline\.json$/;
+async function reconcilePromoteRunState(projectDir, baseBranch) {
+  const o = { cwd: projectDir, timeout: 3e4 };
+  const dirty = (await exec2("git status --porcelain", o).catch(() => "")).split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
+  const nonRunStateDirty = dirty.filter((p) => !p.startsWith(".consort/"));
+  if (nonRunStateDirty.length > 0) {
+    throw new ScmMergeError(
+      `working tree has uncommitted non-run-state changes (${nonRunStateDirty.slice(0, 5).join(", ")}${nonRunStateDirty.length > 5 ? ", \u2026" : ""}); commit or stash before promoting.`,
+      "promote-conflict"
+    );
+  }
+  if (dirty.length > 0) {
+    await exec2(`git add ${shellEscape2(".consort")}`, o);
+    await exec2(`git commit -m ${shellEscape2("chore(run): checkpoint run state before promotion")}`, o);
+  }
+  await exec2(`git fetch origin ${shellEscape2(baseBranch)}`, o).catch(() => {
+  });
+  let conflicted = false;
+  try {
+    await exec2(`git merge --no-ff -m ${shellEscape2(`merge ${baseBranch} for promotion`)} ${shellEscape2(`origin/${baseBranch}`)}`, o);
+  } catch {
+    conflicted = true;
+  }
+  if (!conflicted) return { reconciled: false };
+  const u = (await exec2("git diff --name-only --diff-filter=U", o).catch(() => "")).split("\n").map((s) => s.trim()).filter(Boolean);
+  const other = u.filter((p) => !PROMOTE_RUNSTATE_CONFLICT.test(p));
+  if (u.length === 0 || other.length > 0) {
+    await exec2("git merge --abort", o).catch(() => {
+    });
+    throw new ScmMergeError(
+      other.length > 0 ? `promotion conflicts on non-ledger file(s): ${other.join(", ")}. Resolve the real divergence manually, then re-run the promote.` : `promotion merge failed with no resolvable conflicts; resolve manually and re-run.`,
+      "promote-conflict"
+    );
+  }
+  for (const p of u) {
+    await exec2(`git checkout --ours -- ${shellEscape2(p)}`, o);
+    await exec2(`git add -- ${shellEscape2(p)}`, o);
+  }
+  await exec2(`git commit -m ${shellEscape2(`merge ${baseBranch} for promotion (pipeline.json ledger kept at run state)`)}`, o);
+  await pushCurrentBranchForPr({ cwd: projectDir });
+  return { reconciled: true, detail: `reconciled ${u.length} ledger path(s) to the run side + pushed` };
+}
 async function defaultRefreshPromoteWorkflows(projectDir) {
   const drift = detectWorkflowDrift({ projectDir });
   const touched = drift.files.filter((f) => f.status === "drifted").map((f) => f.name);
@@ -16516,6 +16558,15 @@ async function mergeFeature(args) {
       preflightNotes.push(
         `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`
       );
+    }
+  }
+  {
+    const fetchState = args.fetchPrState ?? ((o, h) => getPullRequest(o, h));
+    const prState = await fetchState(ownerRepo, current.branch).catch(() => void 0);
+    if (prState?.mergeableState === "dirty") {
+      const reconcile = args.reconcileRunState ?? ((base) => reconcilePromoteRunState(args.projectDir, base));
+      const r = await reconcile(gitBase);
+      if (r.reconciled) preflightNotes.push(`Reconciled a pipeline.json-ledger promotion conflict to the run side${r.detail ? ` (${r.detail})` : ""}.`);
     }
   }
   let paired;
@@ -18820,6 +18871,7 @@ export {
   readTargets,
   readWorkflowState,
   rebaseBranch,
+  reconcilePromoteRunState,
   reconcileTierToOrigin,
   recoverOrphans,
   release,

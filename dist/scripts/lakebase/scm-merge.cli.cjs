@@ -86087,6 +86087,84 @@ function wrap(err, context) {
   }
   throw new GitHubPullRequestError(context);
 }
+async function getPullRequest(ownerRepo, headBranch) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const ok = await octokit();
+    const { data: pulls } = await ok.rest.pulls.list({
+      owner,
+      repo,
+      state: "open",
+      head: `${owner}:${headBranch}`,
+      per_page: 1
+    });
+    if (pulls.length === 0) return void 0;
+    const { data: pr } = await ok.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: pulls[0].number
+    });
+    if (pr.state !== "open") return void 0;
+    let checks = [];
+    let ciStatus = "pending";
+    const headSha = pr.head?.sha;
+    if (headSha) {
+      try {
+        const { data: checksData } = await ok.rest.checks.listForRef({
+          owner,
+          repo,
+          ref: headSha
+        });
+        const runs = checksData.check_runs || [];
+        checks = runs.map((c) => ({
+          name: c.name || "unknown",
+          status: (c.status || "").toUpperCase(),
+          conclusion: (c.conclusion || "").toUpperCase(),
+          detailsUrl: c.details_url || void 0
+        }));
+        ciStatus = parseCiStatus(runs);
+      } catch {
+        ciStatus = "pending";
+      }
+    }
+    return {
+      number: pr.number,
+      title: pr.title,
+      url: pr.html_url || "",
+      state: (pr.state || "open").toUpperCase(),
+      isDraft: pr.draft || false,
+      ciStatus,
+      checks,
+      mergeable: pr.mergeable,
+      mergeableState: pr.mergeable_state,
+      headBranch: pr.head?.ref || headBranch,
+      baseBranch: pr.base?.ref || "",
+      body: pr.body || void 0,
+      additions: pr.additions,
+      deletions: pr.deletions,
+      changedFiles: pr.changed_files
+    };
+  } catch {
+    return void 0;
+  }
+}
+function parseCiStatus(rawChecks) {
+  if (rawChecks.length === 0) return "pending";
+  const latestByName = /* @__PURE__ */ new Map();
+  for (const c of rawChecks) {
+    latestByName.set(c.name || "unknown", c);
+  }
+  const states = Array.from(latestByName.values()).map(
+    (c) => (c.conclusion || c.status || "").toUpperCase()
+  );
+  if (states.some((s2) => s2 === "FAILURE" || s2 === "ERROR" || s2 === "ACTION_REQUIRED")) {
+    return "failure";
+  }
+  if (states.every((s2) => s2 === "SUCCESS" || s2 === "NEUTRAL" || s2 === "SKIPPED")) {
+    return "success";
+  }
+  return "pending";
+}
 async function mergePullRequest(args) {
   const method = args.method ?? "merge";
   const deleteRemoteBranch = args.deleteRemoteBranch !== false;
@@ -86781,6 +86859,48 @@ function shaMigratePredicate(mergeCommitSha) {
     return !!run.headSha && run.headSha === mergeCommitSha;
   };
 }
+var PROMOTE_RUNSTATE_CONFLICT = /(^|\/)\.consort\/(features\/[^/]+\/)?pipeline\.json$/;
+async function reconcilePromoteRunState(projectDir, baseBranch) {
+  const o = { cwd: projectDir, timeout: 3e4 };
+  const dirty = (await exec2("git status --porcelain", o).catch(() => "")).split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
+  const nonRunStateDirty = dirty.filter((p) => !p.startsWith(".consort/"));
+  if (nonRunStateDirty.length > 0) {
+    throw new ScmMergeError(
+      `working tree has uncommitted non-run-state changes (${nonRunStateDirty.slice(0, 5).join(", ")}${nonRunStateDirty.length > 5 ? ", \u2026" : ""}); commit or stash before promoting.`,
+      "promote-conflict"
+    );
+  }
+  if (dirty.length > 0) {
+    await exec2(`git add ${shellEscape(".consort")}`, o);
+    await exec2(`git commit -m ${shellEscape("chore(run): checkpoint run state before promotion")}`, o);
+  }
+  await exec2(`git fetch origin ${shellEscape(baseBranch)}`, o).catch(() => {
+  });
+  let conflicted = false;
+  try {
+    await exec2(`git merge --no-ff -m ${shellEscape(`merge ${baseBranch} for promotion`)} ${shellEscape(`origin/${baseBranch}`)}`, o);
+  } catch {
+    conflicted = true;
+  }
+  if (!conflicted) return { reconciled: false };
+  const u = (await exec2("git diff --name-only --diff-filter=U", o).catch(() => "")).split("\n").map((s2) => s2.trim()).filter(Boolean);
+  const other = u.filter((p) => !PROMOTE_RUNSTATE_CONFLICT.test(p));
+  if (u.length === 0 || other.length > 0) {
+    await exec2("git merge --abort", o).catch(() => {
+    });
+    throw new ScmMergeError(
+      other.length > 0 ? `promotion conflicts on non-ledger file(s): ${other.join(", ")}. Resolve the real divergence manually, then re-run the promote.` : `promotion merge failed with no resolvable conflicts; resolve manually and re-run.`,
+      "promote-conflict"
+    );
+  }
+  for (const p of u) {
+    await exec2(`git checkout --ours -- ${shellEscape(p)}`, o);
+    await exec2(`git add -- ${shellEscape(p)}`, o);
+  }
+  await exec2(`git commit -m ${shellEscape(`merge ${baseBranch} for promotion (pipeline.json ledger kept at run state)`)}`, o);
+  await pushCurrentBranchForPr({ cwd: projectDir });
+  return { reconciled: true, detail: `reconciled ${u.length} ledger path(s) to the run side + pushed` };
+}
 async function defaultRefreshPromoteWorkflows(projectDir) {
   const drift = detectWorkflowDrift({ projectDir });
   const touched = drift.files.filter((f3) => f3.status === "drifted").map((f3) => f3.name);
@@ -86868,6 +86988,15 @@ async function mergeFeature(args) {
       preflightNotes.push(
         `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`
       );
+    }
+  }
+  {
+    const fetchState = args.fetchPrState ?? ((o, h2) => getPullRequest(o, h2));
+    const prState = await fetchState(ownerRepo, current.branch).catch(() => void 0);
+    if (prState?.mergeableState === "dirty") {
+      const reconcile = args.reconcileRunState ?? ((base) => reconcilePromoteRunState(args.projectDir, base));
+      const r2 = await reconcile(gitBase);
+      if (r2.reconciled) preflightNotes.push(`Reconciled a pipeline.json-ledger promotion conflict to the run side${r2.detail ? ` (${r2.detail})` : ""}.`);
     }
   }
   let paired;
@@ -88474,8 +88603,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.47".length > 0) {
-    cached = "0.2.47";
+  if ("0.2.48".length > 0) {
+    cached = "0.2.48";
     return cached;
   }
   cached = "unknown";
