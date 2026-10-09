@@ -1457,7 +1457,7 @@ var require_light = __commonJS({
 
 // scripts/lakebase/scm-prepare-pr.cli.ts
 init_esm_shims();
-import * as path4 from "path";
+import * as path5 from "path";
 
 // scripts/util/cli-entry.ts
 init_esm_shims();
@@ -1643,16 +1643,246 @@ async function getOwnerRepo(cwd) {
   }
 }
 
-// scripts/lakebase/scm-git-base.ts
+// scripts/util/ci-secrets.ts
 init_esm_shims();
-async function resolveGitBase(parentBranch, cwd) {
-  if (parentBranch && await gitBranchExists({ cwd, branch: parentBranch })) {
-    return parentBranch;
+import * as path3 from "path";
+
+// scripts/lakebase/databricks-cli.ts
+init_esm_shims();
+import { execFile, execFileSync as execFileSync2 } from "child_process";
+import { promisify } from "util";
+import { join as join2 } from "path";
+
+// scripts/lakebase/kit-config.ts
+init_esm_shims();
+function intFromEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+var DAY_MS = 24 * 60 * 60 * 1e3;
+var KIT_TIMEOUTS = {
+  cliDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_DEFAULT_MS", 3e4),
+  cliCreateProject: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_PROJECT_MS", 18e4),
+  cliCreateBranch: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_BRANCH_MS", 6e4),
+  cliCreateEndpoint: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_ENDPOINT_MS", 6e4),
+  readyWait: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_WAIT_MS", 12e4),
+  readyPoll: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_POLL_MS", 5e3),
+  pgConnect: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_CONNECT_MS", 1e4),
+  pgStatement: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_STATEMENT_MS", 15e3),
+  gitDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_DEFAULT_MS", 5e3),
+  gitCheckout: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_CHECKOUT_MS", 1e4),
+  gitNetwork: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_NETWORK_MS", 15e3),
+  gitPush: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_PUSH_MS", 3e4),
+  cliLong: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_LONG_MS", 6e4),
+  cmdShort: intFromEnv("LAKEBASE_KIT_TIMEOUT_CMD_SHORT_MS", 5e3),
+  initializrCacheTtl: intFromEnv("LAKEBASE_KIT_INITIALIZR_CACHE_TTL_MS", 10 * 60 * 1e3),
+  featureBranchTtlMs: intFromEnv("LAKEBASE_KIT_FEATURE_BRANCH_TTL_MS", 30 * DAY_MS),
+  testBranchTtlMs: intFromEnv("LAKEBASE_KIT_TEST_BRANCH_TTL_MS", 14 * DAY_MS),
+  uatBranchTtlMs: intFromEnv("LAKEBASE_KIT_UAT_BRANCH_TTL_MS", 14 * DAY_MS),
+  perfBranchTtlMs: intFromEnv("LAKEBASE_KIT_PERF_BRANCH_TTL_MS", 7 * DAY_MS)
+};
+function urlFromEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  return raw.replace(/\/+$/, "");
+}
+var KIT_REGISTRIES = {
+  mavenCentral: urlFromEnv("LAKEBASE_KIT_REGISTRY_MAVEN_CENTRAL", "https://repo1.maven.org/maven2"),
+  springInitializr: urlFromEnv("LAKEBASE_KIT_REGISTRY_SPRING_INITIALIZR", "https://start.spring.io")
+};
+
+// scripts/lakebase/databricks-profile.ts
+init_esm_shims();
+import * as fs from "fs";
+import { execFileSync } from "child_process";
+function normalizeHost(host) {
+  return host.trim().replace(/\/+$/, "").toLowerCase();
+}
+function selectProfileForHost(profilesJson, host) {
+  const target = normalizeHost(host);
+  if (!target) return void 0;
+  const start = profilesJson.indexOf("{");
+  if (start < 0) return void 0;
+  let parsed;
+  try {
+    parsed = JSON.parse(profilesJson.slice(start));
+  } catch {
+    return void 0;
   }
-  return resolveDefaultBranch({ cwd });
+  const profiles = parsed.profiles;
+  if (!Array.isArray(profiles)) return void 0;
+  const names = profiles.filter((p) => {
+    if (!p || typeof p !== "object") return false;
+    const rec = p;
+    return typeof rec.name === "string" && typeof rec.host === "string" && rec.valid === true && normalizeHost(rec.host) === target;
+  }).map((p) => p.name);
+  const distinct = Array.from(new Set(names));
+  return distinct.length === 1 ? distinct[0] : void 0;
+}
+function resolveProfileForHostSync(host, timeoutMs = KIT_TIMEOUTS.cliDefault) {
+  if (!normalizeHost(host)) return void 0;
+  let out;
+  try {
+    out = execFileSync("databricks", ["auth", "profiles", "-o", "json"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: timeoutMs
+    });
+  } catch {
+    return void 0;
+  }
+  return selectProfileForHost(out, host);
 }
 
-// scripts/github/pr.ts
+// scripts/lakebase/env-file.ts
+init_esm_shims();
+import * as fs2 from "fs";
+import * as path2 from "path";
+function readEnvVar(envPath, key) {
+  if (!fs2.existsSync(envPath)) return void 0;
+  let value;
+  for (const line of fs2.readFileSync(envPath, "utf-8").split("\n")) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith("#") || !trimmed.startsWith(`${key}=`)) continue;
+    value = trimmed.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
+  }
+  return value && value.length > 0 ? value : void 0;
+}
+
+// scripts/lakebase/databricks-cli.ts
+var execFileP = promisify(execFile);
+var DatabricksCliError = class extends Error {
+  constructor(message, profile, stderr) {
+    super(message);
+    this.profile = profile;
+    this.stderr = stderr;
+    this.name = "DatabricksCliError";
+  }
+  profile;
+  stderr;
+};
+var DatabricksAuthError = class extends DatabricksCliError {
+  constructor(profile, detail) {
+    const login = `databricks auth login${profile ? ` --profile ${profile}` : ""}`;
+    super(
+      `Databricks authentication failed${profile ? ` for profile "${profile}"` : ""}: the cached token is missing or expired. Re-authenticate, then re-run:
+  ${login}
+${detail}`,
+      profile,
+      detail
+    );
+    this.name = "DatabricksAuthError";
+  }
+};
+var profileByHost = /* @__PURE__ */ new Map();
+var profileByEnvFile = /* @__PURE__ */ new Map();
+var hostByEnvFile = /* @__PURE__ */ new Map();
+function envFileHost(cwd) {
+  if (hostByEnvFile.has(cwd)) return hostByEnvFile.get(cwd);
+  const v = readEnvVar(join2(cwd, ".env"), "DATABRICKS_HOST");
+  hostByEnvFile.set(cwd, v);
+  return v;
+}
+function effectiveHost(opts) {
+  const base = opts.env ?? process.env;
+  const cwd = opts.cwd ?? process.cwd();
+  const h = opts.host ?? base.DATABRICKS_HOST ?? envFileHost(cwd);
+  return h?.trim() || void 0;
+}
+function isAuthFailure(text) {
+  return /refresh token is invalid|auth login|could not be retrieved because|not authenticated|no valid.*(credential|token)|invalid.*(access token|credential)|\b401\b|unauthorized/i.test(
+    text
+  );
+}
+function resolveProfile(opts) {
+  const base = opts.env ?? process.env;
+  if (opts.profile) return opts.profile;
+  const envProfile = base.DATABRICKS_CONFIG_PROFILE?.trim();
+  if (envProfile) return envProfile;
+  const cwd = opts.cwd ?? process.cwd();
+  let fromEnvFile;
+  if (profileByEnvFile.has(cwd)) {
+    fromEnvFile = profileByEnvFile.get(cwd);
+  } else {
+    fromEnvFile = readEnvVar(join2(cwd, ".env"), "DATABRICKS_CONFIG_PROFILE");
+    profileByEnvFile.set(cwd, fromEnvFile);
+  }
+  if (fromEnvFile) return fromEnvFile;
+  const host = effectiveHost(opts);
+  if (!host) return void 0;
+  if (profileByHost.has(host)) return profileByHost.get(host);
+  const resolved = resolveProfileForHostSync(host, opts.timeout);
+  profileByHost.set(host, resolved);
+  return resolved;
+}
+function buildInvocation(args, opts) {
+  const base = opts.env ?? process.env;
+  const trimmedHost = effectiveHost(opts)?.replace(/\/+$/, "");
+  const env = { ...base };
+  if (trimmedHost) env.DATABRICKS_HOST = trimmedHost;
+  delete env.DATABRICKS_WORKSPACE_ID;
+  const profile = resolveProfile(opts);
+  const argv = profile && !opts.noProfile && !args.includes("--profile") ? [...args, "--profile", profile] : args;
+  return { argv, env, profile };
+}
+function classifyDatabricksError(err, argv, profile) {
+  const e = err;
+  const asText = (v) => typeof v === "string" ? v : Buffer.isBuffer(v) ? v.toString("utf8") : "";
+  const stderr = asText(e.stderr).trim();
+  const stdout = asText(e.stdout).trim();
+  const haystack = `${e.message ?? ""}
+${stderr}
+${stdout}`;
+  if (isAuthFailure(haystack)) {
+    return new DatabricksAuthError(profile, stderr || stdout || (e.message ?? ""));
+  }
+  const killed = e.killed === true;
+  const signal = e.signal ?? void 0;
+  const detail = stderr ? `
+stderr: ${stderr}` : stdout ? `
+stdout: ${stdout}` : killed || signal ? `
+(no output; the CLI was killed${signal ? ` by ${signal}` : ""}, likely a TIMEOUT; raise the budget via the matching LAKEBASE_KIT_TIMEOUT_* env var)` : e.code !== void 0 ? `
+(no stderr/stdout; exit ${e.code})` : "";
+  return new DatabricksCliError(
+    `databricks ${argv.join(" ")} failed: ${e.message}${detail}`,
+    profile,
+    stderr || stdout
+  );
+}
+async function runDatabricks(args, opts = {}) {
+  const { argv, env, profile } = buildInvocation(args, opts);
+  const timeout = opts.timeout ?? KIT_TIMEOUTS.cliDefault;
+  try {
+    if (opts.input !== void 0) {
+      return await execDatabricksWithStdin(argv, opts.input, env, timeout);
+    }
+    const { stdout } = await execFileP("databricks", argv, { env, timeout });
+    return stdout.toString();
+  } catch (err) {
+    throw classifyDatabricksError(err, argv, profile);
+  }
+}
+function execDatabricksWithStdin(argv, input, env, timeout) {
+  return new Promise((resolve2, reject) => {
+    const child = execFile("databricks", argv, { env, timeout }, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = String(stdout ?? "");
+        err.stderr = String(stderr ?? "");
+        reject(err);
+        return;
+      }
+      resolve2(String(stdout ?? ""));
+    });
+    child.stdin?.on("error", () => {
+    });
+    child.stdin?.end(input);
+  });
+}
+
+// scripts/github/secrets.ts
 init_esm_shims();
 
 // node_modules/octokit/dist-bundle/index.js
@@ -2717,7 +2947,7 @@ paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_esm_shims();
-var generateMessage = (path5, cursorValue) => `The cursor at "${path5.join(
+var generateMessage = (path6, cursorValue) => `The cursor at "${path6.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -2758,9 +2988,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path5 = []) => {
+var deepFindPathToProperty = (object, searchProp, path6 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path5, key];
+    const currentPath = [...path6, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -2778,12 +3008,12 @@ var deepFindPathToProperty = (object, searchProp, path5 = []) => {
   }
   return [];
 };
-var get = (object, path5) => {
-  return path5.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path6) => {
+  return path6.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path5, mutator) => {
-  const lastProperty = path5[path5.length - 1];
-  const parentPath = [...path5].slice(0, -1);
+var set = (object, path6, mutator) => {
+  const lastProperty = path6[path6.length - 1];
+  const parentPath = [...path6].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -2835,22 +3065,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path5 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path5, "nodes"];
+  const path6 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path6, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path5, "edges"];
+  const edgesPath = [...path6, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path5, "pageInfo"];
+  const pageInfoPath = [...path6, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -5271,7 +5501,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path5) => path5.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path6) => path6.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -8175,9 +8405,12 @@ function onSecondaryRateLimit(retryAfter, options, octokit2) {
 var App2 = App.defaults({ Octokit: Octokit2 });
 var OAuthApp2 = OAuthApp.defaults({ Octokit: Octokit2 });
 
+// scripts/github/secrets.ts
+import sodium from "tweetsodium";
+
 // scripts/github/auth.ts
 init_esm_shims();
-import { execFileSync } from "child_process";
+import { execFileSync as execFileSync3 } from "child_process";
 var GITHUB_SCOPES = ["repo", "workflow", "delete_repo"];
 async function resolveGitHubToken(scopes = GITHUB_SCOPES) {
   const fromEnv = process.env.GITHUB_TOKEN?.trim();
@@ -8205,7 +8438,7 @@ async function tryVsCodeSession(opts = {}) {
 }
 function tryGhAuthToken() {
   try {
-    const raw = execFileSync("gh", ["auth", "token"], {
+    const raw = execFileSync3("gh", ["auth", "token"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 5e3
@@ -8217,71 +8450,230 @@ function tryGhAuthToken() {
   }
 }
 
+// scripts/github/secrets.ts
+var GitHubSecretsError = class extends Error {
+  status;
+  constructor(message, status) {
+    super(message);
+    this.name = "GitHubSecretsError";
+    this.status = status;
+  }
+};
+async function getOctokit() {
+  const token = await resolveGitHubToken();
+  return new Octokit2({ auth: token });
+}
+function wrap(err, context) {
+  if (err instanceof RequestError) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`, err.status);
+  }
+  if (err instanceof Error) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`);
+  }
+  throw new GitHubSecretsError(context);
+}
+function encryptSecret(publicKey, secretValue) {
+  const keyBytes = Buffer.from(publicKey, "base64");
+  const messageBytes = Buffer.from(secretValue);
+  const encryptedBytes = sodium.seal(messageBytes, keyBytes);
+  return Buffer.from(encryptedBytes).toString("base64");
+}
+async function setRepoSecret(ownerRepo, secretName, secretValue) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit2 = await getOctokit();
+    const { data: keyData } = await octokit2.rest.actions.getRepoPublicKey({ owner, repo });
+    const encryptedValue = encryptSecret(keyData.key, secretValue);
+    await octokit2.rest.actions.createOrUpdateRepoSecret({
+      owner,
+      repo,
+      secret_name: secretName,
+      encrypted_value: encryptedValue,
+      key_id: keyData.key_id
+    });
+  } catch (err) {
+    if (err instanceof GitHubSecretsError) throw err;
+    wrap(err, `Failed to set secret ${secretName} on ${ownerRepo}`);
+  }
+}
+async function setRepoSecrets(ownerRepo, secrets) {
+  for (const [name, value] of Object.entries(secrets)) {
+    if (!value) {
+      throw new GitHubSecretsError(`Missing value for secret ${name}`);
+    }
+  }
+  for (const [name, value] of Object.entries(secrets)) {
+    await setRepoSecret(ownerRepo, name, value);
+  }
+}
+async function listSecretNames(ownerRepo) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit2 = await getOctokit();
+    const { data } = await octokit2.rest.actions.listRepoSecrets({ owner, repo });
+    return data.secrets.map((s) => s.name);
+  } catch {
+    return [];
+  }
+}
+
+// scripts/util/ci-secrets.ts
+var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+var CI_TOKEN_LIFETIME_SECONDS = 7776e3;
+var CI_TOKEN_REMINT_MARGIN_SECONDS = 86400;
+function ciTokenComment(ownerRepo) {
+  const repoName = ownerRepo.includes("/") ? ownerRepo.slice(ownerRepo.lastIndexOf("/") + 1) : ownerRepo;
+  return `GitHub Actions (${repoName})`;
+}
+async function missingCiSecrets(ownerRepo) {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
+}
+async function mintCiToken(args) {
+  try {
+    const raw = await runDatabricks(
+      ["tokens", "create", "--comment", args.comment, "--lifetime-seconds", String(args.lifetimeSeconds), "-o", "json"],
+      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
+    );
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    const token = parsed.token_value || parsed.token || "";
+    if (token) return token;
+  } catch {
+  }
+  try {
+    const raw = await runDatabricks(["auth", "token", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
+async function syncCiSecrets(args) {
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  if (!args.databricksHost) {
+    throw new Error("syncCiSecrets: databricksHost is required");
+  }
+  if (!args.lakebaseProjectId) {
+    throw new Error("syncCiSecrets: lakebaseProjectId is required");
+  }
+  const lifetime = args.lifetimeSeconds ?? CI_TOKEN_LIFETIME_SECONDS;
+  const comment = args.comment ?? ciTokenComment(ownerRepo);
+  const secrets = {
+    DATABRICKS_HOST: args.databricksHost,
+    LAKEBASE_PROJECT_ID: args.lakebaseProjectId
+  };
+  const token = await mintCiToken({
+    databricksHost: args.databricksHost,
+    projectDir: args.projectDir,
+    comment,
+    lifetimeSeconds: lifetime
+  });
+  if (token) secrets.DATABRICKS_TOKEN = token;
+  await setRepoSecrets(ownerRepo, secrets);
+}
+async function ciTokenExpiry(args) {
+  const comment = ciTokenComment(args.ownerRepo);
+  let raw;
+  try {
+    raw = await runDatabricks(["tokens", "list", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+  } catch {
+    return null;
+  }
+  let infos;
+  try {
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("["))));
+    infos = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
+  const expiries = infos.filter((t) => t.comment === comment).map((t) => t.expiry_time === -1 ? Number.POSITIVE_INFINITY : Number(t.expiry_time)).filter((n) => Number.isFinite(n) || n === Number.POSITIVE_INFINITY);
+  if (expiries.length === 0) return null;
+  return Math.max(...expiries);
+}
+async function ensureCiSecretsFresh(args) {
+  const now = args.now ?? Date.now;
+  const marginMs = (args.marginSeconds ?? CI_TOKEN_REMINT_MARGIN_SECONDS) * 1e3;
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  const sync = () => syncCiSecrets({
+    projectDir: args.projectDir,
+    databricksHost: args.databricksHost,
+    lakebaseProjectId: args.lakebaseProjectId,
+    ownerRepo
+  });
+  const missing = await missingCiSecrets(ownerRepo);
+  if (missing.length > 0) {
+    await sync();
+    return { action: "provisioned", reason: `CI secret(s) were missing (${missing.join(", ")}); provisioned.` };
+  }
+  const expiry = await ciTokenExpiry({ projectDir: args.projectDir, databricksHost: args.databricksHost, ownerRepo });
+  if (expiry === null) {
+    await sync();
+    return { action: "reminted", reason: "no live CI token found (expired or minted under a different identity); re-minted." };
+  }
+  if (expiry !== Number.POSITIVE_INFINITY && expiry < now() + marginMs) {
+    await sync();
+    const hrs = Math.max(0, Math.round((expiry - now()) / 36e5));
+    return { action: "reminted", reason: `CI token expires in ~${hrs}h (within the re-mint margin); re-minted.` };
+  }
+  return { action: "ok", reason: "CI token is current." };
+}
+async function ensureCiSecretsFreshFromEnv(projectDir, opts) {
+  const envPath = path3.join(projectDir, ".env");
+  const databricksHost = readEnvVar(envPath, "DATABRICKS_HOST");
+  const lakebaseProjectId = readEnvVar(envPath, "LAKEBASE_PROJECT_ID");
+  if (!databricksHost || !lakebaseProjectId) {
+    return {
+      action: "skipped",
+      reason: "CI-auth preflight skipped: .env is missing DATABRICKS_HOST / LAKEBASE_PROJECT_ID."
+    };
+  }
+  try {
+    return await ensureCiSecretsFresh({
+      projectDir,
+      databricksHost,
+      lakebaseProjectId,
+      ownerRepo: opts?.ownerRepo,
+      marginSeconds: opts?.marginSeconds
+    });
+  } catch (err) {
+    return {
+      action: "failed",
+      reason: `CI-auth preflight could not re-mint (${err instanceof Error ? err.message : String(err)}); if CI fails on auth, run lakebase-sync-ci-secrets.`
+    };
+  }
+}
+
+// scripts/lakebase/scm-git-base.ts
+init_esm_shims();
+async function resolveGitBase(parentBranch, cwd) {
+  if (parentBranch && await gitBranchExists({ cwd, branch: parentBranch })) {
+    return parentBranch;
+  }
+  return resolveDefaultBranch({ cwd });
+}
+
+// scripts/github/pr.ts
+init_esm_shims();
+
 // scripts/lakebase/branch-delete.ts
 init_esm_shims();
 
 // scripts/lakebase/branch-utils.ts
 init_esm_shims();
-
-// scripts/lakebase/databricks-cli.ts
-init_esm_shims();
-import { execFile, execFileSync as execFileSync3 } from "child_process";
-import { promisify } from "util";
-import { join as join2 } from "path";
-
-// scripts/lakebase/kit-config.ts
-init_esm_shims();
-function intFromEnv(name, fallback) {
-  const raw = process.env[name];
-  if (!raw) return fallback;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return parsed;
-}
-var DAY_MS = 24 * 60 * 60 * 1e3;
-var KIT_TIMEOUTS = {
-  cliDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_DEFAULT_MS", 3e4),
-  cliCreateProject: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_PROJECT_MS", 18e4),
-  cliCreateBranch: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_BRANCH_MS", 6e4),
-  cliCreateEndpoint: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_CREATE_ENDPOINT_MS", 6e4),
-  readyWait: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_WAIT_MS", 12e4),
-  readyPoll: intFromEnv("LAKEBASE_KIT_TIMEOUT_READY_POLL_MS", 5e3),
-  pgConnect: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_CONNECT_MS", 1e4),
-  pgStatement: intFromEnv("LAKEBASE_KIT_TIMEOUT_PG_STATEMENT_MS", 15e3),
-  gitDefault: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_DEFAULT_MS", 5e3),
-  gitCheckout: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_CHECKOUT_MS", 1e4),
-  gitNetwork: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_NETWORK_MS", 15e3),
-  gitPush: intFromEnv("LAKEBASE_KIT_TIMEOUT_GIT_PUSH_MS", 3e4),
-  cliLong: intFromEnv("LAKEBASE_KIT_TIMEOUT_CLI_LONG_MS", 6e4),
-  cmdShort: intFromEnv("LAKEBASE_KIT_TIMEOUT_CMD_SHORT_MS", 5e3),
-  initializrCacheTtl: intFromEnv("LAKEBASE_KIT_INITIALIZR_CACHE_TTL_MS", 10 * 60 * 1e3),
-  featureBranchTtlMs: intFromEnv("LAKEBASE_KIT_FEATURE_BRANCH_TTL_MS", 30 * DAY_MS),
-  testBranchTtlMs: intFromEnv("LAKEBASE_KIT_TEST_BRANCH_TTL_MS", 14 * DAY_MS),
-  uatBranchTtlMs: intFromEnv("LAKEBASE_KIT_UAT_BRANCH_TTL_MS", 14 * DAY_MS),
-  perfBranchTtlMs: intFromEnv("LAKEBASE_KIT_PERF_BRANCH_TTL_MS", 7 * DAY_MS)
-};
-function urlFromEnv(name, fallback) {
-  const raw = process.env[name];
-  if (!raw) return fallback;
-  return raw.replace(/\/+$/, "");
-}
-var KIT_REGISTRIES = {
-  mavenCentral: urlFromEnv("LAKEBASE_KIT_REGISTRY_MAVEN_CENTRAL", "https://repo1.maven.org/maven2"),
-  springInitializr: urlFromEnv("LAKEBASE_KIT_REGISTRY_SPRING_INITIALIZR", "https://start.spring.io")
-};
-
-// scripts/lakebase/databricks-profile.ts
-init_esm_shims();
-import * as fs from "fs";
-import { execFileSync as execFileSync2 } from "child_process";
-
-// scripts/lakebase/env-file.ts
-init_esm_shims();
-import * as fs2 from "fs";
-import * as path2 from "path";
-
-// scripts/lakebase/databricks-cli.ts
-var execFileP = promisify(execFile);
 
 // scripts/lakebase/branch-id.ts
 init_esm_shims();
@@ -8302,7 +8694,7 @@ async function octokit() {
   const token = await resolveGitHubToken();
   return new Octokit2({ auth: token });
 }
-function wrap(err, context) {
+function wrap2(err, context) {
   if (err instanceof RequestError) {
     throw new GitHubPullRequestError(`${context}: ${err.message}`, err.status);
   }
@@ -8330,7 +8722,7 @@ async function createPullRequest(args) {
     });
     return data.html_url || "";
   } catch (err) {
-    wrap(err, "Failed to create pull request");
+    wrap2(err, "Failed to create pull request");
   }
 }
 async function getPullRequest(ownerRepo, headBranch) {
@@ -8425,7 +8817,7 @@ var RUNTIME_ARTIFACT_IGNORE = [
 // scripts/lakebase/scm-workflow-state.ts
 init_esm_shims();
 import * as fs3 from "fs";
-import * as path3 from "path";
+import * as path4 from "path";
 import { execFileSync as execFileSync4 } from "child_process";
 function isGitTracked(projectDir, rel) {
   try {
@@ -8444,7 +8836,7 @@ function ensureWorkflowStateUntracked(projectDir) {
   } catch {
   }
   try {
-    const gitignore = path3.join(projectDir, ".gitignore");
+    const gitignore = path4.join(projectDir, ".gitignore");
     const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
     if (!existing.split("\n").some((l) => l.trim() === rel)) {
       const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
@@ -8472,7 +8864,7 @@ var STATE_INDEX = SCM_STATES.reduce(
 );
 var STATE_FILE_REL = ".lakebase/workflow-state.json";
 function stateFilePath(projectDir) {
-  return path3.join(projectDir, STATE_FILE_REL);
+  return path4.join(projectDir, STATE_FILE_REL);
 }
 function readWorkflowState(projectDir) {
   const p = stateFilePath(projectDir);
@@ -8506,7 +8898,7 @@ function writeWorkflowState(projectDir, state) {
 ${summary}`);
   }
   ensureWorkflowStateUntracked(projectDir);
-  const dir = path3.join(projectDir, ".lakebase");
+  const dir = path4.join(projectDir, ".lakebase");
   fs3.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
   const tmp = `${target}.tmp`;
@@ -8743,6 +9135,7 @@ async function preparePr(args) {
       "no-github-remote"
     );
   }
+  const ciFreshness = await ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo });
   const now = (args.now ?? (() => /* @__PURE__ */ new Date()))();
   let prUrl = args.prUrlOverride ?? "";
   let prCreated = false;
@@ -8787,7 +9180,7 @@ async function preparePr(args) {
     pushed_at: now.toISOString()
   };
   writeWorkflowState(args.projectDir, next);
-  return { state: next, prUrl, prCreated };
+  return { state: next, prUrl, prCreated, ciFreshness };
 }
 async function ensureAheadOfParent(cwd, branch, parent) {
   try {
@@ -8935,7 +9328,7 @@ async function runScmPreparePrCli(argv) {
 `);
     return 0;
   }
-  const projectDir = path4.resolve(args.projectDir ?? process.cwd());
+  const projectDir = path5.resolve(args.projectDir ?? process.cwd());
   try {
     const result = await preparePr({
       projectDir,

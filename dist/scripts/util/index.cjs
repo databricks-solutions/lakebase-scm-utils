@@ -1464,11 +1464,17 @@ var require_light = __commonJS({
 // scripts/util/index.ts
 var util_exports = {};
 __export(util_exports, {
+  CI_TOKEN_LIFETIME_SECONDS: () => CI_TOKEN_LIFETIME_SECONDS,
+  CI_TOKEN_REMINT_MARGIN_SECONDS: () => CI_TOKEN_REMINT_MARGIN_SECONDS,
   LAKEBASE_BRANCH_NAME_MAX: () => LAKEBASE_BRANCH_NAME_MAX,
   PROXY_ENV_KEYS: () => PROXY_ENV_KEYS,
   REQUIRED_CI_SECRETS: () => REQUIRED_CI_SECRETS,
+  ciTokenComment: () => ciTokenComment,
+  ciTokenExpiry: () => ciTokenExpiry,
   copyDirSubstituted: () => copyDirSubstituted,
   delay: () => delay,
+  ensureCiSecretsFresh: () => ensureCiSecretsFresh,
+  ensureCiSecretsFreshFromEnv: () => ensureCiSecretsFreshFromEnv,
   exec: () => exec2,
   extractZipToDir: () => extractZipToDir,
   formatOwnerRepo: () => formatOwnerRepo,
@@ -1661,8 +1667,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.48".length > 0) {
-    cached = "0.2.48";
+  if ("0.2.49".length > 0) {
+    cached = "0.2.49";
     return cached;
   }
   cached = "unknown";
@@ -1722,6 +1728,7 @@ function sanitizeBranchName(gitBranch) {
 
 // scripts/util/ci-secrets.ts
 init_cjs_shims();
+var path5 = __toESM(require("path"), 1);
 
 // scripts/lakebase/databricks-cli.ts
 init_cjs_shims();
@@ -3023,7 +3030,7 @@ paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_cjs_shims();
-var generateMessage = (path5, cursorValue) => `The cursor at "${path5.join(
+var generateMessage = (path6, cursorValue) => `The cursor at "${path6.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -3064,9 +3071,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path5 = []) => {
+var deepFindPathToProperty = (object, searchProp, path6 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path5, key];
+    const currentPath = [...path6, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -3084,12 +3091,12 @@ var deepFindPathToProperty = (object, searchProp, path5 = []) => {
   }
   return [];
 };
-var get = (object, path5) => {
-  return path5.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path6) => {
+  return path6.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path5, mutator) => {
-  const lastProperty = path5[path5.length - 1];
-  const parentPath = [...path5].slice(0, -1);
+var set = (object, path6, mutator) => {
+  const lastProperty = path6[path6.length - 1];
+  const parentPath = [...path6].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -3141,22 +3148,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path5 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path5, "nodes"];
+  const path6 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path6, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path5, "edges"];
+  const edgesPath = [...path6, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path5, "pageInfo"];
+  const pageInfoPath = [...path6, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -5577,7 +5584,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path5) => path5.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path6) => path6.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -8632,13 +8639,40 @@ async function getOwnerRepo(cwd) {
 
 // scripts/util/ci-secrets.ts
 var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+var CI_TOKEN_LIFETIME_SECONDS = 7776e3;
+var CI_TOKEN_REMINT_MARGIN_SECONDS = 86400;
+function ciTokenComment(ownerRepo) {
+  const repoName = ownerRepo.includes("/") ? ownerRepo.slice(ownerRepo.lastIndexOf("/") + 1) : ownerRepo;
+  return `GitHub Actions (${repoName})`;
+}
 async function missingCiSecrets(ownerRepo) {
   const present = new Set(await listSecretNames(ownerRepo));
   return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
 }
+async function mintCiToken(args) {
+  try {
+    const raw = await runDatabricks(
+      ["tokens", "create", "--comment", args.comment, "--lifetime-seconds", String(args.lifetimeSeconds), "-o", "json"],
+      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
+    );
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    const token = parsed.token_value || parsed.token || "";
+    if (token) return token;
+  } catch {
+  }
+  try {
+    const raw = await runDatabricks(["auth", "token", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
 async function syncCiSecrets(args) {
-  const lifetime = args.lifetimeSeconds ?? 86400;
-  const comment = args.comment ?? "GitHub Actions CI";
   const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
   if (!ownerRepo) {
     throw new Error("Could not resolve GitHub repository from git remote");
@@ -8649,21 +8683,98 @@ async function syncCiSecrets(args) {
   if (!args.lakebaseProjectId) {
     throw new Error("syncCiSecrets: lakebaseProjectId is required");
   }
+  const lifetime = args.lifetimeSeconds ?? CI_TOKEN_LIFETIME_SECONDS;
+  const comment = args.comment ?? ciTokenComment(ownerRepo);
   const secrets = {
     DATABRICKS_HOST: args.databricksHost,
     LAKEBASE_PROJECT_ID: args.lakebaseProjectId
   };
-  try {
-    const tokenRaw = await runDatabricks(
-      ["tokens", "create", "--comment", comment, "--lifetime-seconds", String(lifetime), "-o", "json"],
-      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
-    );
-    const parsed = JSON.parse(tokenRaw);
-    const token = parsed.token_value || parsed.token || "";
-    if (token) secrets.DATABRICKS_TOKEN = token;
-  } catch {
-  }
+  const token = await mintCiToken({
+    databricksHost: args.databricksHost,
+    projectDir: args.projectDir,
+    comment,
+    lifetimeSeconds: lifetime
+  });
+  if (token) secrets.DATABRICKS_TOKEN = token;
   await setRepoSecrets(ownerRepo, secrets);
+}
+async function ciTokenExpiry(args) {
+  const comment = ciTokenComment(args.ownerRepo);
+  let raw;
+  try {
+    raw = await runDatabricks(["tokens", "list", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+  } catch {
+    return null;
+  }
+  let infos;
+  try {
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("["))));
+    infos = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
+  const expiries = infos.filter((t) => t.comment === comment).map((t) => t.expiry_time === -1 ? Number.POSITIVE_INFINITY : Number(t.expiry_time)).filter((n) => Number.isFinite(n) || n === Number.POSITIVE_INFINITY);
+  if (expiries.length === 0) return null;
+  return Math.max(...expiries);
+}
+async function ensureCiSecretsFresh(args) {
+  const now = args.now ?? Date.now;
+  const marginMs = (args.marginSeconds ?? CI_TOKEN_REMINT_MARGIN_SECONDS) * 1e3;
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  const sync = () => syncCiSecrets({
+    projectDir: args.projectDir,
+    databricksHost: args.databricksHost,
+    lakebaseProjectId: args.lakebaseProjectId,
+    ownerRepo
+  });
+  const missing = await missingCiSecrets(ownerRepo);
+  if (missing.length > 0) {
+    await sync();
+    return { action: "provisioned", reason: `CI secret(s) were missing (${missing.join(", ")}); provisioned.` };
+  }
+  const expiry = await ciTokenExpiry({ projectDir: args.projectDir, databricksHost: args.databricksHost, ownerRepo });
+  if (expiry === null) {
+    await sync();
+    return { action: "reminted", reason: "no live CI token found (expired or minted under a different identity); re-minted." };
+  }
+  if (expiry !== Number.POSITIVE_INFINITY && expiry < now() + marginMs) {
+    await sync();
+    const hrs = Math.max(0, Math.round((expiry - now()) / 36e5));
+    return { action: "reminted", reason: `CI token expires in ~${hrs}h (within the re-mint margin); re-minted.` };
+  }
+  return { action: "ok", reason: "CI token is current." };
+}
+async function ensureCiSecretsFreshFromEnv(projectDir, opts) {
+  const envPath = path5.join(projectDir, ".env");
+  const databricksHost = readEnvVar(envPath, "DATABRICKS_HOST");
+  const lakebaseProjectId = readEnvVar(envPath, "LAKEBASE_PROJECT_ID");
+  if (!databricksHost || !lakebaseProjectId) {
+    return {
+      action: "skipped",
+      reason: "CI-auth preflight skipped: .env is missing DATABRICKS_HOST / LAKEBASE_PROJECT_ID."
+    };
+  }
+  try {
+    return await ensureCiSecretsFresh({
+      projectDir,
+      databricksHost,
+      lakebaseProjectId,
+      ownerRepo: opts?.ownerRepo,
+      marginSeconds: opts?.marginSeconds
+    });
+  } catch (err) {
+    return {
+      action: "failed",
+      reason: `CI-auth preflight could not re-mint (${err instanceof Error ? err.message : String(err)}); if CI fails on auth, run lakebase-sync-ci-secrets.`
+    };
+  }
 }
 
 // scripts/util/cli-entry.ts
@@ -8772,11 +8883,17 @@ async function pollUntilDefined(probe, opts) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  CI_TOKEN_LIFETIME_SECONDS,
+  CI_TOKEN_REMINT_MARGIN_SECONDS,
   LAKEBASE_BRANCH_NAME_MAX,
   PROXY_ENV_KEYS,
   REQUIRED_CI_SECRETS,
+  ciTokenComment,
+  ciTokenExpiry,
   copyDirSubstituted,
   delay,
+  ensureCiSecretsFresh,
+  ensureCiSecretsFreshFromEnv,
   exec,
   extractZipToDir,
   formatOwnerRepo,

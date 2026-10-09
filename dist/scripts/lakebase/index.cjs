@@ -2377,14 +2377,14 @@ var require_api_client = __commonJS({
         return new URLSearchParams(flatten(query)).toString();
       }
       async request(options, context) {
-        const { path: path31, method, query = {}, headers, responseHeaders = [], payload, raw = false } = options;
+        const { path: path32, method, query = {}, headers, responseHeaders = [], payload, raw = false } = options;
         headers.set("User-Agent", this.userAgent());
         await this.config.authenticate(headers);
         if (this.config.hostType() === HostType_1.HostType.unifiedHost && this.config.workspaceId) {
           headers.set("X-Databricks-Org-Id", this.config.workspaceId);
         }
         const url = new URL((await this.host).toString());
-        url.pathname = path31;
+        url.pathname = path32;
         const requestOptions = {
           method,
           headers,
@@ -12054,22 +12054,22 @@ var init_from = __esm({
     init_file();
     init_fetch_blob();
     ({ stat } = import_node_fs.promises);
-    blobFromSync = (path31, type) => fromBlob((0, import_node_fs.statSync)(path31), path31, type);
-    blobFrom = (path31, type) => stat(path31).then((stat2) => fromBlob(stat2, path31, type));
-    fileFrom = (path31, type) => stat(path31).then((stat2) => fromFile(stat2, path31, type));
-    fileFromSync = (path31, type) => fromFile((0, import_node_fs.statSync)(path31), path31, type);
-    fromBlob = (stat2, path31, type = "") => new fetch_blob_default([new BlobDataItem({
-      path: path31,
+    blobFromSync = (path32, type) => fromBlob((0, import_node_fs.statSync)(path32), path32, type);
+    blobFrom = (path32, type) => stat(path32).then((stat2) => fromBlob(stat2, path32, type));
+    fileFrom = (path32, type) => stat(path32).then((stat2) => fromFile(stat2, path32, type));
+    fileFromSync = (path32, type) => fromFile((0, import_node_fs.statSync)(path32), path32, type);
+    fromBlob = (stat2, path32, type = "") => new fetch_blob_default([new BlobDataItem({
+      path: path32,
       size: stat2.size,
       lastModified: stat2.mtimeMs,
       start: 0
     })], { type });
-    fromFile = (stat2, path31, type = "") => new file_default([new BlobDataItem({
-      path: path31,
+    fromFile = (stat2, path32, type = "") => new file_default([new BlobDataItem({
+      path: path32,
       size: stat2.size,
       lastModified: stat2.mtimeMs,
       start: 0
-    })], (0, import_node_path2.basename)(path31), { type, lastModified: stat2.mtimeMs });
+    })], (0, import_node_path2.basename)(path32), { type, lastModified: stat2.mtimeMs });
     BlobDataItem = class _BlobDataItem {
       #path;
       #start;
@@ -17295,7 +17295,7 @@ var require_util2 = __commonJS({
     exports2.getWellKnownCertificateConfigFileLocation = getWellKnownCertificateConfigFileLocation;
     var fs33 = require("fs");
     var os2 = require("os");
-    var path31 = require("path");
+    var path32 = require("path");
     var WELL_KNOWN_CERTIFICATE_CONFIG_FILE = "certificate_config.json";
     var CLOUDSDK_CONFIG_DIRECTORY = "gcloud";
     function snakeToCamel(str) {
@@ -17388,8 +17388,8 @@ var require_util2 = __commonJS({
       }
     }
     function getWellKnownCertificateConfigFileLocation() {
-      const configDir = process.env.CLOUDSDK_CONFIG || (_isWindows() ? path31.join(process.env.APPDATA || "", CLOUDSDK_CONFIG_DIRECTORY) : path31.join(process.env.HOME || "", ".config", CLOUDSDK_CONFIG_DIRECTORY));
-      return path31.join(configDir, WELL_KNOWN_CERTIFICATE_CONFIG_FILE);
+      const configDir = process.env.CLOUDSDK_CONFIG || (_isWindows() ? path32.join(process.env.APPDATA || "", CLOUDSDK_CONFIG_DIRECTORY) : path32.join(process.env.HOME || "", ".config", CLOUDSDK_CONFIG_DIRECTORY));
+      return path32.join(configDir, WELL_KNOWN_CERTIFICATE_CONFIG_FILE);
     }
     function _isWindows() {
       return os2.platform().startsWith("win");
@@ -19359,7 +19359,7 @@ var require_getCredentials = __commonJS({
     init_cjs_shims();
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCredentials = getCredentials;
-    var path31 = require("path");
+    var path32 = require("path");
     var fs33 = require("fs");
     var util_1 = require("util");
     var errorWithCode_1 = require_errorWithCode();
@@ -19431,7 +19431,7 @@ var require_getCredentials = __commonJS({
        * @returns An instance of a class that implements ICredentialsProvider.
        */
       static create(keyFilePath) {
-        const keyFileExtension = path31.extname(keyFilePath);
+        const keyFileExtension = path32.extname(keyFilePath);
         switch (keyFileExtension) {
           case ExtensionFiles.JSON:
             return new JsonCredentialsProvider(keyFilePath);
@@ -22824,7 +22824,7 @@ var require_googleauth = __commonJS({
     var gaxios_1 = require_src2();
     var gcpMetadata = require_src4();
     var os2 = require("os");
-    var path31 = require("path");
+    var path32 = require("path");
     var crypto_1 = require_crypto3();
     var computeclient_1 = require_computeclient();
     var idtokenclient_1 = require_idtokenclient();
@@ -23111,11 +23111,11 @@ var require_googleauth = __commonJS({
         } else {
           const home = process.env["HOME"];
           if (home) {
-            location = path31.join(home, ".config");
+            location = path32.join(home, ".config");
           }
         }
         if (location) {
-          location = path31.join(location, "gcloud", "application_default_credentials.json");
+          location = path32.join(location, "gcloud", "application_default_credentials.json");
           if (!fs33.existsSync(location)) {
             location = null;
           }
@@ -23474,7 +23474,7 @@ var require_googleauth = __commonJS({
         if (this.jsonContent) {
           return this._cacheClientFromJSON(this.jsonContent, this.clientOptions);
         } else if (this.keyFilename) {
-          const filePath = path31.resolve(this.keyFilename);
+          const filePath = path32.resolve(this.keyFilename);
           const stream = fs33.createReadStream(filePath);
           return await this.fromStreamAsync(stream, this.clientOptions);
         } else if (this.apiKey) {
@@ -25082,9 +25082,9 @@ var require_api = __commonJS({
         });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/custom-llms/${request2.id}/optimize/cancel`;
+        const path32 = `/api/2.0/custom-llms/${request2.id}/optimize/cancel`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25120,9 +25120,9 @@ var require_api = __commonJS({
           body["name"] = request2.name;
         }
         const query = {};
-        const path31 = "/api/2.0/custom-llms";
+        const path32 = "/api/2.0/custom-llms";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25140,9 +25140,9 @@ var require_api = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/custom-llms/${request2.id}`;
+        const path32 = `/api/2.0/custom-llms/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -25160,9 +25160,9 @@ var require_api = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/custom-llms/${request2.id}`;
+        const path32 = `/api/2.0/custom-llms/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25183,9 +25183,9 @@ var require_api = __commonJS({
         });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/custom-llms/${request2.id}/optimize`;
+        const path32 = `/api/2.0/custom-llms/${request2.id}/optimize`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25212,9 +25212,9 @@ var require_api = __commonJS({
           body["update_mask"] = request2.update_mask;
         }
         const query = {};
-        const path31 = `/api/2.0/custom-llms/${request2.id}`;
+        const path32 = `/api/2.0/custom-llms/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -25462,9 +25462,9 @@ var require_api2 = __commonJS({
         if (request2.hasOwnProperty("no_compute")) {
           query["no_compute"] = request2.no_compute;
         }
-        const path31 = "/api/2.0/apps";
+        const path32 = "/api/2.0/apps";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25529,9 +25529,9 @@ var require_api2 = __commonJS({
           body["update_mask"] = request2.update_mask;
         }
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.app_name}/update`;
+        const path32 = `/api/2.0/apps/${request2.app_name}/update`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25588,9 +25588,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.name}`;
+        const path32 = `/api/2.0/apps/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -25611,9 +25611,9 @@ var require_api2 = __commonJS({
         });
         const body = request2.app_deployment;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.app_name}/deployments`;
+        const path32 = `/api/2.0/apps/${request2.app_name}/deployments`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25669,9 +25669,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.name}`;
+        const path32 = `/api/2.0/apps/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25689,9 +25689,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.app_name}/deployments/${request2.deployment_id}`;
+        const path32 = `/api/2.0/apps/${request2.app_name}/deployments/${request2.deployment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25710,9 +25710,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/apps/${request2.app_name}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/apps/${request2.app_name}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25730,9 +25730,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/apps/${request2.app_name}`;
+        const path32 = `/api/2.0/permissions/apps/${request2.app_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25751,9 +25751,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.app_name}/update`;
+        const path32 = `/api/2.0/apps/${request2.app_name}/update`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25777,9 +25777,9 @@ var require_api2 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/apps";
+        const path32 = "/api/2.0/apps";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25818,9 +25818,9 @@ var require_api2 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/apps/${request2.app_name}/deployments`;
+        const path32 = `/api/2.0/apps/${request2.app_name}/deployments`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -25859,9 +25859,9 @@ var require_api2 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/apps/${request2.app_name}`;
+        const path32 = `/api/2.0/permissions/apps/${request2.app_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -25884,9 +25884,9 @@ var require_api2 = __commonJS({
         });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.name}/start`;
+        const path32 = `/api/2.0/apps/${request2.name}/start`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -25945,9 +25945,9 @@ var require_api2 = __commonJS({
         });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.name}/stop`;
+        const path32 = `/api/2.0/apps/${request2.name}/stop`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -26005,9 +26005,9 @@ var require_api2 = __commonJS({
         });
         const body = request2.app;
         const query = {};
-        const path31 = `/api/2.0/apps/${request2.name}`;
+        const path32 = `/api/2.0/apps/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -26031,9 +26031,9 @@ var require_api2 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/apps/${request2.app_name}`;
+        const path32 = `/api/2.0/permissions/apps/${request2.app_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -26295,9 +26295,9 @@ var require_api2 = __commonJS({
         });
         const body = request2.template;
         const query = {};
-        const path31 = "/api/2.0/apps-settings/templates";
+        const path32 = "/api/2.0/apps-settings/templates";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -26315,9 +26315,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps-settings/templates/${request2.name}`;
+        const path32 = `/api/2.0/apps-settings/templates/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -26335,9 +26335,9 @@ var require_api2 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/apps-settings/templates/${request2.name}`;
+        const path32 = `/api/2.0/apps-settings/templates/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26361,9 +26361,9 @@ var require_api2 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/apps-settings/templates";
+        const path32 = "/api/2.0/apps-settings/templates";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26399,9 +26399,9 @@ var require_api2 = __commonJS({
         });
         const body = request2.template;
         const query = {};
-        const path31 = `/api/2.0/apps-settings/templates/${request2.name}`;
+        const path32 = `/api/2.0/apps-settings/templates/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -26628,9 +26628,9 @@ var require_api3 = __commonJS({
           body["metastore_assignment"] = request2.metastore_assignment;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -26653,9 +26653,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -26679,9 +26679,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastore`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastore`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26707,9 +26707,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/workspaces`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/workspaces`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26742,9 +26742,9 @@ var require_api3 = __commonJS({
           body["metastore_assignment"] = request2.metastore_assignment;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -26862,9 +26862,9 @@ var require_api3 = __commonJS({
           body["metastore_info"] = request2.metastore_info;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -26890,9 +26890,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -26915,9 +26915,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26940,9 +26940,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -26975,9 +26975,9 @@ var require_api3 = __commonJS({
           body["metastore_info"] = request2.metastore_info;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -27097,9 +27097,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -27130,9 +27130,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -27156,9 +27156,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27183,9 +27183,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27221,9 +27221,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/metastores/${request2.metastore_id}/storage-credentials/${request2.storage_credential_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -27331,9 +27331,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/artifact-allowlists/${request2.artifact_type}`;
+        const path32 = `/api/2.1/unity-catalog/artifact-allowlists/${request2.artifact_type}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27368,9 +27368,9 @@ var require_api3 = __commonJS({
           body["metastore_id"] = request2.metastore_id;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/artifact-allowlists/${request2.artifact_type}`;
+        const path32 = `/api/2.1/unity-catalog/artifact-allowlists/${request2.artifact_type}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -27464,9 +27464,9 @@ var require_api3 = __commonJS({
           body["storage_root"] = request2.storage_root;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/catalogs";
+        const path32 = "/api/2.1/unity-catalog/catalogs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -27488,9 +27488,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -27512,9 +27512,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27546,9 +27546,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/catalogs";
+        const path32 = "/api/2.1/unity-catalog/catalogs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27617,9 +27617,9 @@ var require_api3 = __commonJS({
           body["properties"] = request2.properties;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -27748,9 +27748,9 @@ var require_api3 = __commonJS({
           body["read_only"] = request2.read_only;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/connections";
+        const path32 = "/api/2.1/unity-catalog/connections";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -27772,9 +27772,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/connections/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/connections/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -27792,9 +27792,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/connections/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/connections/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27818,9 +27818,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/connections";
+        const path32 = "/api/2.1/unity-catalog/connections";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -27873,9 +27873,9 @@ var require_api3 = __commonJS({
           body["owner"] = request2.owner;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/connections/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/connections/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -28011,9 +28011,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/credentials";
+        const path32 = "/api/2.1/unity-catalog/credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28040,9 +28040,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
+        const path32 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -28073,9 +28073,9 @@ var require_api3 = __commonJS({
           body["gcp_options"] = request2.gcp_options;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/temporary-service-credentials";
+        const path32 = "/api/2.1/unity-catalog/temporary-service-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28095,9 +28095,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
+        const path32 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28129,9 +28129,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("purpose")) {
           query["purpose"] = request2.purpose;
         }
-        const path31 = "/api/2.1/unity-catalog/credentials";
+        const path32 = "/api/2.1/unity-catalog/credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28210,9 +28210,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
+        const path32 = `/api/2.1/unity-catalog/credentials/${request2.name_arg}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -28261,9 +28261,9 @@ var require_api3 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/validate-credentials";
+        const path32 = "/api/2.1/unity-catalog/validate-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28415,9 +28415,9 @@ var require_api3 = __commonJS({
         });
         const body = request2.tag_assignment;
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/entity-tag-assignments";
+        const path32 = "/api/2.1/unity-catalog/entity-tag-assignments";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28446,9 +28446,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
+        const path32 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -28477,9 +28477,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
+        const path32 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28503,9 +28503,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags`;
+        const path32 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28549,9 +28549,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
+        const path32 = `/api/2.1/unity-catalog/entity-tag-assignments/${request2.entity_type}/${request2.entity_name}/tags/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -28671,9 +28671,9 @@ var require_api3 = __commonJS({
         });
         const body = request2.external_lineage_relationship;
         const query = {};
-        const path31 = "/api/2.0/lineage-tracking/external-lineage";
+        const path32 = "/api/2.0/lineage-tracking/external-lineage";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28695,9 +28695,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("external_lineage_relationship")) {
           query["external_lineage_relationship"] = request2.external_lineage_relationship;
         }
-        const path31 = "/api/2.0/lineage-tracking/external-lineage";
+        const path32 = "/api/2.0/lineage-tracking/external-lineage";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -28728,9 +28728,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/lineage-tracking/external-lineage";
+        const path32 = "/api/2.0/lineage-tracking/external-lineage";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28770,9 +28770,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = "/api/2.0/lineage-tracking/external-lineage";
+        const path32 = "/api/2.0/lineage-tracking/external-lineage";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -28898,9 +28898,9 @@ var require_api3 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/external-locations";
+        const path32 = "/api/2.1/unity-catalog/external-locations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -28923,9 +28923,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -28947,9 +28947,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -28981,9 +28981,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/external-locations";
+        const path32 = "/api/2.1/unity-catalog/external-locations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29070,9 +29070,9 @@ var require_api3 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/external-locations/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -29183,9 +29183,9 @@ var require_api3 = __commonJS({
         });
         const body = request2.external_metadata;
         const query = {};
-        const path31 = "/api/2.0/lineage-tracking/external-metadata";
+        const path32 = "/api/2.0/lineage-tracking/external-metadata";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -29206,9 +29206,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
+        const path32 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -29228,9 +29228,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
+        const path32 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29256,9 +29256,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/lineage-tracking/external-metadata";
+        const path32 = "/api/2.0/lineage-tracking/external-metadata";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29301,9 +29301,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
+        const path32 = `/api/2.0/lineage-tracking/external-metadata/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -29420,9 +29420,9 @@ var require_api3 = __commonJS({
           body["function_info"] = request2.function_info;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/functions";
+        const path32 = "/api/2.1/unity-catalog/functions";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -29449,9 +29449,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/functions/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/functions/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -29478,9 +29478,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/functions/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/functions/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29519,9 +29519,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("schema_name")) {
           query["schema_name"] = request2.schema_name;
         }
-        const path31 = "/api/2.1/unity-catalog/functions";
+        const path32 = "/api/2.1/unity-catalog/functions";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29574,9 +29574,9 @@ var require_api3 = __commonJS({
           body["owner"] = request2.owner;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/functions/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/functions/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -29698,9 +29698,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("principal")) {
           query["principal"] = request2.principal;
         }
-        const path31 = `/api/2.1/unity-catalog/permissions/${request2.securable_type}/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/permissions/${request2.securable_type}/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29736,9 +29736,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("principal")) {
           query["principal"] = request2.principal;
         }
-        const path31 = `/api/2.1/unity-catalog/effective-permissions/${request2.securable_type}/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/effective-permissions/${request2.securable_type}/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29771,9 +29771,9 @@ var require_api3 = __commonJS({
           body["changes"] = request2.changes;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/permissions/${request2.securable_type}/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/permissions/${request2.securable_type}/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -29860,9 +29860,9 @@ var require_api3 = __commonJS({
           body["metastore_id"] = request2.metastore_id;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
+        const path32 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -29895,9 +29895,9 @@ var require_api3 = __commonJS({
           body["storage_root"] = request2.storage_root;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/metastores";
+        const path32 = "/api/2.1/unity-catalog/metastores";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -29919,9 +29919,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/current-metastore-assignment";
+        const path32 = "/api/2.1/unity-catalog/current-metastore-assignment";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29942,9 +29942,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -29962,9 +29962,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -29989,9 +29989,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/metastores";
+        const path32 = "/api/2.1/unity-catalog/metastores";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30034,9 +30034,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/metastore_summary";
+        const path32 = "/api/2.1/unity-catalog/metastore_summary";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30059,9 +30059,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("metastore_id")) {
           query["metastore_id"] = request2.metastore_id;
         }
-        const path31 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
+        const path32 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -30104,9 +30104,9 @@ var require_api3 = __commonJS({
           body["storage_root_credential_id"] = request2.storage_root_credential_id;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -30135,9 +30135,9 @@ var require_api3 = __commonJS({
           body["metastore_id"] = request2.metastore_id;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
+        const path32 = `/api/2.1/unity-catalog/workspaces/${request2.workspace_id}/metastore`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -30317,9 +30317,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -30349,9 +30349,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30378,9 +30378,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_aliases")) {
           query["include_aliases"] = request2.include_aliases;
         }
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30412,9 +30412,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30519,9 +30519,9 @@ var require_api3 = __commonJS({
           body["updated_by"] = request2.updated_by;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/versions/${request2.version}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -30637,9 +30637,9 @@ var require_api3 = __commonJS({
         });
         const body = request2.table;
         const query = {};
-        const path31 = "/api/2.0/online-tables";
+        const path32 = "/api/2.0/online-tables";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -30694,9 +30694,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/online-tables/${request2.name}`;
+        const path32 = `/api/2.0/online-tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -30716,9 +30716,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/online-tables/${request2.name}`;
+        const path32 = `/api/2.0/online-tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30799,9 +30799,9 @@ var require_api3 = __commonJS({
         });
         const body = request2.policy_info;
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/policies";
+        const path32 = "/api/2.1/unity-catalog/policies";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -30820,9 +30820,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -30840,9 +30840,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30869,9 +30869,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}`;
+        const path32 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -30916,9 +30916,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/policies/${request2.on_securable_type}/${request2.on_securable_fullname}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -31024,9 +31024,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes/${request2.refresh_id}/cancel`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes/${request2.refresh_id}/cancel`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -31089,9 +31089,9 @@ var require_api3 = __commonJS({
           body["warehouse_id"] = request2.warehouse_id;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -31120,9 +31120,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -31152,9 +31152,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31183,9 +31183,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes/${request2.refresh_id}`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes/${request2.refresh_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31212,9 +31212,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31248,9 +31248,9 @@ var require_api3 = __commonJS({
           body["warehouse_id"] = request2.warehouse_id;
         }
         const query = {};
-        const path31 = `/api/2.1/quality-monitoring/tables/${request2.table_name}/monitor/dashboard`;
+        const path32 = `/api/2.1/quality-monitoring/tables/${request2.table_name}/monitor/dashboard`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -31278,9 +31278,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor/refreshes`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -31347,9 +31347,9 @@ var require_api3 = __commonJS({
           body["time_series"] = request2.time_series;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.table_name}/monitor`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -31568,9 +31568,9 @@ var require_api3 = __commonJS({
           body["updated_by"] = request2.updated_by;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/models";
+        const path32 = "/api/2.1/unity-catalog/models";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -31599,9 +31599,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -31625,9 +31625,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -31656,9 +31656,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31696,9 +31696,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("schema_name")) {
           query["schema_name"] = request2.schema_name;
         }
-        const path31 = "/api/2.1/unity-catalog/models";
+        const path32 = "/api/2.1/unity-catalog/models";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31754,9 +31754,9 @@ var require_api3 = __commonJS({
           body["version_num"] = request2.version_num;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}/aliases/${request2.alias}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -31824,9 +31824,9 @@ var require_api3 = __commonJS({
           body["updated_by"] = request2.updated_by;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/models/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -31968,9 +31968,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/resource-quotas/${request2.parent_securable_type}/${request2.parent_full_name}/${request2.quota_name}`;
+        const path32 = `/api/2.1/unity-catalog/resource-quotas/${request2.parent_securable_type}/${request2.parent_full_name}/${request2.quota_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -31997,9 +31997,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/resource-quotas/all-resource-quotas";
+        const path32 = "/api/2.1/unity-catalog/resource-quotas/all-resource-quotas";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32091,9 +32091,9 @@ var require_api3 = __commonJS({
           body["requests"] = request2.requests;
         }
         const query = {};
-        const path31 = "/api/3.0/rfa/requests";
+        const path32 = "/api/3.0/rfa/requests";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -32119,9 +32119,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/3.0/rfa/destinations/${request2.securable_type}/${request2.full_name}`;
+        const path32 = `/api/3.0/rfa/destinations/${request2.securable_type}/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32152,9 +32152,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = "/api/3.0/rfa/destinations";
+        const path32 = "/api/3.0/rfa/destinations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -32262,9 +32262,9 @@ var require_api3 = __commonJS({
           body["storage_root"] = request2.storage_root;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/schemas";
+        const path32 = "/api/2.1/unity-catalog/schemas";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -32287,9 +32287,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -32311,9 +32311,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32345,9 +32345,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/schemas";
+        const path32 = "/api/2.1/unity-catalog/schemas";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32411,9 +32411,9 @@ var require_api3 = __commonJS({
           body["properties"] = request2.properties;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/schemas/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -32553,9 +32553,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/storage-credentials";
+        const path32 = "/api/2.1/unity-catalog/storage-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -32579,9 +32579,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("force")) {
           query["force"] = request2.force;
         }
-        const path31 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -32600,9 +32600,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32631,9 +32631,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/storage-credentials";
+        const path32 = "/api/2.1/unity-catalog/storage-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -32717,9 +32717,9 @@ var require_api3 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/storage-credentials/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -32771,9 +32771,9 @@ var require_api3 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/validate-storage-credentials";
+        const path32 = "/api/2.1/unity-catalog/validate-storage-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -32904,9 +32904,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas/${request2.schema_name}`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas/${request2.schema_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -32931,9 +32931,9 @@ var require_api3 = __commonJS({
           body["catalog_name"] = request2.catalog_name;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas/${request2.schema_name}`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas/${request2.schema_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -32958,9 +32958,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas`;
+        const path32 = `/api/2.1/unity-catalog/metastores/${request2.metastore_id}/systemschemas`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33071,9 +33071,9 @@ var require_api3 = __commonJS({
           body["full_name_arg"] = request2.full_name_arg;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/constraints";
+        const path32 = "/api/2.1/unity-catalog/constraints";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -33106,9 +33106,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("constraint_name")) {
           query["constraint_name"] = request2.constraint_name;
         }
-        const path31 = `/api/2.1/unity-catalog/constraints/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/constraints/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -33208,9 +33208,9 @@ var require_api3 = __commonJS({
           body["table_type"] = request2.table_type;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/tables";
+        const path32 = "/api/2.1/unity-catalog/tables";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -33252,9 +33252,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -33276,9 +33276,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.full_name}/exists`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.full_name}/exists`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33313,9 +33313,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_manifest_capabilities")) {
           query["include_manifest_capabilities"] = request2.include_manifest_capabilities;
         }
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33366,9 +33366,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("schema_name")) {
           query["schema_name"] = request2.schema_name;
         }
-        const path31 = "/api/2.1/unity-catalog/tables";
+        const path32 = "/api/2.1/unity-catalog/tables";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33432,9 +33432,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("table_name_pattern")) {
           query["table_name_pattern"] = request2.table_name_pattern;
         }
-        const path31 = "/api/2.1/unity-catalog/table-summaries";
+        const path32 = "/api/2.1/unity-catalog/table-summaries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33489,9 +33489,9 @@ var require_api3 = __commonJS({
           body["owner"] = request2.owner;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
+        const path32 = `/api/2.1/unity-catalog/tables/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -33641,9 +33641,9 @@ var require_api3 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = "/api/2.0/unity-catalog/temporary-path-credentials";
+        const path32 = "/api/2.0/unity-catalog/temporary-path-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -33712,9 +33712,9 @@ var require_api3 = __commonJS({
           body["table_id"] = request2.table_id;
         }
         const query = {};
-        const path31 = "/api/2.0/unity-catalog/temporary-table-credentials";
+        const path32 = "/api/2.0/unity-catalog/temporary-table-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -33789,9 +33789,9 @@ var require_api3 = __commonJS({
           body["volume_type"] = request2.volume_type;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/volumes";
+        const path32 = "/api/2.1/unity-catalog/volumes";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -33826,9 +33826,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -33866,9 +33866,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("schema_name")) {
           query["schema_name"] = request2.schema_name;
         }
-        const path31 = "/api/2.1/unity-catalog/volumes";
+        const path32 = "/api/2.1/unity-catalog/volumes";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33919,9 +33919,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("include_browse")) {
           query["include_browse"] = request2.include_browse;
         }
-        const path31 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -33956,9 +33956,9 @@ var require_api3 = __commonJS({
           body["owner"] = request2.owner;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/volumes/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -34073,9 +34073,9 @@ var require_api3 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/workspace-bindings/catalogs/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/workspace-bindings/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34100,9 +34100,9 @@ var require_api3 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/bindings/${request2.securable_type}/${request2.securable_name}`;
+        const path32 = `/api/2.1/unity-catalog/bindings/${request2.securable_type}/${request2.securable_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34153,9 +34153,9 @@ var require_api3 = __commonJS({
           body["unassign_workspaces"] = request2.unassign_workspaces;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/workspace-bindings/catalogs/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/workspace-bindings/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -34183,9 +34183,9 @@ var require_api3 = __commonJS({
           body["remove"] = request2.remove;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/bindings/${request2.securable_type}/${request2.securable_name}`;
+        const path32 = `/api/2.1/unity-catalog/bindings/${request2.securable_type}/${request2.securable_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -34382,9 +34382,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/revisions/${request2.etag}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/revisions/${request2.etag}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34408,9 +34408,9 @@ var require_api4 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/revisions`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/revisions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34490,9 +34490,9 @@ var require_api4 = __commonJS({
         });
         const body = request2.asset;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -34521,9 +34521,9 @@ var require_api4 = __commonJS({
           body["notebook_review"] = request2.notebook_review;
         }
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/reviews`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}/reviews`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -34541,9 +34541,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -34561,9 +34561,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34584,9 +34584,9 @@ var require_api4 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34622,9 +34622,9 @@ var require_api4 = __commonJS({
         });
         const body = request2.asset;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/assets/${request2.asset_type}/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -34749,9 +34749,9 @@ var require_api4 = __commonJS({
           body["auto_approval_rule"] = request2.auto_approval_rule;
         }
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -34769,9 +34769,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -34789,9 +34789,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34815,9 +34815,9 @@ var require_api4 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -34853,9 +34853,9 @@ var require_api4 = __commonJS({
         });
         const body = request2.auto_approval_rule;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/auto-approval-rules/${request2.rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -34968,9 +34968,9 @@ var require_api4 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/runs`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/runs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35036,9 +35036,9 @@ var require_api4 = __commonJS({
         });
         const body = request2.clean_room;
         const query = {};
-        const path31 = "/api/2.0/clean-rooms";
+        const path32 = "/api/2.0/clean-rooms";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35099,9 +35099,9 @@ var require_api4 = __commonJS({
         });
         const body = request2.output_catalog;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.clean_room_name}/output-catalogs`;
+        const path32 = `/api/2.0/clean-rooms/${request2.clean_room_name}/output-catalogs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35119,9 +35119,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -35143,9 +35143,9 @@ var require_api4 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35169,9 +35169,9 @@ var require_api4 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/clean-rooms";
+        const path32 = "/api/2.0/clean-rooms";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35211,9 +35211,9 @@ var require_api4 = __commonJS({
           body["clean_room"] = request2.clean_room;
         }
         const query = {};
-        const path31 = `/api/2.0/clean-rooms/${request2.name}`;
+        const path32 = `/api/2.0/clean-rooms/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -35467,9 +35467,9 @@ var require_api5 = __commonJS({
           body["policy_family_id"] = request2.policy_family_id;
         }
         const query = {};
-        const path31 = "/api/2.0/policies/clusters/create";
+        const path32 = "/api/2.0/policies/clusters/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35493,9 +35493,9 @@ var require_api5 = __commonJS({
           body["policy_id"] = request2.policy_id;
         }
         const query = {};
-        const path31 = "/api/2.0/policies/clusters/delete";
+        const path32 = "/api/2.0/policies/clusters/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35541,9 +35541,9 @@ var require_api5 = __commonJS({
           body["policy_id"] = request2.policy_id;
         }
         const query = {};
-        const path31 = "/api/2.0/policies/clusters/edit";
+        const path32 = "/api/2.0/policies/clusters/edit";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35565,9 +35565,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("policy_id")) {
           query["policy_id"] = request2.policy_id;
         }
-        const path31 = "/api/2.0/policies/clusters/get";
+        const path32 = "/api/2.0/policies/clusters/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35586,9 +35586,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35606,9 +35606,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
+        const path32 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35633,9 +35633,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("sort_order")) {
           query["sort_order"] = request2.sort_order;
         }
-        const path31 = "/api/2.0/policies/clusters/list";
+        const path32 = "/api/2.0/policies/clusters/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -35662,9 +35662,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
+        const path32 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -35690,9 +35690,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
+        const path32 = `/api/2.0/permissions/cluster-policies/${request2.cluster_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -35864,9 +35864,9 @@ var require_api5 = __commonJS({
           body["owner_username"] = request2.owner_username;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/change-owner";
+        const path32 = "/api/2.1/clusters/change-owner";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -35988,9 +35988,9 @@ var require_api5 = __commonJS({
           body["workload_type"] = request2.workload_type;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/create";
+        const path32 = "/api/2.1/clusters/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36069,9 +36069,9 @@ var require_api5 = __commonJS({
           body["cluster_id"] = request2.cluster_id;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/delete";
+        const path32 = "/api/2.1/clusters/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36231,9 +36231,9 @@ var require_api5 = __commonJS({
           body["workload_type"] = request2.workload_type;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/edit";
+        const path32 = "/api/2.1/clusters/edit";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36331,9 +36331,9 @@ var require_api5 = __commonJS({
           body["start_time"] = request2.start_time;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/events";
+        const path32 = "/api/2.1/clusters/events";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36371,9 +36371,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("cluster_id")) {
           query["cluster_id"] = request2.cluster_id;
         }
-        const path31 = "/api/2.1/clusters/get";
+        const path32 = "/api/2.1/clusters/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36393,9 +36393,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/clusters/${request2.cluster_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/clusters/${request2.cluster_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36413,9 +36413,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
+        const path32 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36446,9 +36446,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("sort_by")) {
           query["sort_by"] = request2.sort_by;
         }
-        const path31 = "/api/2.1/clusters/list";
+        const path32 = "/api/2.1/clusters/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36483,9 +36483,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.1/clusters/list-node-types";
+        const path32 = "/api/2.1/clusters/list-node-types";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36504,9 +36504,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.1/clusters/list-zones";
+        const path32 = "/api/2.1/clusters/list-zones";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36531,9 +36531,9 @@ var require_api5 = __commonJS({
           body["cluster_id"] = request2.cluster_id;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/permanent-delete";
+        const path32 = "/api/2.1/clusters/permanent-delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36562,9 +36562,9 @@ var require_api5 = __commonJS({
           body["cluster_id"] = request2.cluster_id;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/pin";
+        const path32 = "/api/2.1/clusters/pin";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36596,9 +36596,9 @@ var require_api5 = __commonJS({
           body["num_workers"] = request2.num_workers;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/resize";
+        const path32 = "/api/2.1/clusters/resize";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36664,9 +36664,9 @@ var require_api5 = __commonJS({
           body["restart_user"] = request2.restart_user;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/restart";
+        const path32 = "/api/2.1/clusters/restart";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36729,9 +36729,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
+        const path32 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -36751,9 +36751,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.1/clusters/spark-versions";
+        const path32 = "/api/2.1/clusters/spark-versions";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -36778,9 +36778,9 @@ var require_api5 = __commonJS({
           body["cluster_id"] = request2.cluster_id;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/start";
+        const path32 = "/api/2.1/clusters/start";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36848,9 +36848,9 @@ var require_api5 = __commonJS({
           body["cluster_id"] = request2.cluster_id;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/unpin";
+        const path32 = "/api/2.1/clusters/unpin";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36882,9 +36882,9 @@ var require_api5 = __commonJS({
           body["update_mask"] = request2.update_mask;
         }
         const query = {};
-        const path31 = "/api/2.1/clusters/update";
+        const path32 = "/api/2.1/clusters/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -36956,9 +36956,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
+        const path32 = `/api/2.0/permissions/clusters/${request2.cluster_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -37301,9 +37301,9 @@ var require_api5 = __commonJS({
           body["contextId"] = request2.contextId;
         }
         const query = {};
-        const path31 = "/api/1.2/commands/cancel";
+        const path32 = "/api/1.2/commands/cancel";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37371,9 +37371,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("contextId")) {
           query["contextId"] = request2.contextId;
         }
-        const path31 = "/api/1.2/commands/status";
+        const path32 = "/api/1.2/commands/status";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -37400,9 +37400,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("contextId")) {
           query["contextId"] = request2.contextId;
         }
-        const path31 = "/api/1.2/contexts/status";
+        const path32 = "/api/1.2/contexts/status";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -37429,9 +37429,9 @@ var require_api5 = __commonJS({
           body["language"] = request2.language;
         }
         const query = {};
-        const path31 = "/api/1.2/contexts/create";
+        const path32 = "/api/1.2/contexts/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37498,9 +37498,9 @@ var require_api5 = __commonJS({
           body["contextId"] = request2.contextId;
         }
         const query = {};
-        const path31 = "/api/1.2/contexts/destroy";
+        const path32 = "/api/1.2/contexts/destroy";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37533,9 +37533,9 @@ var require_api5 = __commonJS({
           body["language"] = request2.language;
         }
         const query = {};
-        const path31 = "/api/1.2/commands/execute";
+        const path32 = "/api/1.2/commands/execute";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37715,9 +37715,9 @@ var require_api5 = __commonJS({
           body["script"] = request2.script;
         }
         const query = {};
-        const path31 = "/api/2.0/global-init-scripts";
+        const path32 = "/api/2.0/global-init-scripts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37735,9 +37735,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/global-init-scripts/${request2.script_id}`;
+        const path32 = `/api/2.0/global-init-scripts/${request2.script_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -37755,9 +37755,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/global-init-scripts/${request2.script_id}`;
+        const path32 = `/api/2.0/global-init-scripts/${request2.script_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -37775,9 +37775,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/global-init-scripts";
+        const path32 = "/api/2.0/global-init-scripts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -37816,9 +37816,9 @@ var require_api5 = __commonJS({
           body["script"] = request2.script;
         }
         const query = {};
-        const path31 = `/api/2.0/global-init-scripts/${request2.script_id}`;
+        const path32 = `/api/2.0/global-init-scripts/${request2.script_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -37973,9 +37973,9 @@ var require_api5 = __commonJS({
           body["total_initial_remote_disk_size"] = request2.total_initial_remote_disk_size;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-pools/create";
+        const path32 = "/api/2.0/instance-pools/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -37999,9 +37999,9 @@ var require_api5 = __commonJS({
           body["instance_pool_id"] = request2.instance_pool_id;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-pools/delete";
+        const path32 = "/api/2.0/instance-pools/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38050,9 +38050,9 @@ var require_api5 = __commonJS({
           body["total_initial_remote_disk_size"] = request2.total_initial_remote_disk_size;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-pools/edit";
+        const path32 = "/api/2.0/instance-pools/edit";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38073,9 +38073,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("instance_pool_id")) {
           query["instance_pool_id"] = request2.instance_pool_id;
         }
-        const path31 = "/api/2.0/instance-pools/get";
+        const path32 = "/api/2.0/instance-pools/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38093,9 +38093,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38113,9 +38113,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
+        const path32 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38134,9 +38134,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/instance-pools/list";
+        const path32 = "/api/2.0/instance-pools/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38163,9 +38163,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
+        const path32 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -38191,9 +38191,9 @@ var require_api5 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
+        const path32 = `/api/2.0/permissions/instance-pools/${request2.instance_pool_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -38371,9 +38371,9 @@ var require_api5 = __commonJS({
           body["skip_validation"] = request2.skip_validation;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-profiles/add";
+        const path32 = "/api/2.0/instance-profiles/add";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38406,9 +38406,9 @@ var require_api5 = __commonJS({
           body["is_meta_instance_profile"] = request2.is_meta_instance_profile;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-profiles/edit";
+        const path32 = "/api/2.0/instance-profiles/edit";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38440,9 +38440,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/instance-profiles/list";
+        const path32 = "/api/2.0/instance-profiles/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38472,9 +38472,9 @@ var require_api5 = __commonJS({
           body["instance_profile_arn"] = request2.instance_profile_arn;
         }
         const query = {};
-        const path31 = "/api/2.0/instance-profiles/remove";
+        const path32 = "/api/2.0/instance-profiles/remove";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38569,9 +38569,9 @@ var require_api5 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/libraries/all-cluster-statuses";
+        const path32 = "/api/2.0/libraries/all-cluster-statuses";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38596,9 +38596,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("cluster_id")) {
           query["cluster_id"] = request2.cluster_id;
         }
-        const path31 = "/api/2.0/libraries/cluster-status";
+        const path32 = "/api/2.0/libraries/cluster-status";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38634,9 +38634,9 @@ var require_api5 = __commonJS({
           body["libraries"] = request2.libraries;
         }
         const query = {};
-        const path31 = "/api/2.0/libraries/install";
+        const path32 = "/api/2.0/libraries/install";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38664,9 +38664,9 @@ var require_api5 = __commonJS({
           body["libraries"] = request2.libraries;
         }
         const query = {};
-        const path31 = "/api/2.0/libraries/uninstall";
+        const path32 = "/api/2.0/libraries/uninstall";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38769,9 +38769,9 @@ var require_api5 = __commonJS({
           body["validate_only"] = request2.validate_only;
         }
         const query = {};
-        const path31 = "/api/2.0/policies/clusters/enforce-compliance";
+        const path32 = "/api/2.0/policies/clusters/enforce-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -38804,9 +38804,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("cluster_id")) {
           query["cluster_id"] = request2.cluster_id;
         }
-        const path31 = "/api/2.0/policies/clusters/get-compliance";
+        const path32 = "/api/2.0/policies/clusters/get-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38835,9 +38835,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("policy_id")) {
           query["policy_id"] = request2.policy_id;
         }
-        const path31 = "/api/2.0/policies/clusters/list-compliance";
+        const path32 = "/api/2.0/policies/clusters/list-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38935,9 +38935,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = `/api/2.0/policy-families/${request2.policy_family_id}`;
+        const path32 = `/api/2.0/policy-families/${request2.policy_family_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -38962,9 +38962,9 @@ var require_api5 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/policy-families";
+        const path32 = "/api/2.0/policy-families";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39154,9 +39154,9 @@ var require_api6 = __commonJS({
           body["content"] = request2.content;
         }
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39215,9 +39215,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -39235,9 +39235,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -39255,9 +39255,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/attachments/${request2.attachment_id}/execute-query`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/attachments/${request2.attachment_id}/execute-query`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39276,9 +39276,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/execute-query`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/execute-query`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39297,9 +39297,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39317,9 +39317,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/attachments/${request2.attachment_id}/query-result`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/attachments/${request2.attachment_id}/query-result`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39339,9 +39339,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/query-result`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/query-result`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39360,9 +39360,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/query-result/${request2.attachment_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/query-result/${request2.attachment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39381,9 +39381,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39407,9 +39407,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39436,9 +39436,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39462,9 +39462,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/genie/spaces";
+        const path32 = "/api/2.0/genie/spaces";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39488,9 +39488,9 @@ var require_api6 = __commonJS({
           body["rating"] = request2.rating;
         }
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/feedback`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/conversations/${request2.conversation_id}/messages/${request2.message_id}/feedback`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39514,9 +39514,9 @@ var require_api6 = __commonJS({
           body["content"] = request2.content;
         }
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}/start-conversation`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}/start-conversation`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39573,9 +39573,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/genie/spaces/${request2.space_id}`;
+        const path32 = `/api/2.0/genie/spaces/${request2.space_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -39836,9 +39836,9 @@ var require_api6 = __commonJS({
         });
         const body = request2.dashboard;
         const query = {};
-        const path31 = "/api/2.0/lakeview/dashboards";
+        const path32 = "/api/2.0/lakeview/dashboards";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39859,9 +39859,9 @@ var require_api6 = __commonJS({
         });
         const body = request2.schedule;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39882,9 +39882,9 @@ var require_api6 = __commonJS({
         });
         const body = request2.subscription;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -39905,9 +39905,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -39928,9 +39928,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions/${request2.subscription_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions/${request2.subscription_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -39948,9 +39948,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39968,9 +39968,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -39988,9 +39988,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40008,9 +40008,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions/${request2.subscription_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions/${request2.subscription_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40040,9 +40040,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("view")) {
           query["view"] = request2.view;
         }
-        const path31 = "/api/2.0/lakeview/dashboards";
+        const path32 = "/api/2.0/lakeview/dashboards";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40081,9 +40081,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40122,9 +40122,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}/subscriptions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40172,9 +40172,9 @@ var require_api6 = __commonJS({
           body["update_parameter_syntax"] = request2.update_parameter_syntax;
         }
         const query = {};
-        const path31 = "/api/2.0/lakeview/dashboards/migrate";
+        const path32 = "/api/2.0/lakeview/dashboards/migrate";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40201,9 +40201,9 @@ var require_api6 = __commonJS({
           body["warehouse_id"] = request2.warehouse_id;
         }
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40221,9 +40221,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40241,9 +40241,9 @@ var require_api6 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40264,9 +40264,9 @@ var require_api6 = __commonJS({
         });
         const body = request2.dashboard;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -40287,9 +40287,9 @@ var require_api6 = __commonJS({
         });
         const body = request2.schedule;
         const query = {};
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/schedules/${request2.schedule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -40581,9 +40581,9 @@ var require_api6 = __commonJS({
         if (request2.hasOwnProperty("external_viewer_id")) {
           query["external_viewer_id"] = request2.external_viewer_id;
         }
-        const path31 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published/tokeninfo`;
+        const path32 = `/api/2.0/lakeview/dashboards/${request2.dashboard_id}/published/tokeninfo`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -40741,9 +40741,9 @@ var require_api7 = __commonJS({
         });
         const body = request2.catalog;
         const query = {};
-        const path31 = "/api/2.0/database/catalogs";
+        const path32 = "/api/2.0/database/catalogs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40764,9 +40764,9 @@ var require_api7 = __commonJS({
         });
         const body = request2.database_instance;
         const query = {};
-        const path31 = "/api/2.0/database/instances";
+        const path32 = "/api/2.0/database/instances";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40822,9 +40822,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("database_instance_name")) {
           query["database_instance_name"] = request2.database_instance_name;
         }
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/roles`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/roles`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40845,9 +40845,9 @@ var require_api7 = __commonJS({
         });
         const body = request2.table;
         const query = {};
-        const path31 = "/api/2.0/database/tables";
+        const path32 = "/api/2.0/database/tables";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40870,9 +40870,9 @@ var require_api7 = __commonJS({
         });
         const body = request2.synced_table;
         const query = {};
-        const path31 = "/api/2.0/database/synced_tables";
+        const path32 = "/api/2.0/database/synced_tables";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -40890,9 +40890,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/catalogs/${request2.name}`;
+        const path32 = `/api/2.0/database/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40916,9 +40916,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("purge")) {
           query["purge"] = request2.purge;
         }
-        const path31 = `/api/2.0/database/instances/${request2.name}`;
+        const path32 = `/api/2.0/database/instances/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40942,9 +40942,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("reassign_owned_to")) {
           query["reassign_owned_to"] = request2.reassign_owned_to;
         }
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/roles/${request2.name}`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/roles/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40962,9 +40962,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/tables/${request2.name}`;
+        const path32 = `/api/2.0/database/tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -40982,9 +40982,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/synced_tables/${request2.name}`;
+        const path32 = `/api/2.0/database/synced_tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -41005,9 +41005,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("uid")) {
           query["uid"] = request2.uid;
         }
-        const path31 = "/api/2.0/database/instances:findByUid";
+        const path32 = "/api/2.0/database/instances:findByUid";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41037,9 +41037,9 @@ var require_api7 = __commonJS({
           body["request_id"] = request2.request_id;
         }
         const query = {};
-        const path31 = "/api/2.0/database/credentials";
+        const path32 = "/api/2.0/database/credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -41057,9 +41057,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/catalogs/${request2.name}`;
+        const path32 = `/api/2.0/database/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41077,9 +41077,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/instances/${request2.name}`;
+        const path32 = `/api/2.0/database/instances/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41097,9 +41097,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/roles/${request2.name}`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/roles/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41117,9 +41117,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/tables/${request2.name}`;
+        const path32 = `/api/2.0/database/tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41137,9 +41137,9 @@ var require_api7 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/database/synced_tables/${request2.name}`;
+        const path32 = `/api/2.0/database/synced_tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41163,9 +41163,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/catalogs`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/catalogs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41204,9 +41204,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/roles`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/roles`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41249,9 +41249,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/database/instances";
+        const path32 = "/api/2.0/database/instances";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41290,9 +41290,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/database/instances/${request2.instance_name}/synced_tables`;
+        const path32 = `/api/2.0/database/instances/${request2.instance_name}/synced_tables`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -41331,9 +41331,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/database/catalogs/${request2.name}`;
+        const path32 = `/api/2.0/database/catalogs/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -41357,9 +41357,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/database/instances/${request2.name}`;
+        const path32 = `/api/2.0/database/instances/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -41383,9 +41383,9 @@ var require_api7 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/database/synced_tables/${request2.name}`;
+        const path32 = `/api/2.0/database/synced_tables/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -41859,9 +41859,9 @@ var require_api8 = __commonJS({
         });
         const body = void 0;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}/cancel`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}/cancel`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -41891,9 +41891,9 @@ var require_api8 = __commonJS({
         });
         const body = request2.monitor;
         const query = {};
-        const path31 = "/api/data-quality/v1/monitors";
+        const path32 = "/api/data-quality/v1/monitors";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -41933,9 +41933,9 @@ var require_api8 = __commonJS({
         });
         const body = request2.refresh;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -41962,9 +41962,9 @@ var require_api8 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -41997,9 +41997,9 @@ var require_api8 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -42017,9 +42017,9 @@ var require_api8 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42054,9 +42054,9 @@ var require_api8 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42093,9 +42093,9 @@ var require_api8 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/data-quality/v1/monitors";
+        const path32 = "/api/data-quality/v1/monitors";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42134,9 +42134,9 @@ var require_api8 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42188,9 +42188,9 @@ var require_api8 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -42226,9 +42226,9 @@ var require_api8 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
+        const path32 = `/api/data-quality/v1/monitors/${request2.object_type}/${request2.object_id}/refreshes/${request2.refresh_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -42528,9 +42528,9 @@ var require_api9 = __commonJS({
           body["handle"] = request2.handle;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/add-block";
+        const path32 = "/api/2.0/dbfs/add-block";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42559,9 +42559,9 @@ var require_api9 = __commonJS({
           body["handle"] = request2.handle;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/close";
+        const path32 = "/api/2.0/dbfs/close";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42589,9 +42589,9 @@ var require_api9 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/create";
+        const path32 = "/api/2.0/dbfs/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42627,9 +42627,9 @@ var require_api9 = __commonJS({
           body["recursive"] = request2.recursive;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/delete";
+        const path32 = "/api/2.0/dbfs/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42667,9 +42667,9 @@ var require_api9 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/dbfs/get-status";
+        const path32 = "/api/2.0/dbfs/get-status";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42692,9 +42692,9 @@ var require_api9 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/dbfs/list";
+        const path32 = "/api/2.0/dbfs/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -42732,9 +42732,9 @@ var require_api9 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/mkdirs";
+        const path32 = "/api/2.0/dbfs/mkdirs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42765,9 +42765,9 @@ var require_api9 = __commonJS({
           body["source_path"] = request2.source_path;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/move";
+        const path32 = "/api/2.0/dbfs/move";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42802,9 +42802,9 @@ var require_api9 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/dbfs/put";
+        const path32 = "/api/2.0/dbfs/put";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -42842,9 +42842,9 @@ var require_api9 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/dbfs/read";
+        const path32 = "/api/2.0/dbfs/read";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43028,9 +43028,9 @@ var require_api9 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/fs/directories${request2.directory_path}`;
+        const path32 = `/api/2.0/fs/directories${request2.directory_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -43051,9 +43051,9 @@ var require_api9 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/fs/files${request2.file_path}`;
+        const path32 = `/api/2.0/fs/files${request2.file_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -43071,9 +43071,9 @@ var require_api9 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/fs/directories${request2.directory_path}`;
+        const path32 = `/api/2.0/fs/directories${request2.directory_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -43100,9 +43100,9 @@ var require_api9 = __commonJS({
           "content-type",
           "last-modified"
         ];
-        const path31 = `/api/2.0/fs/files${request2.file_path}`;
+        const path32 = `/api/2.0/fs/files${request2.file_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           responseHeaders,
@@ -43123,9 +43123,9 @@ var require_api9 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/fs/directories${request2.directory_path}`;
+        const path32 = `/api/2.0/fs/directories${request2.directory_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "HEAD",
           headers,
           raw: false,
@@ -43156,9 +43156,9 @@ var require_api9 = __commonJS({
           "content-type",
           "last-modified"
         ];
-        const path31 = `/api/2.0/fs/files${request2.file_path}`;
+        const path32 = `/api/2.0/fs/files${request2.file_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "HEAD",
           headers,
           responseHeaders,
@@ -43184,9 +43184,9 @@ var require_api9 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/fs/directories${request2.directory_path}`;
+        const path32 = `/api/2.0/fs/directories${request2.directory_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43225,9 +43225,9 @@ var require_api9 = __commonJS({
         if (request2.hasOwnProperty("overwrite")) {
           query["overwrite"] = request2.overwrite;
         }
-        const path31 = `/api/2.0/fs/files${request2.file_path}`;
+        const path32 = `/api/2.0/fs/files${request2.file_path}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -43500,9 +43500,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("resource_info")) {
           query["resource_info"] = request2.resource_info;
         }
-        const path31 = "/api/2.0/access-control/check-policy-v2";
+        const path32 = "/api/2.0/access-control/check-policy-v2";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43560,9 +43560,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("resource")) {
           query["resource"] = request2.resource;
         }
-        const path31 = `/api/2.0/preview/accounts/${config.accountId}/access-control/assignable-roles`;
+        const path32 = `/api/2.0/preview/accounts/${config.accountId}/access-control/assignable-roles`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43593,9 +43593,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("name")) {
           query["name"] = request2.name;
         }
-        const path31 = `/api/2.0/preview/accounts/${config.accountId}/access-control/rule-sets`;
+        const path32 = `/api/2.0/preview/accounts/${config.accountId}/access-control/rule-sets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43629,9 +43629,9 @@ var require_api10 = __commonJS({
           body["rule_set"] = request2.rule_set;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/accounts/${config.accountId}/access-control/rule-sets`;
+        const path32 = `/api/2.0/preview/accounts/${config.accountId}/access-control/rule-sets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -43714,9 +43714,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("resource")) {
           query["resource"] = request2.resource;
         }
-        const path31 = "/api/2.0/preview/accounts/access-control/assignable-roles";
+        const path32 = "/api/2.0/preview/accounts/access-control/assignable-roles";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43742,9 +43742,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("name")) {
           query["name"] = request2.name;
         }
-        const path31 = "/api/2.0/preview/accounts/access-control/rule-sets";
+        const path32 = "/api/2.0/preview/accounts/access-control/rule-sets";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43773,9 +43773,9 @@ var require_api10 = __commonJS({
           body["rule_set"] = request2.rule_set;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/accounts/access-control/rule-sets";
+        const path32 = "/api/2.0/preview/accounts/access-control/rule-sets";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -43881,9 +43881,9 @@ var require_api10 = __commonJS({
           body["roles"] = request2.roles;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -43907,9 +43907,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -43932,9 +43932,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -43978,9 +43978,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44024,9 +44024,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -44067,9 +44067,9 @@ var require_api10 = __commonJS({
           body["roles"] = request2.roles;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -44215,9 +44215,9 @@ var require_api10 = __commonJS({
           body["roles"] = request2.roles;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -44240,9 +44240,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -44265,9 +44265,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44312,9 +44312,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44357,9 +44357,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -44401,9 +44401,9 @@ var require_api10 = __commonJS({
           body["roles"] = request2.roles;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -44557,9 +44557,9 @@ var require_api10 = __commonJS({
           body["userName"] = request2.userName;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -44583,9 +44583,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -44630,9 +44630,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44676,9 +44676,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44721,9 +44721,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -44771,9 +44771,9 @@ var require_api10 = __commonJS({
           body["userName"] = request2.userName;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -44893,9 +44893,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/preview/scim/v2/Me";
+        const path32 = "/api/2.0/preview/scim/v2/Me";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -44975,9 +44975,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/scim/v2/Groups";
+        const path32 = "/api/2.0/preview/scim/v2/Groups";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -44996,9 +44996,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -45016,9 +45016,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45057,9 +45057,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = "/api/2.0/preview/scim/v2/Groups";
+        const path32 = "/api/2.0/preview/scim/v2/Groups";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45097,9 +45097,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -45144,9 +45144,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Groups/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -45281,9 +45281,9 @@ var require_api10 = __commonJS({
           body["workspace_id"] = request2.workspace_id;
         }
         const query = {};
-        const path31 = "/api/2.0/permissionmigration";
+        const path32 = "/api/2.0/permissionmigration";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -45333,9 +45333,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45354,9 +45354,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45380,9 +45380,9 @@ var require_api10 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -45408,9 +45408,9 @@ var require_api10 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.request_object_type}/${request2.request_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -45533,9 +45533,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/scim/v2/ServicePrincipals";
+        const path32 = "/api/2.0/preview/scim/v2/ServicePrincipals";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -45553,9 +45553,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -45573,9 +45573,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45615,9 +45615,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = "/api/2.0/preview/scim/v2/ServicePrincipals";
+        const path32 = "/api/2.0/preview/scim/v2/ServicePrincipals";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45655,9 +45655,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -45703,9 +45703,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/ServicePrincipals/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -45863,9 +45863,9 @@ var require_api10 = __commonJS({
           body["userName"] = request2.userName;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/scim/v2/Users";
+        const path32 = "/api/2.0/preview/scim/v2/Users";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -45884,9 +45884,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -45926,9 +45926,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45946,9 +45946,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/passwords/permissionLevels";
+        const path32 = "/api/2.0/permissions/authorization/passwords/permissionLevels";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -45966,9 +45966,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/passwords";
+        const path32 = "/api/2.0/permissions/authorization/passwords";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46008,9 +46008,9 @@ var require_api10 = __commonJS({
         if (request2.hasOwnProperty("startIndex")) {
           query["startIndex"] = request2.startIndex;
         }
-        const path31 = "/api/2.0/preview/scim/v2/Users";
+        const path32 = "/api/2.0/preview/scim/v2/Users";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46048,9 +46048,9 @@ var require_api10 = __commonJS({
           body["schemas"] = request2.schemas;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -46075,9 +46075,9 @@ var require_api10 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/passwords";
+        const path32 = "/api/2.0/permissions/authorization/passwords";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -46130,9 +46130,9 @@ var require_api10 = __commonJS({
           body["userName"] = request2.userName;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
+        const path32 = `/api/2.0/preview/scim/v2/Users/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -46156,9 +46156,9 @@ var require_api10 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/passwords";
+        const path32 = "/api/2.0/permissions/authorization/passwords";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -46340,9 +46340,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/principals/${request2.principal_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/principals/${request2.principal_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -46366,9 +46366,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/permissions`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/permissions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46392,9 +46392,9 @@ var require_api10 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46427,9 +46427,9 @@ var require_api10 = __commonJS({
           body["permissions"] = request2.permissions;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/principals/${request2.principal_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/permissionassignments/principals/${request2.principal_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -46631,9 +46631,9 @@ var require_api11 = __commonJS({
         if (request2.hasOwnProperty("view")) {
           query["view"] = request2.view;
         }
-        const path31 = `/api/2.0/identity/accounts/${config.accountId}/workspaces/${request2.workspace_id}/workspaceAccessDetails/${request2.principal_id}`;
+        const path32 = `/api/2.0/identity/accounts/${config.accountId}/workspaces/${request2.workspace_id}/workspaceAccessDetails/${request2.principal_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46667,9 +46667,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = `/api/2.0/identity/accounts/${config.accountId}/groups/resolveByExternalId`;
+        const path32 = `/api/2.0/identity/accounts/${config.accountId}/groups/resolveByExternalId`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -46701,9 +46701,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = `/api/2.0/identity/accounts/${config.accountId}/servicePrincipals/resolveByExternalId`;
+        const path32 = `/api/2.0/identity/accounts/${config.accountId}/servicePrincipals/resolveByExternalId`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -46734,9 +46734,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = `/api/2.0/identity/accounts/${config.accountId}/users/resolveByExternalId`;
+        const path32 = `/api/2.0/identity/accounts/${config.accountId}/users/resolveByExternalId`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -46831,9 +46831,9 @@ var require_api11 = __commonJS({
         if (request2.hasOwnProperty("view")) {
           query["view"] = request2.view;
         }
-        const path31 = `/api/2.0/identity/workspaceAccessDetails/${request2.principal_id}`;
+        const path32 = `/api/2.0/identity/workspaceAccessDetails/${request2.principal_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -46863,9 +46863,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = "/api/2.0/identity/groups/resolveByExternalId";
+        const path32 = "/api/2.0/identity/groups/resolveByExternalId";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -46892,9 +46892,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = "/api/2.0/identity/servicePrincipals/resolveByExternalId";
+        const path32 = "/api/2.0/identity/servicePrincipals/resolveByExternalId";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -46920,9 +46920,9 @@ var require_api11 = __commonJS({
           body["external_id"] = request2.external_id;
         }
         const query = {};
-        const path31 = "/api/2.0/identity/users/resolveByExternalId";
+        const path32 = "/api/2.0/identity/users/resolveByExternalId";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47128,9 +47128,9 @@ var require_api12 = __commonJS({
           body["job_id"] = request2.job_id;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/runs/cancel-all";
+        const path32 = "/api/2.2/jobs/runs/cancel-all";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47152,9 +47152,9 @@ var require_api12 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/runs/cancel";
+        const path32 = "/api/2.2/jobs/runs/cancel";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47292,9 +47292,9 @@ var require_api12 = __commonJS({
           body["webhook_notifications"] = request2.webhook_notifications;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/create";
+        const path32 = "/api/2.2/jobs/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47315,9 +47315,9 @@ var require_api12 = __commonJS({
           body["job_id"] = request2.job_id;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/delete";
+        const path32 = "/api/2.2/jobs/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47338,9 +47338,9 @@ var require_api12 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/runs/delete";
+        const path32 = "/api/2.2/jobs/runs/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47364,9 +47364,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("views_to_export")) {
           query["views_to_export"] = request2.views_to_export;
         }
-        const path31 = "/api/2.2/jobs/runs/export";
+        const path32 = "/api/2.2/jobs/runs/export";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47390,9 +47390,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.2/jobs/get";
+        const path32 = "/api/2.2/jobs/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47419,9 +47419,9 @@ var require_api12 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/jobs/${request2.job_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/jobs/${request2.job_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47439,9 +47439,9 @@ var require_api12 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/jobs/${request2.job_id}`;
+        const path32 = `/api/2.0/permissions/jobs/${request2.job_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47472,9 +47472,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("run_id")) {
           query["run_id"] = request2.run_id;
         }
-        const path31 = "/api/2.2/jobs/runs/get";
+        const path32 = "/api/2.2/jobs/runs/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47504,9 +47504,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("run_id")) {
           query["run_id"] = request2.run_id;
         }
-        const path31 = "/api/2.2/jobs/runs/get-output";
+        const path32 = "/api/2.2/jobs/runs/get-output";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47548,9 +47548,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.2/jobs/list";
+        const path32 = "/api/2.2/jobs/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47613,9 +47613,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("start_time_to")) {
           query["start_time_to"] = request2.start_time_to;
         }
-        const path31 = "/api/2.2/jobs/runs/list";
+        const path32 = "/api/2.2/jobs/runs/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -47696,9 +47696,9 @@ var require_api12 = __commonJS({
           body["sql_params"] = request2.sql_params;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/runs/repair";
+        const path32 = "/api/2.2/jobs/runs/repair";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47762,9 +47762,9 @@ var require_api12 = __commonJS({
           body["new_settings"] = request2.new_settings;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/reset";
+        const path32 = "/api/2.2/jobs/reset";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47828,9 +47828,9 @@ var require_api12 = __commonJS({
           body["sql_params"] = request2.sql_params;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/run-now";
+        const path32 = "/api/2.2/jobs/run-now";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -47892,9 +47892,9 @@ var require_api12 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/jobs/${request2.job_id}`;
+        const path32 = `/api/2.0/permissions/jobs/${request2.job_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -47962,9 +47962,9 @@ var require_api12 = __commonJS({
           body["webhook_notifications"] = request2.webhook_notifications;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/runs/submit";
+        const path32 = "/api/2.2/jobs/runs/submit";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -48032,9 +48032,9 @@ var require_api12 = __commonJS({
           body["new_settings"] = request2.new_settings;
         }
         const query = {};
-        const path31 = "/api/2.2/jobs/update";
+        const path32 = "/api/2.2/jobs/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -48059,9 +48059,9 @@ var require_api12 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/jobs/${request2.job_id}`;
+        const path32 = `/api/2.0/permissions/jobs/${request2.job_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -48387,9 +48387,9 @@ var require_api12 = __commonJS({
           body["validate_only"] = request2.validate_only;
         }
         const query = {};
-        const path31 = "/api/2.0/policies/jobs/enforce-compliance";
+        const path32 = "/api/2.0/policies/jobs/enforce-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -48413,9 +48413,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("job_id")) {
           query["job_id"] = request2.job_id;
         }
-        const path31 = "/api/2.0/policies/jobs/get-compliance";
+        const path32 = "/api/2.0/policies/jobs/get-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48445,9 +48445,9 @@ var require_api12 = __commonJS({
         if (request2.hasOwnProperty("policy_id")) {
           query["policy_id"] = request2.policy_id;
         }
-        const path31 = "/api/2.0/policies/jobs/list-compliance";
+        const path32 = "/api/2.0/policies/jobs/list-compliance";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48648,9 +48648,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/content`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/content`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48689,9 +48689,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/fulfillments`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/fulfillments`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48790,9 +48790,9 @@ var require_api13 = __commonJS({
           body["share_name"] = request2.share_name;
         }
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -48810,9 +48810,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations/${request2.installation_id}`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations/${request2.installation_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -48837,9 +48837,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/marketplace-consumer/installations";
+        const path32 = "/api/2.1/marketplace-consumer/installations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48878,9 +48878,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -48922,9 +48922,9 @@ var require_api13 = __commonJS({
           body["rotate_token"] = request2.rotate_token;
         }
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations/${request2.installation_id}`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/installations/${request2.installation_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -49036,9 +49036,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("ids")) {
           query["ids"] = request2.ids;
         }
-        const path31 = "/api/2.1/marketplace-consumer/listings:batchGet";
+        const path32 = "/api/2.1/marketplace-consumer/listings:batchGet";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49057,9 +49057,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.id}`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49105,9 +49105,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("tags")) {
           query["tags"] = request2.tags;
         }
-        const path31 = "/api/2.1/marketplace-consumer/listings";
+        const path32 = "/api/2.1/marketplace-consumer/listings";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49165,9 +49165,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("query")) {
           query["query"] = request2.query;
         }
-        const path31 = "/api/2.1/marketplace-consumer/search-listings";
+        const path32 = "/api/2.1/marketplace-consumer/search-listings";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49301,9 +49301,9 @@ var require_api13 = __commonJS({
           body["recipient_type"] = request2.recipient_type;
         }
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/personalization-requests`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/personalization-requests`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -49321,9 +49321,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/personalization-requests`;
+        const path32 = `/api/2.1/marketplace-consumer/listings/${request2.listing_id}/personalization-requests`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49348,9 +49348,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/marketplace-consumer/personalization-requests";
+        const path32 = "/api/2.1/marketplace-consumer/personalization-requests";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49444,9 +49444,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("ids")) {
           query["ids"] = request2.ids;
         }
-        const path31 = "/api/2.1/marketplace-consumer/providers:batchGet";
+        const path32 = "/api/2.1/marketplace-consumer/providers:batchGet";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49465,9 +49465,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/marketplace-consumer/providers/${request2.id}`;
+        const path32 = `/api/2.1/marketplace-consumer/providers/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49495,9 +49495,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/marketplace-consumer/providers";
+        const path32 = "/api/2.1/marketplace-consumer/providers";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49595,9 +49595,9 @@ var require_api13 = __commonJS({
           body["filter"] = request2.filter;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-exchange/filters";
+        const path32 = "/api/2.0/marketplace-exchange/filters";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -49615,9 +49615,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/filters/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/filters/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -49644,9 +49644,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-exchange/filters";
+        const path32 = "/api/2.0/marketplace-exchange/filters";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49685,9 +49685,9 @@ var require_api13 = __commonJS({
           body["filter"] = request2.filter;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/filters/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/filters/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -49786,9 +49786,9 @@ var require_api13 = __commonJS({
           body["listing_id"] = request2.listing_id;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-exchange/exchanges-for-listing";
+        const path32 = "/api/2.0/marketplace-exchange/exchanges-for-listing";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -49812,9 +49812,9 @@ var require_api13 = __commonJS({
           body["exchange"] = request2.exchange;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-exchange/exchanges";
+        const path32 = "/api/2.0/marketplace-exchange/exchanges";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -49832,9 +49832,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -49852,9 +49852,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/exchanges-for-listing/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/exchanges-for-listing/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -49872,9 +49872,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49898,9 +49898,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-exchange/exchanges";
+        const path32 = "/api/2.0/marketplace-exchange/exchanges";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49942,9 +49942,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-exchange/exchanges-for-listing";
+        const path32 = "/api/2.0/marketplace-exchange/exchanges-for-listing";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -49986,9 +49986,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-exchange/listings-for-exchange";
+        const path32 = "/api/2.0/marketplace-exchange/listings-for-exchange";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50027,9 +50027,9 @@ var require_api13 = __commonJS({
           body["exchange"] = request2.exchange;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-exchange/exchanges/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -50204,9 +50204,9 @@ var require_api13 = __commonJS({
           body["mime_type"] = request2.mime_type;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/files";
+        const path32 = "/api/2.0/marketplace-provider/files";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -50225,9 +50225,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/files/${request2.file_id}`;
+        const path32 = `/api/2.0/marketplace-provider/files/${request2.file_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -50245,9 +50245,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/files/${request2.file_id}`;
+        const path32 = `/api/2.0/marketplace-provider/files/${request2.file_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50274,9 +50274,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-provider/files";
+        const path32 = "/api/2.0/marketplace-provider/files";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50387,9 +50387,9 @@ var require_api13 = __commonJS({
           body["listing"] = request2.listing;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/listing";
+        const path32 = "/api/2.0/marketplace-provider/listing";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -50407,9 +50407,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -50427,9 +50427,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50453,9 +50453,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-provider/listings";
+        const path32 = "/api/2.0/marketplace-provider/listings";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50494,9 +50494,9 @@ var require_api13 = __commonJS({
           body["listing"] = request2.listing;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/listings/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -50606,9 +50606,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-provider/personalization-requests";
+        const path32 = "/api/2.0/marketplace-provider/personalization-requests";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50654,9 +50654,9 @@ var require_api13 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/listings/${request2.listing_id}/personalization-requests/${request2.request_id}/request-status`;
+        const path32 = `/api/2.0/marketplace-provider/listings/${request2.listing_id}/personalization-requests/${request2.request_id}/request-status`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -50719,9 +50719,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/analytics_dashboard";
+        const path32 = "/api/2.0/marketplace-provider/analytics_dashboard";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -50740,9 +50740,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/analytics_dashboard";
+        const path32 = "/api/2.0/marketplace-provider/analytics_dashboard";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50760,9 +50760,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/analytics_dashboard/latest";
+        const path32 = "/api/2.0/marketplace-provider/analytics_dashboard/latest";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50786,9 +50786,9 @@ var require_api13 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/analytics_dashboard/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/analytics_dashboard/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -50884,9 +50884,9 @@ var require_api13 = __commonJS({
           body["provider"] = request2.provider;
         }
         const query = {};
-        const path31 = "/api/2.0/marketplace-provider/provider";
+        const path32 = "/api/2.0/marketplace-provider/provider";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -50904,9 +50904,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -50924,9 +50924,9 @@ var require_api13 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50950,9 +50950,9 @@ var require_api13 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/marketplace-provider/providers";
+        const path32 = "/api/2.0/marketplace-provider/providers";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -50991,9 +50991,9 @@ var require_api13 = __commonJS({
           body["provider"] = request2.provider;
         }
         const query = {};
-        const path31 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
+        const path32 = `/api/2.0/marketplace-provider/providers/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -51217,9 +51217,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/create";
+        const path32 = "/api/2.0/mlflow/experiments/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51264,9 +51264,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/logged-models";
+        const path32 = "/api/2.0/mlflow/logged-models";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51302,9 +51302,9 @@ var require_api14 = __commonJS({
           body["user_id"] = request2.user_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/create";
+        const path32 = "/api/2.0/mlflow/runs/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51331,9 +51331,9 @@ var require_api14 = __commonJS({
           body["experiment_id"] = request2.experiment_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/delete";
+        const path32 = "/api/2.0/mlflow/experiments/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51353,9 +51353,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -51373,9 +51373,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}/tags/${request2.tag_key}`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}/tags/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -51399,9 +51399,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/delete";
+        const path32 = "/api/2.0/mlflow/runs/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51431,9 +51431,9 @@ var require_api14 = __commonJS({
           body["max_timestamp_millis"] = request2.max_timestamp_millis;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/databricks/runs/delete-runs";
+        const path32 = "/api/2.0/mlflow/databricks/runs/delete-runs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51463,9 +51463,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/delete-tag";
+        const path32 = "/api/2.0/mlflow/runs/delete-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51490,9 +51490,9 @@ var require_api14 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -51513,9 +51513,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("experiment_name")) {
           query["experiment_name"] = request2.experiment_name;
         }
-        const path31 = "/api/2.0/mlflow/experiments/get-by-name";
+        const path32 = "/api/2.0/mlflow/experiments/get-by-name";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51544,9 +51544,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("experiment_id")) {
           query["experiment_id"] = request2.experiment_id;
         }
-        const path31 = "/api/2.0/mlflow/experiments/get";
+        const path32 = "/api/2.0/mlflow/experiments/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51579,9 +51579,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("run_uuid")) {
           query["run_uuid"] = request2.run_uuid;
         }
-        const path31 = "/api/2.0/mlflow/metrics/get-history";
+        const path32 = "/api/2.0/mlflow/metrics/get-history";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51614,9 +51614,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51634,9 +51634,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/experiments/${request2.experiment_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/experiments/${request2.experiment_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51654,9 +51654,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
+        const path32 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51681,9 +51681,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("run_uuid")) {
           query["run_uuid"] = request2.run_uuid;
         }
-        const path31 = "/api/2.0/mlflow/runs/get";
+        const path32 = "/api/2.0/mlflow/runs/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51718,9 +51718,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("run_uuid")) {
           query["run_uuid"] = request2.run_uuid;
         }
-        const path31 = "/api/2.0/mlflow/artifacts/list";
+        const path32 = "/api/2.0/mlflow/artifacts/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51767,9 +51767,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("view_type")) {
           query["view_type"] = request2.view_type;
         }
-        const path31 = "/api/2.0/mlflow/experiments/list";
+        const path32 = "/api/2.0/mlflow/experiments/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -51817,9 +51817,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/log-batch";
+        const path32 = "/api/2.0/mlflow/runs/log-batch";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51894,9 +51894,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/log-inputs";
+        const path32 = "/api/2.0/mlflow/runs/log-inputs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51920,9 +51920,9 @@ var require_api14 = __commonJS({
           body["params"] = request2.params;
         }
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}/params`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}/params`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -51974,9 +51974,9 @@ var require_api14 = __commonJS({
           body["value"] = request2.value;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/log-metric";
+        const path32 = "/api/2.0/mlflow/runs/log-metric";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52005,9 +52005,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/log-model";
+        const path32 = "/api/2.0/mlflow/runs/log-model";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52038,9 +52038,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/outputs";
+        const path32 = "/api/2.0/mlflow/runs/outputs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52073,9 +52073,9 @@ var require_api14 = __commonJS({
           body["value"] = request2.value;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/log-parameter";
+        const path32 = "/api/2.0/mlflow/runs/log-parameter";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52102,9 +52102,9 @@ var require_api14 = __commonJS({
           body["experiment_id"] = request2.experiment_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/restore";
+        const path32 = "/api/2.0/mlflow/experiments/restore";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52133,9 +52133,9 @@ var require_api14 = __commonJS({
           body["run_id"] = request2.run_id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/restore";
+        const path32 = "/api/2.0/mlflow/runs/restore";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52169,9 +52169,9 @@ var require_api14 = __commonJS({
           body["min_timestamp_millis"] = request2.min_timestamp_millis;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/databricks/runs/restore-runs";
+        const path32 = "/api/2.0/mlflow/databricks/runs/restore-runs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52210,9 +52210,9 @@ var require_api14 = __commonJS({
           body["view_type"] = request2.view_type;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/search";
+        const path32 = "/api/2.0/mlflow/experiments/search";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52266,9 +52266,9 @@ var require_api14 = __commonJS({
           body["page_token"] = request2.page_token;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/logged-models/search";
+        const path32 = "/api/2.0/mlflow/logged-models/search";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52307,9 +52307,9 @@ var require_api14 = __commonJS({
           body["run_view_type"] = request2.run_view_type;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/search";
+        const path32 = "/api/2.0/mlflow/runs/search";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52356,9 +52356,9 @@ var require_api14 = __commonJS({
           body["value"] = request2.value;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/set-experiment-tag";
+        const path32 = "/api/2.0/mlflow/experiments/set-experiment-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52383,9 +52383,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = `/api/2.0/mlflow/logged-models/${request2.model_id}/tags`;
+        const path32 = `/api/2.0/mlflow/logged-models/${request2.model_id}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -52409,9 +52409,9 @@ var require_api14 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
+        const path32 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -52446,9 +52446,9 @@ var require_api14 = __commonJS({
           body["value"] = request2.value;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/set-tag";
+        const path32 = "/api/2.0/mlflow/runs/set-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52476,9 +52476,9 @@ var require_api14 = __commonJS({
           body["new_name"] = request2.new_name;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/experiments/update";
+        const path32 = "/api/2.0/mlflow/experiments/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -52502,9 +52502,9 @@ var require_api14 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
+        const path32 = `/api/2.0/permissions/experiments/${request2.experiment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -52541,9 +52541,9 @@ var require_api14 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/runs/update";
+        const path32 = "/api/2.0/mlflow/runs/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53131,9 +53131,9 @@ var require_api14 = __commonJS({
           body["requests"] = request2.requests;
         }
         const query = {};
-        const path31 = "/api/2.0/feature-engineering/materialized-features:batchCreate";
+        const path32 = "/api/2.0/feature-engineering/materialized-features:batchCreate";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53154,9 +53154,9 @@ var require_api14 = __commonJS({
         });
         const body = request2.feature;
         const query = {};
-        const path31 = "/api/2.0/feature-engineering/features";
+        const path32 = "/api/2.0/feature-engineering/features";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53177,9 +53177,9 @@ var require_api14 = __commonJS({
         });
         const body = request2.materialized_feature;
         const query = {};
-        const path31 = "/api/2.0/feature-engineering/materialized-features";
+        const path32 = "/api/2.0/feature-engineering/materialized-features";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53197,9 +53197,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
+        const path32 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -53217,9 +53217,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
+        const path32 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -53237,9 +53237,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
+        const path32 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53257,9 +53257,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
+        const path32 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53283,9 +53283,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/feature-engineering/features";
+        const path32 = "/api/2.0/feature-engineering/features";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53327,9 +53327,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/feature-engineering/materialized-features";
+        const path32 = "/api/2.0/feature-engineering/materialized-features";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53368,9 +53368,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
+        const path32 = `/api/2.0/feature-engineering/features/${request2.full_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -53394,9 +53394,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
+        const path32 = `/api/2.0/feature-engineering/materialized-features/${request2.materialized_feature_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -53589,9 +53589,9 @@ var require_api14 = __commonJS({
         });
         const body = request2.online_store;
         const query = {};
-        const path31 = "/api/2.0/feature-store/online-stores";
+        const path32 = "/api/2.0/feature-store/online-stores";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53609,9 +53609,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-store/online-stores/${request2.name}`;
+        const path32 = `/api/2.0/feature-store/online-stores/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -53629,9 +53629,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-store/online-stores/${request2.name}`;
+        const path32 = `/api/2.0/feature-store/online-stores/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53655,9 +53655,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/feature-store/online-stores";
+        const path32 = "/api/2.0/feature-store/online-stores";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -53696,9 +53696,9 @@ var require_api14 = __commonJS({
           body["publish_spec"] = request2.publish_spec;
         }
         const query = {};
-        const path31 = `/api/2.0/feature-store/tables/${request2.source_table_name}/publish`;
+        const path32 = `/api/2.0/feature-store/tables/${request2.source_table_name}/publish`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53722,9 +53722,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/feature-store/online-stores/${request2.name}`;
+        const path32 = `/api/2.0/feature-store/online-stores/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -53898,9 +53898,9 @@ var require_api14 = __commonJS({
           body["training_frameworks"] = request2.training_frameworks;
         }
         const query = {};
-        const path31 = "/api/2.0/automl/create-forecasting-experiment";
+        const path32 = "/api/2.0/automl/create-forecasting-experiment";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -53956,9 +53956,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/automl/get-forecasting-experiment/${request2.experiment_id}`;
+        const path32 = `/api/2.0/automl/get-forecasting-experiment/${request2.experiment_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54025,9 +54025,9 @@ var require_api14 = __commonJS({
         });
         const body = request2.feature_tag;
         const query = {};
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54045,9 +54045,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54065,9 +54065,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/lineage`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/lineage`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54085,9 +54085,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54111,9 +54111,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54152,9 +54152,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
+        const path32 = `/api/2.0/feature-store/feature-tables/${request2.table_name}/features/${request2.feature_name}/tags/${request2.key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -54292,9 +54292,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/transition-requests/approve";
+        const path32 = "/api/2.0/mlflow/transition-requests/approve";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54324,9 +54324,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/comments/create";
+        const path32 = "/api/2.0/mlflow/comments/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54358,9 +54358,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registered-models/create";
+        const path32 = "/api/2.0/mlflow/registered-models/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54401,9 +54401,9 @@ var require_api14 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/model-versions/create";
+        const path32 = "/api/2.0/mlflow/model-versions/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54436,9 +54436,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/transition-requests/create";
+        const path32 = "/api/2.0/mlflow/transition-requests/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54477,9 +54477,9 @@ var require_api14 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registry-webhooks/create";
+        const path32 = "/api/2.0/mlflow/registry-webhooks/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54500,9 +54500,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("id")) {
           query["id"] = request2.id;
         }
-        const path31 = "/api/2.0/mlflow/comments/delete";
+        const path32 = "/api/2.0/mlflow/comments/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54523,9 +54523,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("name")) {
           query["name"] = request2.name;
         }
-        const path31 = "/api/2.0/mlflow/registered-models/delete";
+        const path32 = "/api/2.0/mlflow/registered-models/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54549,9 +54549,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("name")) {
           query["name"] = request2.name;
         }
-        const path31 = "/api/2.0/mlflow/registered-models/delete-tag";
+        const path32 = "/api/2.0/mlflow/registered-models/delete-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54575,9 +54575,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/model-versions/delete";
+        const path32 = "/api/2.0/mlflow/model-versions/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54604,9 +54604,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/model-versions/delete-tag";
+        const path32 = "/api/2.0/mlflow/model-versions/delete-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54639,9 +54639,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/transition-requests/delete";
+        const path32 = "/api/2.0/mlflow/transition-requests/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54662,9 +54662,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("id")) {
           query["id"] = request2.id;
         }
-        const path31 = "/api/2.0/mlflow/registry-webhooks/delete";
+        const path32 = "/api/2.0/mlflow/registry-webhooks/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -54691,9 +54691,9 @@ var require_api14 = __commonJS({
           body["stages"] = request2.stages;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registered-models/get-latest-versions";
+        const path32 = "/api/2.0/mlflow/registered-models/get-latest-versions";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54717,9 +54717,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("name")) {
           query["name"] = request2.name;
         }
-        const path31 = "/api/2.0/mlflow/databricks/registered-models/get";
+        const path32 = "/api/2.0/mlflow/databricks/registered-models/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54747,9 +54747,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/model-versions/get";
+        const path32 = "/api/2.0/mlflow/model-versions/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54773,9 +54773,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/model-versions/get-download-uri";
+        const path32 = "/api/2.0/mlflow/model-versions/get-download-uri";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54793,9 +54793,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54813,9 +54813,9 @@ var require_api14 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
+        const path32 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54840,9 +54840,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/mlflow/registered-models/list";
+        const path32 = "/api/2.0/mlflow/registered-models/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54882,9 +54882,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("version")) {
           query["version"] = request2.version;
         }
-        const path31 = "/api/2.0/mlflow/transition-requests/list";
+        const path32 = "/api/2.0/mlflow/transition-requests/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54917,9 +54917,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/mlflow/registry-webhooks/list";
+        const path32 = "/api/2.0/mlflow/registry-webhooks/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -54967,9 +54967,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/transition-requests/reject";
+        const path32 = "/api/2.0/mlflow/transition-requests/reject";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -54996,9 +54996,9 @@ var require_api14 = __commonJS({
           body["new_name"] = request2.new_name;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registered-models/rename";
+        const path32 = "/api/2.0/mlflow/registered-models/rename";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -55028,9 +55028,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/mlflow/model-versions/search";
+        const path32 = "/api/2.0/mlflow/model-versions/search";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -55075,9 +55075,9 @@ var require_api14 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/mlflow/registered-models/search";
+        const path32 = "/api/2.0/mlflow/registered-models/search";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -55122,9 +55122,9 @@ var require_api14 = __commonJS({
           body["value"] = request2.value;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registered-models/set-tag";
+        const path32 = "/api/2.0/mlflow/registered-models/set-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -55157,9 +55157,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/model-versions/set-tag";
+        const path32 = "/api/2.0/mlflow/model-versions/set-tag";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -55183,9 +55183,9 @@ var require_api14 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
+        const path32 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -55214,9 +55214,9 @@ var require_api14 = __commonJS({
           body["id"] = request2.id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registry-webhooks/test";
+        const path32 = "/api/2.0/mlflow/registry-webhooks/test";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -55252,9 +55252,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/databricks/model-versions/transition-stage";
+        const path32 = "/api/2.0/mlflow/databricks/model-versions/transition-stage";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -55285,9 +55285,9 @@ var require_api14 = __commonJS({
           body["id"] = request2.id;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/comments/update";
+        const path32 = "/api/2.0/mlflow/comments/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -55314,9 +55314,9 @@ var require_api14 = __commonJS({
           body["name"] = request2.name;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registered-models/update";
+        const path32 = "/api/2.0/mlflow/registered-models/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -55346,9 +55346,9 @@ var require_api14 = __commonJS({
           body["version"] = request2.version;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/model-versions/update";
+        const path32 = "/api/2.0/mlflow/model-versions/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -55372,9 +55372,9 @@ var require_api14 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
+        const path32 = `/api/2.0/permissions/registered-models/${request2.registered_model_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -55414,9 +55414,9 @@ var require_api14 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = "/api/2.0/mlflow/registry-webhooks/update";
+        const path32 = "/api/2.0/mlflow/registry-webhooks/update";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -56070,9 +56070,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("policy_id")) {
           query["policy_id"] = request2.policy_id;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/federationPolicies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/federationPolicies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -56095,9 +56095,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -56120,9 +56120,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56151,9 +56151,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/federationPolicies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/federationPolicies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56197,9 +56197,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -56331,9 +56331,9 @@ var require_api15 = __commonJS({
           body["user_authorized_scopes"] = request2.user_authorized_scopes;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -56359,9 +56359,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -56385,9 +56385,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56419,9 +56419,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56475,9 +56475,9 @@ var require_api15 = __commonJS({
           body["user_authorized_scopes"] = request2.user_authorized_scopes;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/custom-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -56595,9 +56595,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-apps`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-apps`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56676,9 +56676,9 @@ var require_api15 = __commonJS({
           body["token_access_policy"] = request2.token_access_policy;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -56704,9 +56704,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -56730,9 +56730,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56761,9 +56761,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -56808,9 +56808,9 @@ var require_api15 = __commonJS({
           body["token_access_policy"] = request2.token_access_policy;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/oauth2/published-app-integrations/${request2.integration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -56928,9 +56928,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("policy_id")) {
           query["policy_id"] = request2.policy_id;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -56953,9 +56953,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -56978,9 +56978,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57009,9 +57009,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57055,9 +57055,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/federationPolicies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -57174,9 +57174,9 @@ var require_api15 = __commonJS({
           body["lifetime"] = request2.lifetime;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -57199,9 +57199,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets/${request2.secret_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets/${request2.secret_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -57230,9 +57230,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57333,9 +57333,9 @@ var require_api15 = __commonJS({
           body["lifetime"] = request2.lifetime;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
+        const path32 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -57353,9 +57353,9 @@ var require_api15 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets/${request2.secret_id}`;
+        const path32 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets/${request2.secret_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -57379,9 +57379,9 @@ var require_api15 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
+        const path32 = `/api/2.0/accounts/servicePrincipals/${request2.service_principal_id}/credentials/secrets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57678,9 +57678,9 @@ var require_api16 = __commonJS({
           body["usage_policy_id"] = request2.usage_policy_id;
         }
         const query = {};
-        const path31 = "/api/2.0/pipelines";
+        const path32 = "/api/2.0/pipelines";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -57700,9 +57700,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -57721,9 +57721,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57741,9 +57741,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57761,9 +57761,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57782,9 +57782,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}/updates/${request2.update_id}`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}/updates/${request2.update_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57814,9 +57814,9 @@ var require_api16 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}/events`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}/events`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57869,9 +57869,9 @@ var require_api16 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/pipelines";
+        const path32 = "/api/2.0/pipelines";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57913,9 +57913,9 @@ var require_api16 = __commonJS({
         if (request2.hasOwnProperty("until_update_id")) {
           query["until_update_id"] = request2.until_update_id;
         }
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}/updates`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}/updates`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -57939,9 +57939,9 @@ var require_api16 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -57979,9 +57979,9 @@ var require_api16 = __commonJS({
           body["validate_only"] = request2.validate_only;
         }
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}/updates`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}/updates`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -58001,9 +58001,9 @@ var require_api16 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}/stop`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}/stop`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -58155,9 +58155,9 @@ var require_api16 = __commonJS({
           body["usage_policy_id"] = request2.usage_policy_id;
         }
         const query = {};
-        const path31 = `/api/2.0/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -58181,9 +58181,9 @@ var require_api16 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
+        const path32 = `/api/2.0/permissions/pipelines/${request2.pipeline_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -58518,9 +58518,9 @@ var require_api17 = __commonJS({
         });
         const body = request2.quality_monitor;
         const query = {};
-        const path31 = "/api/2.0/quality-monitors";
+        const path32 = "/api/2.0/quality-monitors";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -58538,9 +58538,9 @@ var require_api17 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -58558,9 +58558,9 @@ var require_api17 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -58584,9 +58584,9 @@ var require_api17 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/quality-monitors";
+        const path32 = "/api/2.0/quality-monitors";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -58622,9 +58622,9 @@ var require_api17 = __commonJS({
         });
         const body = request2.quality_monitor;
         const query = {};
-        const path31 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
+        const path32 = `/api/2.0/quality-monitors/${request2.object_type}/${request2.object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -58836,9 +58836,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/served-models/${request2.served_model_name}/build-logs`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/served-models/${request2.served_model_name}/build-logs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -58886,9 +58886,9 @@ var require_api18 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/serving-endpoints";
+        const path32 = "/api/2.0/serving-endpoints";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -58965,9 +58965,9 @@ var require_api18 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/serving-endpoints/pt";
+        const path32 = "/api/2.0/serving-endpoints/pt";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -59023,9 +59023,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -59043,9 +59043,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "text/plain" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/metrics`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/metrics`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: true,
@@ -59064,9 +59064,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -59084,9 +59084,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "text/plain" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/openapi`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/openapi`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: true,
@@ -59106,9 +59106,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -59126,9 +59126,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
+        const path32 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -59168,9 +59168,9 @@ var require_api18 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/external-function";
+        const path32 = "/api/2.0/external-function";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: true,
@@ -59188,9 +59188,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/serving-endpoints";
+        const path32 = "/api/2.0/serving-endpoints";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -59211,9 +59211,9 @@ var require_api18 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/served-models/${request2.served_model_name}/logs`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/served-models/${request2.served_model_name}/logs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -59240,9 +59240,9 @@ var require_api18 = __commonJS({
           body["delete_tags"] = request2.delete_tags;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/tags`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -59267,9 +59267,9 @@ var require_api18 = __commonJS({
           body["rate_limits"] = request2.rate_limits;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/rate-limits`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/rate-limits`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -59305,9 +59305,9 @@ var require_api18 = __commonJS({
           body["usage_tracking_config"] = request2.usage_tracking_config;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/ai-gateway`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/ai-gateway`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -59376,9 +59376,9 @@ var require_api18 = __commonJS({
         }
         const query = {};
         const responseHeaders = ["served-model-name"];
-        const path31 = `/serving-endpoints/${request2.name}/invocations`;
+        const path32 = `/serving-endpoints/${request2.name}/invocations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           responseHeaders,
@@ -59403,9 +59403,9 @@ var require_api18 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
+        const path32 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -59440,9 +59440,9 @@ var require_api18 = __commonJS({
           body["traffic_config"] = request2.traffic_config;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/config`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/config`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -59507,9 +59507,9 @@ var require_api18 = __commonJS({
           body["email_notifications"] = request2.email_notifications;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/${request2.name}/notifications`;
+        const path32 = `/api/2.0/serving-endpoints/${request2.name}/notifications`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -59533,9 +59533,9 @@ var require_api18 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
+        const path32 = `/api/2.0/permissions/serving-endpoints/${request2.serving_endpoint_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -59560,9 +59560,9 @@ var require_api18 = __commonJS({
           body["config"] = request2.config;
         }
         const query = {};
-        const path31 = `/api/2.0/serving-endpoints/pt/${request2.name}/config`;
+        const path32 = `/api/2.0/serving-endpoints/pt/${request2.name}/config`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -59981,9 +59981,9 @@ var require_api18 = __commonJS({
         }
         const query = {};
         const responseHeaders = ["served-model-name"];
-        const path31 = `/serving-endpoints/${request2.name}/invocations`;
+        const path32 = `/serving-endpoints/${request2.name}/invocations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           responseHeaders,
@@ -60156,9 +60156,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -60195,9 +60195,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -60220,9 +60220,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60245,9 +60245,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60285,9 +60285,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -60332,9 +60332,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -60496,9 +60496,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -60520,9 +60520,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60554,9 +60554,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_acc_policy/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -60638,9 +60638,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -60662,9 +60662,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60694,9 +60694,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
+        const path32 = "/api/2.0/settings/types/aibi_dash_embed_ws_apprvd_domains/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -60779,9 +60779,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/automatic_cluster_update/names/default";
+        const path32 = "/api/2.0/settings/types/automatic_cluster_update/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60811,9 +60811,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/automatic_cluster_update/names/default";
+        const path32 = "/api/2.0/settings/types/automatic_cluster_update/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -60885,9 +60885,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/shield_csp_enablement_ws_db/names/default";
+        const path32 = "/api/2.0/settings/types/shield_csp_enablement_ws_db/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -60917,9 +60917,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/shield_csp_enablement_ws_db/names/default";
+        const path32 = "/api/2.0/settings/types/shield_csp_enablement_ws_db/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61000,9 +61000,9 @@ var require_api19 = __commonJS({
           body["tokenType"] = request2.tokenType;
         }
         const query = {};
-        const path31 = "/api/2.0/credentials-manager/exchange-tokens/token";
+        const path32 = "/api/2.0/credentials-manager/exchange-tokens/token";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -61061,9 +61061,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_csp_enablement_ac/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_csp_enablement_ac/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61098,9 +61098,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_csp_enablement_ac/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_csp_enablement_ac/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61168,9 +61168,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
+        const path32 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61191,9 +61191,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
+        const path32 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61223,9 +61223,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
+        const path32 = "/api/2.0/settings/types/dashboard_email_subscriptions/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61306,9 +61306,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/default_namespace_ws/names/default";
+        const path32 = "/api/2.0/settings/types/default_namespace_ws/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61333,9 +61333,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/default_namespace_ws/names/default";
+        const path32 = "/api/2.0/settings/types/default_namespace_ws/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61365,9 +61365,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/default_namespace_ws/names/default";
+        const path32 = "/api/2.0/settings/types/default_namespace_ws/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61455,9 +61455,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/default_warehouse_id/names/default";
+        const path32 = "/api/2.0/settings/types/default_warehouse_id/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61478,9 +61478,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/default_warehouse_id/names/default";
+        const path32 = "/api/2.0/settings/types/default_warehouse_id/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61510,9 +61510,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/default_warehouse_id/names/default";
+        const path32 = "/api/2.0/settings/types/default_warehouse_id/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61593,9 +61593,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/disable_legacy_access/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_access/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61616,9 +61616,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/disable_legacy_access/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_access/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61648,9 +61648,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/disable_legacy_access/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_access/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61731,9 +61731,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61755,9 +61755,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61787,9 +61787,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
+        const path32 = "/api/2.0/settings/types/disable_legacy_dbfs/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -61875,9 +61875,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -61903,9 +61903,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -61940,9 +61940,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/disable_legacy_features/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62020,9 +62020,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-export-notebook/names/default";
+        const path32 = "/api/2.0/settings/types/enable-export-notebook/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62052,9 +62052,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-export-notebook/names/default";
+        const path32 = "/api/2.0/settings/types/enable-export-notebook/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62128,9 +62128,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -62156,9 +62156,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62193,9 +62193,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/acct_ip_acl_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62273,9 +62273,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-notebook-table-clipboard/names/default";
+        const path32 = "/api/2.0/settings/types/enable-notebook-table-clipboard/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62305,9 +62305,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-notebook-table-clipboard/names/default";
+        const path32 = "/api/2.0/settings/types/enable-notebook-table-clipboard/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62373,9 +62373,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-results-downloading/names/default";
+        const path32 = "/api/2.0/settings/types/enable-results-downloading/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62405,9 +62405,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/enable-results-downloading/names/default";
+        const path32 = "/api/2.0/settings/types/enable-results-downloading/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62476,9 +62476,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/shield_esm_enablement_ws_db/names/default";
+        const path32 = "/api/2.0/settings/types/shield_esm_enablement_ws_db/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62508,9 +62508,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/shield_esm_enablement_ws_db/names/default";
+        const path32 = "/api/2.0/settings/types/shield_esm_enablement_ws_db/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62587,9 +62587,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_esm_enablement_ac/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_esm_enablement_ac/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62624,9 +62624,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_esm_enablement_ac/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/shield_esm_enablement_ac/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -62703,9 +62703,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = "/api/2.0/ip-access-lists";
+        const path32 = "/api/2.0/ip-access-lists";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -62739,9 +62739,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -62759,9 +62759,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62779,9 +62779,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/ip-access-lists";
+        const path32 = "/api/2.0/ip-access-lists";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -62814,9 +62814,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -62858,9 +62858,9 @@ var require_api19 = __commonJS({
           body["list_type"] = request2.list_type;
         }
         const query = {};
-        const path31 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
+        const path32 = `/api/2.0/ip-access-lists/${request2.ip_access_list_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -63004,9 +63004,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63041,9 +63041,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -63115,9 +63115,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered_enforce/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered_enforce/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63153,9 +63153,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered_enforce/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/llm_proxy_partner_powered_enforce/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -63223,9 +63223,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
+        const path32 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -63247,9 +63247,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
+        const path32 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63279,9 +63279,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
+        const path32 = "/api/2.0/settings/types/llm_proxy_partner_powered/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -63367,9 +63367,9 @@ var require_api19 = __commonJS({
         });
         const body = request2.network_connectivity_config;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -63407,9 +63407,9 @@ var require_api19 = __commonJS({
         });
         const body = request2.private_endpoint_rule;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -63441,9 +63441,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -63466,9 +63466,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -63496,9 +63496,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63521,9 +63521,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63549,9 +63549,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63592,9 +63592,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63638,9 +63638,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-connectivity-configs/${request2.network_connectivity_config_id}/private-endpoint-rules/${request2.private_endpoint_rule_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -63811,9 +63811,9 @@ var require_api19 = __commonJS({
         });
         const body = request2.network_policy;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-policies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -63837,9 +63837,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -63862,9 +63862,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63890,9 +63890,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-policies`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -63933,9 +63933,9 @@ var require_api19 = __commonJS({
         });
         const body = request2.network_policy;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/network-policies/${request2.network_policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -64051,9 +64051,9 @@ var require_api19 = __commonJS({
           body["display_name"] = request2.display_name;
         }
         const query = {};
-        const path31 = "/api/2.0/notification-destinations";
+        const path32 = "/api/2.0/notification-destinations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -64071,9 +64071,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/notification-destinations/${request2.id}`;
+        const path32 = `/api/2.0/notification-destinations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -64091,9 +64091,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/notification-destinations/${request2.id}`;
+        const path32 = `/api/2.0/notification-destinations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64117,9 +64117,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/notification-destinations";
+        const path32 = "/api/2.0/notification-destinations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64161,9 +64161,9 @@ var require_api19 = __commonJS({
           body["display_name"] = request2.display_name;
         }
         const query = {};
-        const path31 = `/api/2.0/notification-destinations/${request2.id}`;
+        const path32 = `/api/2.0/notification-destinations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -64278,9 +64278,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -64306,9 +64306,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64343,9 +64343,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/settings/types/dcp_acct_enable/names/default`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -64426,9 +64426,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
+        const path32 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -64454,9 +64454,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
+        const path32 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64486,9 +64486,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
+        const path32 = "/api/2.0/settings/types/restrict_workspace_admins/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -64608,9 +64608,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/sql_results_download/names/default";
+        const path32 = "/api/2.0/settings/types/sql_results_download/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -64631,9 +64631,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("etag")) {
           query["etag"] = request2.etag;
         }
-        const path31 = "/api/2.0/settings/types/sql_results_download/names/default";
+        const path32 = "/api/2.0/settings/types/sql_results_download/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64663,9 +64663,9 @@ var require_api19 = __commonJS({
           body["setting"] = request2.setting;
         }
         const query = {};
-        const path31 = "/api/2.0/settings/types/sql_results_download/names/default";
+        const path32 = "/api/2.0/settings/types/sql_results_download/names/default";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -64755,9 +64755,9 @@ var require_api19 = __commonJS({
           body["lifetime_seconds"] = request2.lifetime_seconds;
         }
         const query = {};
-        const path31 = "/api/2.0/token-management/on-behalf-of/tokens";
+        const path32 = "/api/2.0/token-management/on-behalf-of/tokens";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -64775,9 +64775,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/token-management/tokens/${request2.token_id}`;
+        const path32 = `/api/2.0/token-management/tokens/${request2.token_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -64795,9 +64795,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/token-management/tokens/${request2.token_id}`;
+        const path32 = `/api/2.0/token-management/tokens/${request2.token_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64815,9 +64815,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/tokens/permissionLevels";
+        const path32 = "/api/2.0/permissions/authorization/tokens/permissionLevels";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64835,9 +64835,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/tokens";
+        const path32 = "/api/2.0/permissions/authorization/tokens";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64862,9 +64862,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("created_by_username")) {
           query["created_by_username"] = request2.created_by_username;
         }
-        const path31 = "/api/2.0/token-management/tokens";
+        const path32 = "/api/2.0/token-management/tokens";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -64891,9 +64891,9 @@ var require_api19 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/tokens";
+        const path32 = "/api/2.0/permissions/authorization/tokens";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -64919,9 +64919,9 @@ var require_api19 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = "/api/2.0/permissions/authorization/tokens";
+        const path32 = "/api/2.0/permissions/authorization/tokens";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -65079,9 +65079,9 @@ var require_api19 = __commonJS({
           body["lifetime_seconds"] = request2.lifetime_seconds;
         }
         const query = {};
-        const path31 = "/api/2.0/token/create";
+        const path32 = "/api/2.0/token/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -65108,9 +65108,9 @@ var require_api19 = __commonJS({
           body["token_id"] = request2.token_id;
         }
         const query = {};
-        const path31 = "/api/2.0/token/delete";
+        const path32 = "/api/2.0/token/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -65131,9 +65131,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/token/list";
+        const path32 = "/api/2.0/token/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65217,9 +65217,9 @@ var require_api19 = __commonJS({
         if (request2.hasOwnProperty("keys")) {
           query["keys"] = request2.keys;
         }
-        const path31 = "/api/2.0/workspace-conf";
+        const path32 = "/api/2.0/workspace-conf";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65237,9 +65237,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ "Content-Type": "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/workspace-conf";
+        const path32 = "/api/2.0/workspace-conf";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -65309,9 +65309,9 @@ var require_api19 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/network`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/network`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65339,9 +65339,9 @@ var require_api19 = __commonJS({
         });
         const body = request2.workspace_network_option;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/network`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}/network`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -65513,9 +65513,9 @@ var require_api20 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/settings/${request2.name}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/settings/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65546,9 +65546,9 @@ var require_api20 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/accounts/${config.accountId}/settings-metadata`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/settings-metadata`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65591,9 +65591,9 @@ var require_api20 = __commonJS({
         });
         const body = request2.setting;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/settings/${request2.name}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/settings/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -65671,9 +65671,9 @@ var require_api20 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/settings/${request2.name}`;
+        const path32 = `/api/2.1/settings/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65699,9 +65699,9 @@ var require_api20 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/settings-metadata";
+        const path32 = "/api/2.1/settings-metadata";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -65739,9 +65739,9 @@ var require_api20 = __commonJS({
         });
         const body = request2.setting;
         const query = {};
-        const path31 = `/api/2.1/settings/${request2.name}`;
+        const path32 = `/api/2.1/settings/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -65937,9 +65937,9 @@ var require_api21 = __commonJS({
           body["recipient_profile_str"] = request2.recipient_profile_str;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/providers";
+        const path32 = "/api/2.1/unity-catalog/providers";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -65958,9 +65958,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/providers/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/providers/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -65979,9 +65979,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/providers/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/providers/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66010,9 +66010,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/providers";
+        const path32 = "/api/2.1/unity-catalog/providers";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66060,9 +66060,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("volume_max_results")) {
           query["volume_max_results"] = request2.volume_max_results;
         }
-        const path31 = `/api/2.1/data-sharing/providers/${request2.provider_name}/shares/${request2.share_name}`;
+        const path32 = `/api/2.1/data-sharing/providers/${request2.provider_name}/shares/${request2.share_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66087,9 +66087,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/providers/${request2.name}/shares`;
+        const path32 = `/api/2.1/unity-catalog/providers/${request2.name}/shares`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66139,9 +66139,9 @@ var require_api21 = __commonJS({
           body["recipient_profile_str"] = request2.recipient_profile_str;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/providers/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/providers/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -66278,9 +66278,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/public/data_sharing_activation_info/${request2.activation_url}`;
+        const path32 = `/api/2.1/unity-catalog/public/data_sharing_activation_info/${request2.activation_url}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66298,9 +66298,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/public/data_sharing_activation/${request2.activation_url}`;
+        const path32 = `/api/2.1/unity-catalog/public/data_sharing_activation/${request2.activation_url}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66368,9 +66368,9 @@ var require_api21 = __commonJS({
         });
         const body = request2.policy;
         const query = {};
-        const path31 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies`;
+        const path32 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -66413,9 +66413,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies/${request2.name}`;
+        const path32 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -66434,9 +66434,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies/${request2.name}`;
+        const path32 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66462,9 +66462,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies`;
+        const path32 = `/api/2.0/data-sharing/recipients/${request2.recipient_name}/federation-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66603,9 +66603,9 @@ var require_api21 = __commonJS({
           body["sharing_code"] = request2.sharing_code;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/recipients";
+        const path32 = "/api/2.1/unity-catalog/recipients";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -66625,9 +66625,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -66646,9 +66646,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66678,9 +66678,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/recipients";
+        const path32 = "/api/2.1/unity-catalog/recipients";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66722,9 +66722,9 @@ var require_api21 = __commonJS({
           body["existing_token_expire_in_seconds"] = request2.existing_token_expire_in_seconds;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/recipients/${request2.name}/rotate-token`;
+        const path32 = `/api/2.1/unity-catalog/recipients/${request2.name}/rotate-token`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -66750,9 +66750,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/recipients/${request2.name}/share-permissions`;
+        const path32 = `/api/2.1/unity-catalog/recipients/${request2.name}/share-permissions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -66793,9 +66793,9 @@ var require_api21 = __commonJS({
           body["properties_kvpairs"] = request2.properties_kvpairs;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/recipients/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -66944,9 +66944,9 @@ var require_api21 = __commonJS({
           body["storage_root"] = request2.storage_root;
         }
         const query = {};
-        const path31 = "/api/2.1/unity-catalog/shares";
+        const path32 = "/api/2.1/unity-catalog/shares";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -66966,9 +66966,9 @@ var require_api21 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/shares/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/shares/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -66990,9 +66990,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("include_shared_data")) {
           query["include_shared_data"] = request2.include_shared_data;
         }
-        const path31 = `/api/2.1/unity-catalog/shares/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/shares/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67017,9 +67017,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/unity-catalog/shares";
+        const path32 = "/api/2.1/unity-catalog/shares";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67061,9 +67061,9 @@ var require_api21 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/unity-catalog/shares/${request2.name}/permissions`;
+        const path32 = `/api/2.1/unity-catalog/shares/${request2.name}/permissions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67101,9 +67101,9 @@ var require_api21 = __commonJS({
           body["updates"] = request2.updates;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/shares/${request2.name}`;
+        const path32 = `/api/2.1/unity-catalog/shares/${request2.name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -67147,9 +67147,9 @@ var require_api21 = __commonJS({
           body["omit_permissions_list"] = request2.omit_permissions_list;
         }
         const query = {};
-        const path31 = `/api/2.1/unity-catalog/shares/${request2.name}/permissions`;
+        const path32 = `/api/2.1/unity-catalog/shares/${request2.name}/permissions`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -67403,9 +67403,9 @@ var require_api22 = __commonJS({
           body["auto_resolve_display_name"] = request2.auto_resolve_display_name;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/alerts";
+        const path32 = "/api/2.0/sql/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -67423,9 +67423,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/alerts/${request2.id}`;
+        const path32 = `/api/2.0/sql/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -67446,9 +67446,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/alerts/${request2.id}`;
+        const path32 = `/api/2.0/sql/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67472,9 +67472,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/sql/alerts";
+        const path32 = "/api/2.0/sql/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67521,9 +67521,9 @@ var require_api22 = __commonJS({
           body["update_mask"] = request2.update_mask;
         }
         const query = {};
-        const path31 = `/api/2.0/sql/alerts/${request2.id}`;
+        const path32 = `/api/2.0/sql/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -67647,9 +67647,9 @@ var require_api22 = __commonJS({
           body["rearm"] = request2.rearm;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/sql/alerts";
+        const path32 = "/api/2.0/preview/sql/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -67674,9 +67674,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
+        const path32 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -67701,9 +67701,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
+        const path32 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67726,9 +67726,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/preview/sql/alerts";
+        const path32 = "/api/2.0/preview/sql/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67766,9 +67766,9 @@ var require_api22 = __commonJS({
           body["rearm"] = request2.rearm;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
+        const path32 = `/api/2.0/preview/sql/alerts/${request2.alert_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -67882,9 +67882,9 @@ var require_api22 = __commonJS({
         });
         const body = request2.alert;
         const query = {};
-        const path31 = "/api/2.0/alerts";
+        const path32 = "/api/2.0/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -67902,9 +67902,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/alerts/${request2.id}`;
+        const path32 = `/api/2.0/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67928,9 +67928,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/alerts";
+        const path32 = "/api/2.0/alerts";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -67963,9 +67963,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/alerts/${request2.id}`;
+        const path32 = `/api/2.0/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -67991,9 +67991,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/alerts/${request2.id}`;
+        const path32 = `/api/2.0/alerts/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -68117,9 +68117,9 @@ var require_api22 = __commonJS({
           body["width"] = request2.width;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/sql/widgets";
+        const path32 = "/api/2.0/preview/sql/widgets";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68137,9 +68137,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/widgets/${request2.id}`;
+        const path32 = `/api/2.0/preview/sql/widgets/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -68175,9 +68175,9 @@ var require_api22 = __commonJS({
           body["width"] = request2.width;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/widgets/${request2.id}`;
+        const path32 = `/api/2.0/preview/sql/widgets/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68255,9 +68255,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -68276,9 +68276,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68309,9 +68309,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("q")) {
           query["q"] = request2.q;
         }
-        const path31 = "/api/2.0/preview/sql/dashboards";
+        const path32 = "/api/2.0/preview/sql/dashboards";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68345,9 +68345,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/dashboards/trash/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/preview/sql/dashboards/trash/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68377,9 +68377,9 @@ var require_api22 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
+        const path32 = `/api/2.0/preview/sql/dashboards/${request2.dashboard_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68488,9 +68488,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/preview/sql/data_sources";
+        const path32 = "/api/2.0/preview/sql/data_sources";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68548,9 +68548,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}`;
+        const path32 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68580,9 +68580,9 @@ var require_api22 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}`;
+        const path32 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68612,9 +68612,9 @@ var require_api22 = __commonJS({
           body["new_owner"] = request2.new_owner;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}/transfer`;
+        const path32 = `/api/2.0/preview/sql/permissions/${request2.objectType}/${request2.objectId}/transfer`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68708,9 +68708,9 @@ var require_api22 = __commonJS({
           body["query"] = request2.query;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/queries";
+        const path32 = "/api/2.0/sql/queries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -68728,9 +68728,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/queries/${request2.id}`;
+        const path32 = `/api/2.0/sql/queries/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -68751,9 +68751,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/queries/${request2.id}`;
+        const path32 = `/api/2.0/sql/queries/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68777,9 +68777,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/sql/queries";
+        const path32 = "/api/2.0/sql/queries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68820,9 +68820,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.0/sql/queries/${request2.id}/visualizations`;
+        const path32 = `/api/2.0/sql/queries/${request2.id}/visualizations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -68867,9 +68867,9 @@ var require_api22 = __commonJS({
           body["update_mask"] = request2.update_mask;
         }
         const query = {};
-        const path31 = `/api/2.0/sql/queries/${request2.id}`;
+        const path32 = `/api/2.0/sql/queries/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -69016,9 +69016,9 @@ var require_api22 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/sql/queries";
+        const path32 = "/api/2.0/preview/sql/queries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69049,9 +69049,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
+        const path32 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -69076,9 +69076,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
+        const path32 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -69114,9 +69114,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("q")) {
           query["q"] = request2.q;
         }
-        const path31 = "/api/2.0/preview/sql/queries";
+        const path32 = "/api/2.0/preview/sql/queries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -69156,9 +69156,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/queries/trash/${request2.query_id}`;
+        const path32 = `/api/2.0/preview/sql/queries/trash/${request2.query_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69206,9 +69206,9 @@ var require_api22 = __commonJS({
           body["tags"] = request2.tags;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
+        const path32 = `/api/2.0/preview/sql/queries/${request2.query_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69347,9 +69347,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/sql/history/queries";
+        const path32 = "/api/2.0/sql/history/queries";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -69411,9 +69411,9 @@ var require_api22 = __commonJS({
           body["visualization"] = request2.visualization;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/visualizations";
+        const path32 = "/api/2.0/sql/visualizations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69431,9 +69431,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/visualizations/${request2.id}`;
+        const path32 = `/api/2.0/sql/visualizations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -69460,9 +69460,9 @@ var require_api22 = __commonJS({
           body["visualization"] = request2.visualization;
         }
         const query = {};
-        const path31 = `/api/2.0/sql/visualizations/${request2.id}`;
+        const path32 = `/api/2.0/sql/visualizations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -69558,9 +69558,9 @@ var require_api22 = __commonJS({
           body["type"] = request2.type;
         }
         const query = {};
-        const path31 = "/api/2.0/preview/sql/visualizations";
+        const path32 = "/api/2.0/preview/sql/visualizations";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69583,9 +69583,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/preview/sql/visualizations/${request2.id}`;
+        const path32 = `/api/2.0/preview/sql/visualizations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -69632,9 +69632,9 @@ var require_api22 = __commonJS({
           body["updated_at"] = request2.updated_at;
         }
         const query = {};
-        const path31 = `/api/2.0/preview/sql/visualizations/${request2.id}`;
+        const path32 = `/api/2.0/preview/sql/visualizations/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69717,9 +69717,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/redash-v2/config";
+        const path32 = "/api/2.0/redash-v2/config";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -69769,9 +69769,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({});
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/statements/${request2.statement_id}/cancel`;
+        const path32 = `/api/2.0/sql/statements/${request2.statement_id}/cancel`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69827,9 +69827,9 @@ var require_api22 = __commonJS({
           body["warehouse_id"] = request2.warehouse_id;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/statements";
+        const path32 = "/api/2.0/sql/statements";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -69899,9 +69899,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/statements/${request2.statement_id}`;
+        const path32 = `/api/2.0/sql/statements/${request2.statement_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -69929,9 +69929,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/statements/${request2.statement_id}/result/chunks/${request2.chunk_index}`;
+        const path32 = `/api/2.0/sql/statements/${request2.statement_id}/result/chunks/${request2.chunk_index}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70074,9 +70074,9 @@ var require_api22 = __commonJS({
           body["warehouse_type"] = request2.warehouse_type;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/warehouses";
+        const path32 = "/api/2.0/sql/warehouses";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -70132,9 +70132,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/warehouses/${request2.id}`;
+        const path32 = `/api/2.0/sql/warehouses/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -70194,9 +70194,9 @@ var require_api22 = __commonJS({
           body["warehouse_type"] = request2.warehouse_type;
         }
         const query = {};
-        const path31 = `/api/2.0/sql/warehouses/${request2.id}/edit`;
+        const path32 = `/api/2.0/sql/warehouses/${request2.id}/edit`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -70252,9 +70252,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/warehouses/${request2.id}`;
+        const path32 = `/api/2.0/sql/warehouses/${request2.id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70272,9 +70272,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70292,9 +70292,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
+        const path32 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70313,9 +70313,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/sql/config/warehouses";
+        const path32 = "/api/2.0/sql/config/warehouses";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70343,9 +70343,9 @@ var require_api22 = __commonJS({
         if (request2.hasOwnProperty("run_as_user_id")) {
           query["run_as_user_id"] = request2.run_as_user_id;
         }
-        const path31 = "/api/2.0/sql/warehouses";
+        const path32 = "/api/2.0/sql/warehouses";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70384,9 +70384,9 @@ var require_api22 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
+        const path32 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -70439,9 +70439,9 @@ var require_api22 = __commonJS({
           body["sql_configuration_parameters"] = request2.sql_configuration_parameters;
         }
         const query = {};
-        const path31 = "/api/2.0/sql/config/warehouses";
+        const path32 = "/api/2.0/sql/config/warehouses";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -70460,9 +70460,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/warehouses/${request2.id}/start`;
+        const path32 = `/api/2.0/sql/warehouses/${request2.id}/start`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -70518,9 +70518,9 @@ var require_api22 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/sql/warehouses/${request2.id}/stop`;
+        const path32 = `/api/2.0/sql/warehouses/${request2.id}/stop`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -70576,9 +70576,9 @@ var require_api22 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
+        const path32 = `/api/2.0/permissions/warehouses/${request2.warehouse_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -70899,9 +70899,9 @@ var require_api23 = __commonJS({
         });
         const body = request2.tag_policy;
         const query = {};
-        const path31 = "/api/2.1/tag-policies";
+        const path32 = "/api/2.1/tag-policies";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -70919,9 +70919,9 @@ var require_api23 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/tag-policies/${request2.tag_key}`;
+        const path32 = `/api/2.1/tag-policies/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -70940,9 +70940,9 @@ var require_api23 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/tag-policies/${request2.tag_key}`;
+        const path32 = `/api/2.1/tag-policies/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -70966,9 +70966,9 @@ var require_api23 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.1/tag-policies";
+        const path32 = "/api/2.1/tag-policies";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -71007,9 +71007,9 @@ var require_api23 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.1/tag-policies/${request2.tag_key}`;
+        const path32 = `/api/2.1/tag-policies/${request2.tag_key}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -71231,9 +71231,9 @@ var require_api24 = __commonJS({
           body["name"] = request2.name;
         }
         const query = {};
-        const path31 = "/api/2.0/vector-search/endpoints";
+        const path32 = "/api/2.0/vector-search/endpoints";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71288,9 +71288,9 @@ var require_api24 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}`;
+        const path32 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -71308,9 +71308,9 @@ var require_api24 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}`;
+        const path32 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -71331,9 +71331,9 @@ var require_api24 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/vector-search/endpoints";
+        const path32 = "/api/2.0/vector-search/endpoints";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -71384,9 +71384,9 @@ var require_api24 = __commonJS({
           body["start_time"] = request2.start_time;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/endpoints/${request2.name}/metrics`;
+        const path32 = `/api/2.0/vector-search/endpoints/${request2.name}/metrics`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71410,9 +71410,9 @@ var require_api24 = __commonJS({
           body["budget_policy_id"] = request2.budget_policy_id;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}/budget-policy`;
+        const path32 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}/budget-policy`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -71436,9 +71436,9 @@ var require_api24 = __commonJS({
           body["custom_tags"] = request2.custom_tags;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}/tags`;
+        const path32 = `/api/2.0/vector-search/endpoints/${request2.endpoint_name}/tags`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -71591,9 +71591,9 @@ var require_api24 = __commonJS({
           body["primary_key"] = request2.primary_key;
         }
         const query = {};
-        const path31 = "/api/2.0/vector-search/indexes";
+        const path32 = "/api/2.0/vector-search/indexes";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71614,9 +71614,9 @@ var require_api24 = __commonJS({
         if (request2.hasOwnProperty("primary_keys")) {
           query["primary_keys"] = request2.primary_keys;
         }
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/delete-data`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/delete-data`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -71634,9 +71634,9 @@ var require_api24 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -71657,9 +71657,9 @@ var require_api24 = __commonJS({
         if (request2.hasOwnProperty("ensure_reranker_compatible")) {
           query["ensure_reranker_compatible"] = request2.ensure_reranker_compatible;
         }
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -71683,9 +71683,9 @@ var require_api24 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = "/api/2.0/vector-search/indexes";
+        const path32 = "/api/2.0/vector-search/indexes";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -71748,9 +71748,9 @@ var require_api24 = __commonJS({
           body["score_threshold"] = request2.score_threshold;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/query`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/query`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71777,9 +71777,9 @@ var require_api24 = __commonJS({
           body["page_token"] = request2.page_token;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/query-next-page`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/query-next-page`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71807,9 +71807,9 @@ var require_api24 = __commonJS({
           body["num_results"] = request2.num_results;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/scan`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/scan`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71828,9 +71828,9 @@ var require_api24 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/sync`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/sync`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -71854,9 +71854,9 @@ var require_api24 = __commonJS({
           body["inputs_json"] = request2.inputs_json;
         }
         const query = {};
-        const path31 = `/api/2.0/vector-search/indexes/${request2.index_name}/upsert-data`;
+        const path32 = `/api/2.0/vector-search/indexes/${request2.index_name}/upsert-data`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72154,9 +72154,9 @@ var require_api25 = __commonJS({
           body["personal_access_token"] = request2.personal_access_token;
         }
         const query = {};
-        const path31 = "/api/2.0/git-credentials";
+        const path32 = "/api/2.0/git-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72177,9 +72177,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/git-credentials/${request2.credential_id}`;
+        const path32 = `/api/2.0/git-credentials/${request2.credential_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -72197,9 +72197,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/git-credentials/${request2.credential_id}`;
+        const path32 = `/api/2.0/git-credentials/${request2.credential_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72217,9 +72217,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/git-credentials";
+        const path32 = "/api/2.0/git-credentials";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72262,9 +72262,9 @@ var require_api25 = __commonJS({
           body["personal_access_token"] = request2.personal_access_token;
         }
         const query = {};
-        const path31 = `/api/2.0/git-credentials/${request2.credential_id}`;
+        const path32 = `/api/2.0/git-credentials/${request2.credential_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -72385,9 +72385,9 @@ var require_api25 = __commonJS({
           body["url"] = request2.url;
         }
         const query = {};
-        const path31 = "/api/2.0/repos";
+        const path32 = "/api/2.0/repos";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72407,9 +72407,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -72427,9 +72427,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72447,9 +72447,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/repos/${request2.repo_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/repos/${request2.repo_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72467,9 +72467,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/permissions/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72494,9 +72494,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("path_prefix")) {
           query["path_prefix"] = request2.path_prefix;
         }
-        const path31 = "/api/2.0/repos";
+        const path32 = "/api/2.0/repos";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72536,9 +72536,9 @@ var require_api25 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/permissions/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -72570,9 +72570,9 @@ var require_api25 = __commonJS({
           body["tag"] = request2.tag;
         }
         const query = {};
-        const path31 = `/api/2.0/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -72597,9 +72597,9 @@ var require_api25 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/repos/${request2.repo_id}`;
+        const path32 = `/api/2.0/permissions/repos/${request2.repo_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -72774,9 +72774,9 @@ var require_api25 = __commonJS({
           body["scope_backend_type"] = request2.scope_backend_type;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/scopes/create";
+        const path32 = "/api/2.0/secrets/scopes/create";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72838,9 +72838,9 @@ var require_api25 = __commonJS({
           body["scope"] = request2.scope;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/acls/delete";
+        const path32 = "/api/2.0/secrets/acls/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72874,9 +72874,9 @@ var require_api25 = __commonJS({
           body["scope"] = request2.scope;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/scopes/delete";
+        const path32 = "/api/2.0/secrets/scopes/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72914,9 +72914,9 @@ var require_api25 = __commonJS({
           body["scope"] = request2.scope;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/delete";
+        const path32 = "/api/2.0/secrets/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -72953,9 +72953,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("scope")) {
           query["scope"] = request2.scope;
         }
-        const path31 = "/api/2.0/secrets/acls/get";
+        const path32 = "/api/2.0/secrets/acls/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -72993,9 +72993,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("scope")) {
           query["scope"] = request2.scope;
         }
-        const path31 = "/api/2.0/secrets/get";
+        const path32 = "/api/2.0/secrets/get";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73043,9 +73043,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("scope")) {
           query["scope"] = request2.scope;
         }
-        const path31 = "/api/2.0/secrets/acls/list";
+        const path32 = "/api/2.0/secrets/acls/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73079,9 +73079,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = "/api/2.0/secrets/scopes/list";
+        const path32 = "/api/2.0/secrets/scopes/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73115,9 +73115,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("scope")) {
           query["scope"] = request2.scope;
         }
-        const path31 = "/api/2.0/secrets/list";
+        const path32 = "/api/2.0/secrets/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73163,9 +73163,9 @@ var require_api25 = __commonJS({
           body["scope"] = request2.scope;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/acls/put";
+        const path32 = "/api/2.0/secrets/acls/put";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -73227,9 +73227,9 @@ var require_api25 = __commonJS({
           body["string_value"] = request2.string_value;
         }
         const query = {};
-        const path31 = "/api/2.0/secrets/put";
+        const path32 = "/api/2.0/secrets/put";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -73456,9 +73456,9 @@ var require_api25 = __commonJS({
           body["recursive"] = request2.recursive;
         }
         const query = {};
-        const path31 = "/api/2.0/workspace/delete";
+        const path32 = "/api/2.0/workspace/delete";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -73489,9 +73489,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/workspace/export";
+        const path32 = "/api/2.0/workspace/export";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73516,9 +73516,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}/permissionLevels`;
+        const path32 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}/permissionLevels`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73536,9 +73536,9 @@ var require_api25 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73560,9 +73560,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/workspace/get-status";
+        const path32 = "/api/2.0/workspace/get-status";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73599,9 +73599,9 @@ var require_api25 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/workspace/import";
+        const path32 = "/api/2.0/workspace/import";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -73631,9 +73631,9 @@ var require_api25 = __commonJS({
         if (request2.hasOwnProperty("path")) {
           query["path"] = request2.path;
         }
-        const path31 = "/api/2.0/workspace/list";
+        const path32 = "/api/2.0/workspace/list";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -73662,9 +73662,9 @@ var require_api25 = __commonJS({
           body["path"] = request2.path;
         }
         const query = {};
-        const path31 = "/api/2.0/workspace/mkdirs";
+        const path32 = "/api/2.0/workspace/mkdirs";
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -73693,9 +73693,9 @@ var require_api25 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -73721,9 +73721,9 @@ var require_api25 = __commonJS({
           body["access_control_list"] = request2.access_control_list;
         }
         const query = {};
-        const path31 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
+        const path32 = `/api/2.0/permissions/${request2.workspace_object_type}/${request2.workspace_object_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -74585,9 +74585,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("start_month")) {
           query["start_month"] = request2.start_month;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/usage/download`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/usage/download`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: true,
@@ -74663,9 +74663,9 @@ var require_api26 = __commonJS({
           body["request_id"] = request2.request_id;
         }
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budget-policies`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budget-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -74688,9 +74688,9 @@ var require_api26 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -74713,9 +74713,9 @@ var require_api26 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -74750,9 +74750,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("sort_spec")) {
           query["sort_spec"] = request2.sort_spec;
         }
-        const path31 = `/api/2.1/accounts/${config.accountId}/budget-policies`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budget-policies`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -74797,9 +74797,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("limit_config")) {
           query["limit_config"] = request2.limit_config;
         }
-        const path31 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budget-policies/${request2.policy_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -74916,9 +74916,9 @@ var require_api26 = __commonJS({
           body["budget"] = request2.budget;
         }
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budgets`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budgets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -74942,9 +74942,9 @@ var require_api26 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -74968,9 +74968,9 @@ var require_api26 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -74997,9 +74997,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("page_token")) {
           query["page_token"] = request2.page_token;
         }
-        const path31 = `/api/2.1/accounts/${config.accountId}/budgets`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budgets`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75043,9 +75043,9 @@ var require_api26 = __commonJS({
           body["budget"] = request2.budget;
         }
         const query = {};
-        const path31 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
+        const path32 = `/api/2.1/accounts/${config.accountId}/budgets/${request2.budget_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -75163,9 +75163,9 @@ var require_api26 = __commonJS({
           body["log_delivery_configuration"] = request2.log_delivery_configuration;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/log-delivery`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/log-delivery`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -75213,9 +75213,9 @@ var require_api26 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/log-delivery/${request2.log_delivery_configuration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/log-delivery/${request2.log_delivery_configuration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75251,9 +75251,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("storage_configuration_id")) {
           query["storage_configuration_id"] = request2.storage_configuration_id;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/log-delivery`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/log-delivery`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75298,9 +75298,9 @@ var require_api26 = __commonJS({
           body["status"] = request2.status;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/log-delivery/${request2.log_delivery_configuration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/log-delivery/${request2.log_delivery_configuration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -75410,9 +75410,9 @@ var require_api26 = __commonJS({
           body["workspace_id"] = request2.workspace_id;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/dashboard`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/dashboard`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -75442,9 +75442,9 @@ var require_api26 = __commonJS({
         if (request2.hasOwnProperty("workspace_id")) {
           query["workspace_id"] = request2.workspace_id;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/dashboard`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/dashboard`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75631,9 +75631,9 @@ var require_api27 = __commonJS({
           body["credentials_name"] = request2.credentials_name;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/credentials`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/credentials`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -75669,9 +75669,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/credentials/${request2.credentials_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/credentials/${request2.credentials_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -75696,9 +75696,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/credentials/${request2.credentials_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/credentials/${request2.credentials_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75722,9 +75722,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/credentials`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/credentials`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75834,9 +75834,9 @@ var require_api27 = __commonJS({
           body["use_cases"] = request2.use_cases;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -75875,9 +75875,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys/${request2.customer_managed_key_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys/${request2.customer_managed_key_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -75901,9 +75901,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys/${request2.customer_managed_key_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys/${request2.customer_managed_key_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -75940,9 +75940,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/customer-managed-keys`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76060,9 +76060,9 @@ var require_api27 = __commonJS({
           body["vpc_id"] = request2.vpc_id;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/networks`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/networks`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -76087,9 +76087,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/networks/${request2.network_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/networks/${request2.network_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -76117,9 +76117,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/networks/${request2.network_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/networks/${request2.network_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76143,9 +76143,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/networks`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/networks`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76260,9 +76260,9 @@ var require_api27 = __commonJS({
           body["region"] = request2.region;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/private-access-settings`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/private-access-settings`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -76288,9 +76288,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -76314,9 +76314,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76340,9 +76340,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/private-access-settings`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/private-access-settings`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76368,9 +76368,9 @@ var require_api27 = __commonJS({
         });
         const body = request2.customer_facing_private_access_settings;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/private-access-settings/${request2.private_access_settings_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PUT",
           headers,
           raw: false,
@@ -76506,9 +76506,9 @@ var require_api27 = __commonJS({
           body["storage_configuration_name"] = request2.storage_configuration_name;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/storage-configurations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/storage-configurations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -76531,9 +76531,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/storage-configurations/${request2.storage_configuration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/storage-configurations/${request2.storage_configuration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -76557,9 +76557,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/storage-configurations/${request2.storage_configuration_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/storage-configurations/${request2.storage_configuration_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76583,9 +76583,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/storage-configurations`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/storage-configurations`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76697,9 +76697,9 @@ var require_api27 = __commonJS({
           body["vpc_endpoint_name"] = request2.vpc_endpoint_name;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -76735,9 +76735,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints/${request2.vpc_endpoint_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints/${request2.vpc_endpoint_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -76761,9 +76761,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints/${request2.vpc_endpoint_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints/${request2.vpc_endpoint_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76791,9 +76791,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/vpc-endpoints`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -76947,9 +76947,9 @@ var require_api27 = __commonJS({
           body["workspace_name"] = request2.workspace_name;
         }
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "POST",
           headers,
           raw: false,
@@ -77047,9 +77047,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "DELETE",
           headers,
           raw: false,
@@ -77072,9 +77072,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -77105,9 +77105,9 @@ var require_api27 = __commonJS({
         const headers = new Headers({ Accept: "application/json" });
         const body = void 0;
         const query = {};
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "GET",
           headers,
           raw: false,
@@ -77136,9 +77136,9 @@ var require_api27 = __commonJS({
         if (request2.hasOwnProperty("update_mask")) {
           query["update_mask"] = request2.update_mask;
         }
-        const path31 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
+        const path32 = `/api/2.0/accounts/${config.accountId}/workspaces/${request2.workspace_id}`;
         return await this.client.request({
-          path: path31,
+          path: path32,
           method: "PATCH",
           headers,
           raw: false,
@@ -79616,9 +79616,9 @@ function asBranchUid(s2) {
   }
   return s2;
 }
-function branchNameFromResourcePath(path31) {
-  if (!path31.includes("/branches/")) return null;
-  const leaf = path31.split("/branches/").pop();
+function branchNameFromResourcePath(path32) {
+  if (!path32.includes("/branches/")) return null;
+  const leaf = path32.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -81590,8 +81590,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.48".length > 0) {
-    cached = "0.2.48";
+  if ("0.2.49".length > 0) {
+    cached = "0.2.49";
     return cached;
   }
   cached = "unknown";
@@ -84131,7 +84131,7 @@ paginateRest.VERSION = VERSION6;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_cjs_shims();
-var generateMessage = (path31, cursorValue) => `The cursor at "${path31.join(
+var generateMessage = (path32, cursorValue) => `The cursor at "${path32.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -84172,9 +84172,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path31 = []) => {
+var deepFindPathToProperty = (object, searchProp, path32 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path31, key];
+    const currentPath = [...path32, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -84192,12 +84192,12 @@ var deepFindPathToProperty = (object, searchProp, path31 = []) => {
   }
   return [];
 };
-var get = (object, path31) => {
-  return path31.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path32) => {
+  return path32.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path31, mutator) => {
-  const lastProperty = path31[path31.length - 1];
-  const parentPath = [...path31].slice(0, -1);
+var set = (object, path32, mutator) => {
+  const lastProperty = path32[path32.length - 1];
+  const parentPath = [...path32].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -84249,22 +84249,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path31 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path31, "nodes"];
+  const path32 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path32, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path31, "edges"];
+  const edgesPath = [...path32, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path31, "pageInfo"];
+  const pageInfoPath = [...path32, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -86685,7 +86685,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path31) => path31.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path32) => path32.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r2) => `(?:${r2})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -90013,16 +90013,16 @@ function isAllSchemas(schema) {
 }
 function buildSchemaQuery(schema) {
   const cols = "c.table_schema, c.table_name, c.column_name, c.data_type";
-  const join33 = "FROM information_schema.columns c JOIN pg_tables t ON c.table_name = t.tablename AND c.table_schema = t.schemaname ";
+  const join34 = "FROM information_schema.columns c JOIN pg_tables t ON c.table_name = t.tablename AND c.table_schema = t.schemaname ";
   if (isAllSchemas(schema)) {
     return {
-      text: `SELECT ${cols} ` + join33 + `WHERE ${SYSTEM_SCHEMA_FILTER} ORDER BY c.table_schema, c.table_name, c.ordinal_position`,
+      text: `SELECT ${cols} ` + join34 + `WHERE ${SYSTEM_SCHEMA_FILTER} ORDER BY c.table_schema, c.table_name, c.ordinal_position`,
       values: []
     };
   }
   const one = (schema ?? "").trim() || "public";
   return {
-    text: `SELECT ${cols} ` + join33 + "WHERE c.table_schema = $1 ORDER BY c.table_name, c.ordinal_position",
+    text: `SELECT ${cols} ` + join34 + "WHERE c.table_schema = $1 ORDER BY c.table_name, c.ordinal_position",
     values: [one]
   };
 }
@@ -90183,7 +90183,7 @@ async function withLakebaseRollback(opts, fn) {
 // scripts/lakebase/create-project.ts
 init_cjs_shims();
 var fs19 = __toESM(require("fs"), 1);
-var path16 = __toESM(require("path"), 1);
+var path17 = __toESM(require("path"), 1);
 
 // scripts/lakebase/project-verify.ts
 init_cjs_shims();
@@ -91937,6 +91937,7 @@ async function removeRunner(args) {
 
 // scripts/util/ci-secrets.ts
 init_cjs_shims();
+var path15 = __toESM(require("path"), 1);
 
 // scripts/github/secrets.ts
 init_cjs_shims();
@@ -92046,13 +92047,40 @@ async function getOwnerRepo(cwd) {
 
 // scripts/util/ci-secrets.ts
 var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+var CI_TOKEN_LIFETIME_SECONDS = 7776e3;
+var CI_TOKEN_REMINT_MARGIN_SECONDS = 86400;
+function ciTokenComment(ownerRepo) {
+  const repoName = ownerRepo.includes("/") ? ownerRepo.slice(ownerRepo.lastIndexOf("/") + 1) : ownerRepo;
+  return `GitHub Actions (${repoName})`;
+}
 async function missingCiSecrets(ownerRepo) {
   const present = new Set(await listSecretNames(ownerRepo));
   return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
 }
+async function mintCiToken(args) {
+  try {
+    const raw = await runDatabricks(
+      ["tokens", "create", "--comment", args.comment, "--lifetime-seconds", String(args.lifetimeSeconds), "-o", "json"],
+      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
+    );
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    const token = parsed.token_value || parsed.token || "";
+    if (token) return token;
+  } catch {
+  }
+  try {
+    const raw = await runDatabricks(["auth", "token", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
 async function syncCiSecrets(args) {
-  const lifetime = args.lifetimeSeconds ?? 86400;
-  const comment = args.comment ?? "GitHub Actions CI";
   const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
   if (!ownerRepo) {
     throw new Error("Could not resolve GitHub repository from git remote");
@@ -92063,27 +92091,104 @@ async function syncCiSecrets(args) {
   if (!args.lakebaseProjectId) {
     throw new Error("syncCiSecrets: lakebaseProjectId is required");
   }
+  const lifetime = args.lifetimeSeconds ?? CI_TOKEN_LIFETIME_SECONDS;
+  const comment = args.comment ?? ciTokenComment(ownerRepo);
   const secrets = {
     DATABRICKS_HOST: args.databricksHost,
     LAKEBASE_PROJECT_ID: args.lakebaseProjectId
   };
-  try {
-    const tokenRaw = await runDatabricks(
-      ["tokens", "create", "--comment", comment, "--lifetime-seconds", String(lifetime), "-o", "json"],
-      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
-    );
-    const parsed = JSON.parse(tokenRaw);
-    const token = parsed.token_value || parsed.token || "";
-    if (token) secrets.DATABRICKS_TOKEN = token;
-  } catch {
-  }
+  const token = await mintCiToken({
+    databricksHost: args.databricksHost,
+    projectDir: args.projectDir,
+    comment,
+    lifetimeSeconds: lifetime
+  });
+  if (token) secrets.DATABRICKS_TOKEN = token;
   await setRepoSecrets(ownerRepo, secrets);
+}
+async function ciTokenExpiry(args) {
+  const comment = ciTokenComment(args.ownerRepo);
+  let raw;
+  try {
+    raw = await runDatabricks(["tokens", "list", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+  } catch {
+    return null;
+  }
+  let infos;
+  try {
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("["))));
+    infos = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
+  const expiries = infos.filter((t2) => t2.comment === comment).map((t2) => t2.expiry_time === -1 ? Number.POSITIVE_INFINITY : Number(t2.expiry_time)).filter((n) => Number.isFinite(n) || n === Number.POSITIVE_INFINITY);
+  if (expiries.length === 0) return null;
+  return Math.max(...expiries);
+}
+async function ensureCiSecretsFresh(args) {
+  const now = args.now ?? Date.now;
+  const marginMs = (args.marginSeconds ?? CI_TOKEN_REMINT_MARGIN_SECONDS) * 1e3;
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  const sync = () => syncCiSecrets({
+    projectDir: args.projectDir,
+    databricksHost: args.databricksHost,
+    lakebaseProjectId: args.lakebaseProjectId,
+    ownerRepo
+  });
+  const missing = await missingCiSecrets(ownerRepo);
+  if (missing.length > 0) {
+    await sync();
+    return { action: "provisioned", reason: `CI secret(s) were missing (${missing.join(", ")}); provisioned.` };
+  }
+  const expiry = await ciTokenExpiry({ projectDir: args.projectDir, databricksHost: args.databricksHost, ownerRepo });
+  if (expiry === null) {
+    await sync();
+    return { action: "reminted", reason: "no live CI token found (expired or minted under a different identity); re-minted." };
+  }
+  if (expiry !== Number.POSITIVE_INFINITY && expiry < now() + marginMs) {
+    await sync();
+    const hrs = Math.max(0, Math.round((expiry - now()) / 36e5));
+    return { action: "reminted", reason: `CI token expires in ~${hrs}h (within the re-mint margin); re-minted.` };
+  }
+  return { action: "ok", reason: "CI token is current." };
+}
+async function ensureCiSecretsFreshFromEnv(projectDir, opts) {
+  const envPath = path15.join(projectDir, ".env");
+  const databricksHost = readEnvVar(envPath, "DATABRICKS_HOST");
+  const lakebaseProjectId = readEnvVar(envPath, "LAKEBASE_PROJECT_ID");
+  if (!databricksHost || !lakebaseProjectId) {
+    return {
+      action: "skipped",
+      reason: "CI-auth preflight skipped: .env is missing DATABRICKS_HOST / LAKEBASE_PROJECT_ID."
+    };
+  }
+  try {
+    return await ensureCiSecretsFresh({
+      projectDir,
+      databricksHost,
+      lakebaseProjectId,
+      ownerRepo: opts?.ownerRepo,
+      marginSeconds: opts?.marginSeconds
+    });
+  } catch (err) {
+    return {
+      action: "failed",
+      reason: `CI-auth preflight could not re-mint (${err instanceof Error ? err.message : String(err)}); if CI fails on auth, run lakebase-sync-ci-secrets.`
+    };
+  }
 }
 
 // scripts/lakebase/scm-workflow-state.ts
 init_cjs_shims();
 var fs18 = __toESM(require("fs"), 1);
-var path15 = __toESM(require("path"), 1);
+var path16 = __toESM(require("path"), 1);
 var import_node_child_process9 = require("child_process");
 function isGitTracked(projectDir, rel) {
   try {
@@ -92102,7 +92207,7 @@ function ensureWorkflowStateUntracked(projectDir) {
   } catch {
   }
   try {
-    const gitignore = path15.join(projectDir, ".gitignore");
+    const gitignore = path16.join(projectDir, ".gitignore");
     const existing = fs18.existsSync(gitignore) ? fs18.readFileSync(gitignore, "utf8") : "";
     if (!existing.split("\n").some((l) => l.trim() === rel)) {
       const sep4 = existing === "" || existing.endsWith("\n") ? "" : "\n";
@@ -92130,7 +92235,7 @@ var STATE_INDEX = SCM_STATES.reduce(
 );
 var STATE_FILE_REL = ".lakebase/workflow-state.json";
 function stateFilePath(projectDir) {
-  return path15.join(projectDir, STATE_FILE_REL);
+  return path16.join(projectDir, STATE_FILE_REL);
 }
 function readWorkflowState(projectDir) {
   const p = stateFilePath(projectDir);
@@ -92170,7 +92275,7 @@ function writeWorkflowState(projectDir, state) {
 ${summary}`);
   }
   ensureWorkflowStateUntracked(projectDir);
-  const dir = path15.join(projectDir, ".lakebase");
+  const dir = path16.join(projectDir, ".lakebase");
   fs18.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
   const tmp = `${target}.tmp`;
@@ -92401,7 +92506,7 @@ function orderForOutput(state) {
 async function createProject(input, progress) {
   const report = progress ?? (() => {
   });
-  const projectDir = path16.join(input.parentDir, input.projectName);
+  const projectDir = path17.join(input.parentDir, input.projectName);
   const lakebaseProjectId = input.projectName;
   const host = input.databricksHost.replace(/\/+$/, "");
   const useGithub = input.createGithubRepo !== false;
@@ -92562,8 +92667,6 @@ Last probe error:
             projectDir,
             databricksHost: host,
             lakebaseProjectId,
-            comment: "GitHub Actions CI",
-            lifetimeSeconds: 86400,
             ownerRepo: fullRepoName
           });
           const missing = await missingCiSecrets(fullRepoName);
@@ -92630,9 +92733,9 @@ Last probe error:
         const scmRef = envRef || (ver !== "unknown" ? `v${ver}` : "");
         if (scmRef) {
           try {
-            const dir = path16.join(projectDir, ".lakebase");
+            const dir = path17.join(projectDir, ".lakebase");
             fs19.mkdirSync(dir, { recursive: true });
-            fs19.writeFileSync(path16.join(dir, "scm-utils-ref"), `${scmRef}
+            fs19.writeFileSync(path17.join(dir, "scm-utils-ref"), `${scmRef}
 `, "utf8");
           } catch (err) {
             warnings.push(`Substrate ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
@@ -92643,9 +92746,9 @@ Last probe error:
         const kitRef = process.env.LAKEBASE_KIT_REF?.trim();
         if (kitRef) {
           try {
-            const dir = path16.join(projectDir, ".lakebase");
+            const dir = path17.join(projectDir, ".lakebase");
             fs19.mkdirSync(dir, { recursive: true });
-            fs19.writeFileSync(path16.join(dir, "kit-ref"), `${kitRef}
+            fs19.writeFileSync(path17.join(dir, "kit-ref"), `${kitRef}
 `, "utf8");
           } catch (err) {
             warnings.push(`Kit ref pin failed (advisory): ${err instanceof Error ? err.message : String(err)}.`);
@@ -92727,7 +92830,7 @@ Last probe error:
 init_cjs_shims();
 var cp5 = __toESM(require("child_process"), 1);
 var fs20 = __toESM(require("fs"), 1);
-var path17 = __toESM(require("path"), 1);
+var path18 = __toESM(require("path"), 1);
 async function adoptLakebaseProject(args) {
   const warnings = [];
   const filesWritten = [];
@@ -92736,7 +92839,7 @@ async function adoptLakebaseProject(args) {
   if (!fs20.existsSync(args.projectDir)) {
     throw new Error(`adoptLakebaseProject: project directory does not exist: ${args.projectDir}`);
   }
-  if (!fs20.existsSync(path17.join(args.projectDir, ".git"))) {
+  if (!fs20.existsSync(path18.join(args.projectDir, ".git"))) {
     throw new Error(
       `adoptLakebaseProject: ${args.projectDir} is not a git repo. Run \`git init\` first, or pass an existing repo path.`
     );
@@ -92802,7 +92905,7 @@ async function adoptLakebaseProject(args) {
   };
 }
 function assertEnvCompatibility(projectDir, expectedProjectId) {
-  const envPath = path17.join(projectDir, ".env");
+  const envPath = path18.join(projectDir, ".env");
   if (!fs20.existsSync(envPath)) return;
   const content = fs20.readFileSync(envPath, "utf8");
   const match = content.match(/^LAKEBASE_PROJECT_ID\s*=\s*(.+?)\s*$/m);
@@ -92818,7 +92921,7 @@ function assertAdoptionPreflight(args) {
   if (!fs20.existsSync(args.projectDir)) {
     throw new Error(`assertAdoptionPreflight: project directory does not exist: ${args.projectDir}`);
   }
-  if (!fs20.existsSync(path17.join(args.projectDir, ".git"))) {
+  if (!fs20.existsSync(path18.join(args.projectDir, ".git"))) {
     throw new Error(
       `assertAdoptionPreflight: ${args.projectDir} is not a git repo.`
     );
@@ -92832,7 +92935,7 @@ function _testMakeBrownfieldFixture(opts) {
   cp5.execSync("git init --quiet", { cwd: opts.dir, stdio: "pipe" });
   if (opts.packageJson) {
     fs20.writeFileSync(
-      path17.join(opts.dir, "package.json"),
+      path18.join(opts.dir, "package.json"),
       JSON.stringify(opts.packageJson, null, 2) + "\n"
     );
   }
@@ -92841,7 +92944,7 @@ function _testMakeBrownfieldFixture(opts) {
 // scripts/lakebase/infra-runner.ts
 init_cjs_shims();
 var fs28 = __toESM(require("fs"), 1);
-var path26 = __toESM(require("path"), 1);
+var path27 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-diff.ts
 init_cjs_shims();
@@ -93038,12 +93141,12 @@ function dbcli6(args) {
 // scripts/lakebase/schema-migrate.ts
 init_cjs_shims();
 var fs27 = __toESM(require("fs"), 1);
-var path25 = __toESM(require("path"), 1);
+var path26 = __toESM(require("path"), 1);
 
 // scripts/lakebase/migration-layout.ts
 init_cjs_shims();
 var fs21 = __toESM(require("fs"), 1);
-var path18 = __toESM(require("path"), 1);
+var path19 = __toESM(require("path"), 1);
 var MIGRATION_LANGUAGES = [
   "java",
   "kotlin",
@@ -93059,13 +93162,13 @@ var MIGRATION_DEFAULTS = {
   unknown: { path: "src/main/resources/db/migration", pattern: /^V\d+.*\.sql$/i, glob: "*.sql" }
 };
 function detectLanguageAt(dir) {
-  if (fs21.existsSync(path18.join(dir, "pom.xml"))) {
-    const kotlinDir = path18.join(dir, "src", "main", "kotlin");
+  if (fs21.existsSync(path19.join(dir, "pom.xml"))) {
+    const kotlinDir = path19.join(dir, "src", "main", "kotlin");
     if (fs21.existsSync(kotlinDir)) {
       return "kotlin";
     }
     try {
-      const pom = fs21.readFileSync(path18.join(dir, "pom.xml"), "utf-8");
+      const pom = fs21.readFileSync(path19.join(dir, "pom.xml"), "utf-8");
       if (pom.includes("kotlin-maven-plugin")) {
         return "kotlin";
       }
@@ -93073,10 +93176,10 @@ function detectLanguageAt(dir) {
     }
     return "java";
   }
-  if (fs21.existsSync(path18.join(dir, "pyproject.toml")) || fs21.existsSync(path18.join(dir, "requirements.txt")) || fs21.existsSync(path18.join(dir, "alembic.ini"))) {
+  if (fs21.existsSync(path19.join(dir, "pyproject.toml")) || fs21.existsSync(path19.join(dir, "requirements.txt")) || fs21.existsSync(path19.join(dir, "alembic.ini"))) {
     return "python";
   }
-  if (fs21.existsSync(path18.join(dir, "package.json"))) {
+  if (fs21.existsSync(path19.join(dir, "package.json"))) {
     return "nodejs";
   }
   return "unknown";
@@ -93097,14 +93200,14 @@ function resolveMigrationLanguage(projectDir, configuredMigrationPath, override)
   if (!rel) {
     return "unknown";
   }
-  const rootResolved = path18.resolve(projectDir);
-  let dir = path18.resolve(projectDir, rel);
-  while (dir === rootResolved || dir.startsWith(rootResolved + path18.sep)) {
+  const rootResolved = path19.resolve(projectDir);
+  let dir = path19.resolve(projectDir, rel);
+  while (dir === rootResolved || dir.startsWith(rootResolved + path19.sep)) {
     const lang = detectLanguageAt(dir);
     if (lang !== "unknown") {
       return lang;
     }
-    const parent = path18.dirname(dir);
+    const parent = path19.dirname(dir);
     if (parent === dir) {
       break;
     }
@@ -93138,17 +93241,17 @@ function resolveMigrationLayout(args) {
 // scripts/lakebase/adapters/alembic-adapter.ts
 init_cjs_shims();
 var fs23 = __toESM(require("fs"), 1);
-var path20 = __toESM(require("path"), 1);
+var path21 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 init_cjs_shims();
 var import_node_child_process10 = require("child_process");
 var fs22 = __toESM(require("fs"), 1);
-var path19 = __toESM(require("path"), 1);
+var path20 = __toESM(require("path"), 1);
 function resolveAlembicBin(projectDir) {
   const candidates = [
-    path19.join(projectDir, ".venv", "bin", "alembic"),
-    path19.join(projectDir, "venv", "bin", "alembic")
+    path20.join(projectDir, ".venv", "bin", "alembic"),
+    path20.join(projectDir, "venv", "bin", "alembic")
   ];
   for (const candidate of candidates) {
     try {
@@ -93162,7 +93265,7 @@ function spawnAlembic(projectDir, args, dsn) {
   return new Promise((resolve2, reject) => {
     const bin = resolveAlembicBin(projectDir);
     const env = { ...process.env };
-    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path19.delimiter);
+    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path20.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
     const child = (0, import_node_child_process10.spawn)(bin, args, {
       cwd: projectDir,
@@ -93210,10 +93313,10 @@ async function createAlembicRevision(opts) {
   const m2 = stdout.match(/Generating\s+(\S+\.py)/);
   if (m2) return m2[1].trim();
   for (const rel of ["migrations/versions", "alembic/versions"]) {
-    const dir = path19.join(opts.projectDir, rel);
+    const dir = path20.join(opts.projectDir, rel);
     if (!fs22.existsSync(dir)) continue;
     const hit = fs22.readdirSync(dir).find((f3) => f3.startsWith(`${opts.revId}_`) && f3.endsWith(".py"));
-    if (hit) return path19.join(dir, hit);
+    if (hit) return path20.join(dir, hit);
   }
   throw new SchemaMigrationError(
     `alembic revision succeeded but the created file could not be located.
@@ -93348,8 +93451,8 @@ async function buildDsn2(args) {
 }
 function findVersionsDir(projectDir) {
   const candidates = [
-    path20.join(projectDir, "migrations", "versions"),
-    path20.join(projectDir, "alembic", "versions")
+    path21.join(projectDir, "migrations", "versions"),
+    path21.join(projectDir, "alembic", "versions")
   ];
   return candidates.find((p) => fs23.existsSync(p));
 }
@@ -93381,9 +93484,9 @@ var AlembicAdapter = {
    * here. Callers can still force-select via project.yaml#migration_tool.
    */
   detect(projectDir) {
-    if (fs23.existsSync(path20.join(projectDir, "alembic.ini"))) return true;
-    if (fs23.existsSync(path20.join(projectDir, "migrations", "env.py"))) return true;
-    if (fs23.existsSync(path20.join(projectDir, "alembic", "env.py"))) return true;
+    if (fs23.existsSync(path21.join(projectDir, "alembic.ini"))) return true;
+    if (fs23.existsSync(path21.join(projectDir, "migrations", "env.py"))) return true;
+    if (fs23.existsSync(path21.join(projectDir, "alembic", "env.py"))) return true;
     return false;
   },
   async apply(args) {
@@ -93489,7 +93592,7 @@ var AlembicAdapter = {
         autogenerate: !!args.autogenerate,
         dsn
       });
-      return { status: "ok", version: revId, filename: path20.basename(created), path: created };
+      return { status: "ok", version: revId, filename: path21.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",
@@ -93506,7 +93609,7 @@ var AlembicAdapter = {
       if (heads.length <= 1) return { status: "noop", headsBefore: heads };
       if (args.dryRun) return { status: "ok", headsBefore: heads };
       const created = await mergeAlembicHeads(args.projectDir, args.message ?? "merge heads");
-      const mergeRevision = path20.basename(created).replace(/\.py$/, "").split("_")[0];
+      const mergeRevision = path21.basename(created).replace(/\.py$/, "").split("_")[0];
       return { status: "ok", headsBefore: heads, mergeRevision, path: created };
     } catch (err) {
       return {
@@ -93522,12 +93625,12 @@ registerSchemaMigrationAdapter(AlembicAdapter);
 // scripts/lakebase/adapters/flyway-adapter.ts
 init_cjs_shims();
 var fs24 = __toESM(require("fs"), 1);
-var path22 = __toESM(require("path"), 1);
+var path23 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 init_cjs_shims();
 var import_node_child_process11 = require("child_process");
-var path21 = __toESM(require("path"), 1);
+var path22 = __toESM(require("path"), 1);
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
   const user = decodeURIComponent(u.username);
@@ -93537,7 +93640,7 @@ function dsnToFlywayEnv(dsn) {
   return { url, user, password };
 }
 function migrationsLocation(projectDir) {
-  return `filesystem:${path21.join(projectDir, "src", "main", "resources", "db", "migration")}`;
+  return `filesystem:${path22.join(projectDir, "src", "main", "resources", "db", "migration")}`;
 }
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
@@ -93638,7 +93741,7 @@ async function statusFlyway(ctx) {
     if (state === "SUCCESS" || state === "BASELINE") {
       current = m2.version;
     } else if (state === "PENDING") {
-      const filename = m2.filepath ? path21.basename(m2.filepath) : `V${m2.version}__migration.sql`;
+      const filename = m2.filepath ? path22.basename(m2.filepath) : `V${m2.version}__migration.sql`;
       pending.push({
         version: m2.version,
         filename,
@@ -93661,7 +93764,7 @@ async function buildDsn3(args) {
   return result.url;
 }
 function listFlywayFiles(projectDir) {
-  const dir = path22.join(projectDir, "src", "main", "resources", "db", "migration");
+  const dir = path23.join(projectDir, "src", "main", "resources", "db", "migration");
   if (!fs24.existsSync(dir)) return [];
   const files = fs24.readdirSync(dir).filter((f3) => /^V\d+(\.\d+)*__.+\.sql$/.test(f3));
   return files.map((filename) => {
@@ -93686,7 +93789,7 @@ var FlywayAdapter = {
   id: "flyway",
   languages: ["java", "kotlin"],
   detect(projectDir) {
-    return fs24.existsSync(path22.join(projectDir, "pom.xml"));
+    return fs24.existsSync(path23.join(projectDir, "pom.xml"));
   },
   async apply(args) {
     const dsn = await buildDsn3(args);
@@ -93744,12 +93847,12 @@ var FlywayAdapter = {
   // optional-protocol shape makes this additive.
   async newMigration(args) {
     try {
-      const dir = path22.join(args.projectDir, "src", "main", "resources", "db", "migration");
+      const dir = path23.join(args.projectDir, "src", "main", "resources", "db", "migration");
       fs24.mkdirSync(dir, { recursive: true });
       const version = migrationTimestamp();
       const slug = migrationSlug2(args.slug);
       const filename = `V${version}__${slug}.sql`;
-      const full = path22.join(dir, filename);
+      const full = path23.join(dir, filename);
       if (fs24.existsSync(full)) throw new Error(`${filename} already exists`);
       fs24.writeFileSync(
         full,
@@ -93775,17 +93878,17 @@ registerSchemaMigrationAdapter(FlywayAdapter);
 // scripts/lakebase/adapters/knex-adapter.ts
 init_cjs_shims();
 var fs26 = __toESM(require("fs"), 1);
-var path24 = __toESM(require("path"), 1);
+var path25 = __toESM(require("path"), 1);
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 init_cjs_shims();
 var import_node_child_process12 = require("child_process");
 var fs25 = __toESM(require("fs"), 1);
-var path23 = __toESM(require("path"), 1);
+var path24 = __toESM(require("path"), 1);
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function findKnexfile(projectDir) {
   for (const name of KNEXFILE_VARIANTS) {
-    const p = path23.join(projectDir, name);
+    const p = path24.join(projectDir, name);
     if (fs25.existsSync(p)) return p;
   }
   return void 0;
@@ -93938,7 +94041,7 @@ async function buildDsn4(args) {
 }
 var KNEXFILE_VARIANTS2 = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function listKnexFiles(projectDir) {
-  const dir = path24.join(projectDir, "migrations");
+  const dir = path25.join(projectDir, "migrations");
   if (!fs26.existsSync(dir)) return [];
   const files = fs26.readdirSync(dir).filter((f3) => (f3.endsWith(".js") || f3.endsWith(".ts")) && !f3.startsWith("."));
   return files.map((filename) => {
@@ -93960,7 +94063,7 @@ var KnexAdapter = {
    * project.yaml#migration_tool.
    */
   detect(projectDir) {
-    return KNEXFILE_VARIANTS2.some((name) => fs26.existsSync(path24.join(projectDir, name)));
+    return KNEXFILE_VARIANTS2.some((name) => fs26.existsSync(path25.join(projectDir, name)));
   },
   async apply(args) {
     const dsn = await buildDsn4(args);
@@ -94033,9 +94136,9 @@ var KnexAdapter = {
   async newMigration(args) {
     try {
       const created = await createKnexMigration({ projectDir: args.projectDir, slug: migrationSlug2(args.slug) });
-      const stem = path24.basename(created).replace(/\.(js|ts)$/, "");
+      const stem = path25.basename(created).replace(/\.(js|ts)$/, "");
       const version = stem.match(/^(\d{14})_/)?.[1] ?? stem;
-      return { status: "ok", version, filename: path24.basename(created), path: created };
+      return { status: "ok", version, filename: path25.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",
@@ -94092,7 +94195,7 @@ function listSchemaMigrations(args = {}) {
   }
 }
 function listFlywayMigrations(projectDir) {
-  const dir = path25.join(projectDir, "src", "main", "resources", "db", "migration");
+  const dir = path26.join(projectDir, "src", "main", "resources", "db", "migration");
   if (!fs27.existsSync(dir)) return [];
   const files = fs27.readdirSync(dir).filter((f3) => /^V\d+(\.\d+)*__.+\.sql$/.test(f3));
   return files.map((filename) => {
@@ -94104,8 +94207,8 @@ function listFlywayMigrations(projectDir) {
 }
 function listAlembicMigrations(projectDir) {
   const candidates = [
-    path25.join(projectDir, "migrations", "versions"),
-    path25.join(projectDir, "alembic", "versions")
+    path26.join(projectDir, "migrations", "versions"),
+    path26.join(projectDir, "alembic", "versions")
   ];
   const dir = candidates.find((p) => fs27.existsSync(p));
   if (!dir) return [];
@@ -94119,7 +94222,7 @@ function listAlembicMigrations(projectDir) {
   }).sort((a, b) => a.filename.localeCompare(b.filename));
 }
 function listKnexMigrations(projectDir) {
-  const dir = path25.join(projectDir, "migrations");
+  const dir = path26.join(projectDir, "migrations");
   if (!fs27.existsSync(dir)) return [];
   const files = fs27.readdirSync(dir).filter((f3) => (f3.endsWith(".js") || f3.endsWith(".ts")) && !f3.startsWith("."));
   return files.map((filename) => {
@@ -94297,7 +94400,7 @@ async function runInfraSuite(args) {
     duration_ms: Date.now() - start
   };
   if (args.junitOutput) {
-    fs28.mkdirSync(path26.dirname(args.junitOutput), { recursive: true });
+    fs28.mkdirSync(path27.dirname(args.junitOutput), { recursive: true });
     fs28.writeFileSync(args.junitOutput, formatJUnit(result), "utf8");
   }
   return result;
@@ -94345,7 +94448,7 @@ function escapeXml(s2) {
 // scripts/lakebase/scm-claim-feature.ts
 init_cjs_shims();
 var fs29 = __toESM(require("fs"), 1);
-var path27 = __toESM(require("path"), 1);
+var path28 = __toESM(require("path"), 1);
 var ScmClaimError = class extends Error {
   constructor(message, code) {
     super(message);
@@ -94402,7 +94505,7 @@ async function claimFeatureBranch(args) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
     throw new ScmClaimError(
-      `No SCM workflow state found at ${path27.join(args.projectDir, ".lakebase/workflow-state.json")}. Run lakebase-create-project to scaffold, or re-seed via the substrate.`,
+      `No SCM workflow state found at ${path28.join(args.projectDir, ".lakebase/workflow-state.json")}. Run lakebase-create-project to scaffold, or re-seed via the substrate.`,
       "no-state-file"
     );
   }
@@ -94507,7 +94610,7 @@ function alreadyClaimedSentinel(state) {
 }
 function workflowStateFileExists(projectDir) {
   return fs29.existsSync(
-    path27.join(projectDir, ".lakebase/workflow-state.json")
+    path28.join(projectDir, ".lakebase/workflow-state.json")
   );
 }
 
@@ -94771,6 +94874,7 @@ async function preparePr(args) {
       "no-github-remote"
     );
   }
+  const ciFreshness = await ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo });
   const now = (args.now ?? (() => /* @__PURE__ */ new Date()))();
   let prUrl = args.prUrlOverride ?? "";
   let prCreated = false;
@@ -94815,7 +94919,7 @@ async function preparePr(args) {
     pushed_at: now.toISOString()
   };
   writeWorkflowState(args.projectDir, next);
-  return { state: next, prUrl, prCreated };
+  return { state: next, prUrl, prCreated, ciFreshness };
 }
 async function ensureAheadOfParent(cwd, branch, parent) {
   try {
@@ -94995,11 +95099,11 @@ async function pushCurrentBranchForPr(args) {
 // scripts/lakebase/workflow-drift.ts
 init_cjs_shims();
 var fs30 = __toESM(require("fs"), 1);
-var path28 = __toESM(require("path"), 1);
+var path29 = __toESM(require("path"), 1);
 function findKitTemplatesDir(start) {
   let dir = start;
   for (let i2 = 0; i2 < 6; i2++) {
-    const candidate = path28.join(
+    const candidate = path29.join(
       dir,
       "templates",
       "project",
@@ -95008,7 +95112,7 @@ function findKitTemplatesDir(start) {
       "workflows"
     );
     if (fs30.existsSync(candidate)) return candidate;
-    const parent = path28.dirname(dir);
+    const parent = path29.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -95032,13 +95136,13 @@ function unifiedDiff(name, projectContent, templateContent) {
   return out.join("\n");
 }
 function detectWorkflowDrift(args) {
-  const projectWorkflowsDir = path28.join(
+  const projectWorkflowsDir = path29.join(
     args.projectDir,
     ".github",
     "workflows"
   );
-  const here = path28.dirname(new URL(importMetaUrl).pathname);
-  const kitWorkflowsDir = args.kitDir ? path28.join(
+  const here = path29.dirname(new URL(importMetaUrl).pathname);
+  const kitWorkflowsDir = args.kitDir ? path29.join(
     args.kitDir,
     "templates",
     "project",
@@ -95053,8 +95157,8 @@ function detectWorkflowDrift(args) {
   const files = [];
   for (const name of templateFiles) {
     seen.add(name);
-    const projectPath2 = path28.join(projectWorkflowsDir, name);
-    const templatePath = path28.join(kitWorkflowsDir, name);
+    const projectPath2 = path29.join(projectWorkflowsDir, name);
+    const templatePath = path29.join(kitWorkflowsDir, name);
     if (!fs30.existsSync(projectPath2)) {
       files.push({ name, status: "missing" });
       continue;
@@ -95091,10 +95195,10 @@ function detectWorkflowDrift(args) {
 function readKitVersion(kitWorkflowsDir) {
   let dir = kitWorkflowsDir;
   for (let i2 = 0; i2 < 5; i2++) {
-    dir = path28.dirname(dir);
+    dir = path29.dirname(dir);
   }
   try {
-    const raw = fs30.readFileSync(path28.join(dir, "package.json"), "utf-8");
+    const raw = fs30.readFileSync(path29.join(dir, "package.json"), "utf-8");
     const pkg = JSON.parse(raw);
     return typeof pkg.version === "string" ? pkg.version : "unknown";
   } catch {
@@ -95111,7 +95215,7 @@ var COMMAND_HOOK_FILE_PATTERN = /\.(pre|post)-hook\.md$/;
 function findKitCommandsDir(start) {
   let dir = start;
   for (let i2 = 0; i2 < 6; i2++) {
-    const candidate = path28.join(
+    const candidate = path29.join(
       dir,
       "templates",
       "project",
@@ -95120,7 +95224,7 @@ function findKitCommandsDir(start) {
       "commands"
     );
     if (fs30.existsSync(candidate)) return candidate;
-    const parent = path28.dirname(dir);
+    const parent = path29.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -95133,9 +95237,9 @@ function parsePinnedVersion(content) {
   return m2 ? m2[1] : void 0;
 }
 function detectCommandDrift(args) {
-  const projectCommandsDir = path28.join(args.projectDir, ".claude", "commands");
-  const here = path28.dirname(new URL(importMetaUrl).pathname);
-  const kitCommandsDir = args.kitDir ? path28.join(args.kitDir, "templates", "project", "common", ".claude", "commands") : findKitCommandsDir(here);
+  const projectCommandsDir = path29.join(args.projectDir, ".claude", "commands");
+  const here = path29.dirname(new URL(importMetaUrl).pathname);
+  const kitCommandsDir = args.kitDir ? path29.join(args.kitDir, "templates", "project", "common", ".claude", "commands") : findKitCommandsDir(here);
   const kitVersion = readKitVersionFromCommandsDir(kitCommandsDir);
   const templateFiles = fs30.existsSync(kitCommandsDir) ? fs30.readdirSync(kitCommandsDir).filter((f3) => f3.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f3)) : [];
   const projectFiles = fs30.existsSync(projectCommandsDir) ? fs30.readdirSync(projectCommandsDir).filter((f3) => f3.endsWith(".md") && !COMMAND_HOOK_FILE_PATTERN.test(f3)) : [];
@@ -95143,8 +95247,8 @@ function detectCommandDrift(args) {
   const files = [];
   for (const name of templateFiles) {
     seen.add(name);
-    const projectPath2 = path28.join(projectCommandsDir, name);
-    const templatePath = path28.join(kitCommandsDir, name);
+    const projectPath2 = path29.join(projectCommandsDir, name);
+    const templatePath = path29.join(kitCommandsDir, name);
     const templateRaw = fs30.readFileSync(templatePath, "utf8");
     if (!fs30.existsSync(projectPath2)) {
       files.push({ name, status: "missing", kit_version: kitVersion });
@@ -95188,10 +95292,10 @@ function detectCommandDrift(args) {
 function readKitVersionFromCommandsDir(kitCommandsDir) {
   let dir = kitCommandsDir;
   for (let i2 = 0; i2 < 5; i2++) {
-    dir = path28.dirname(dir);
+    dir = path29.dirname(dir);
   }
   try {
-    const raw = fs30.readFileSync(path28.join(dir, "package.json"), "utf-8");
+    const raw = fs30.readFileSync(path29.join(dir, "package.json"), "utf-8");
     const pkg = JSON.parse(raw);
     return typeof pkg.version === "string" ? pkg.version : "unknown";
   } catch {
@@ -95208,13 +95312,13 @@ function detectScaffoldedDrift(args) {
   };
 }
 function updateWorkflows(args) {
-  const projectWorkflowsDir = path28.join(
+  const projectWorkflowsDir = path29.join(
     args.projectDir,
     ".github",
     "workflows"
   );
-  const here = path28.dirname(new URL(importMetaUrl).pathname);
-  const kitWorkflowsDir = args.kitDir ? path28.join(
+  const here = path29.dirname(new URL(importMetaUrl).pathname);
+  const kitWorkflowsDir = args.kitDir ? path29.join(
     args.kitDir,
     "templates",
     "project",
@@ -95235,8 +95339,8 @@ function updateWorkflows(args) {
   const files = [];
   for (const name of templateFiles) {
     seen.add(name);
-    const projectPath2 = path28.join(projectWorkflowsDir, name);
-    const templatePath = path28.join(kitWorkflowsDir, name);
+    const projectPath2 = path29.join(projectWorkflowsDir, name);
+    const templatePath = path29.join(kitWorkflowsDir, name);
     const templateRaw = fs30.readFileSync(templatePath, "utf-8");
     const desired = substitute ? applyPlaceholders(templateRaw, version) : templateRaw;
     const existed = fs30.existsSync(projectPath2);
@@ -95257,7 +95361,7 @@ function updateWorkflows(args) {
   if (pruneExtras) {
     for (const name of projectFiles) {
       if (seen.has(name)) continue;
-      const projectPath2 = path28.join(projectWorkflowsDir, name);
+      const projectPath2 = path29.join(projectWorkflowsDir, name);
       if (!dryRun) {
         fs30.unlinkSync(projectPath2);
       }
@@ -95442,6 +95546,15 @@ async function mergeFeature(args) {
       preflightNotes.push(
         `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`
       );
+    }
+  }
+  {
+    const ensure = args.ensureCiFresh ?? ((repo) => ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo: repo }));
+    try {
+      const r2 = await ensure(ownerRepo);
+      if (r2.action !== "ok" && r2.action !== "skipped") preflightNotes.push(`CI-auth preflight: ${r2.reason}`);
+    } catch (err) {
+      preflightNotes.push(`CI-auth preflight skipped (${err instanceof Error ? err.message : String(err)}); if the promote CI fails on auth, run lakebase-sync-ci-secrets.`);
     }
   }
   {
@@ -95849,11 +95962,11 @@ function parentForTopology(t2, defaultLeaf) {
 // scripts/lakebase/scm-doctor.ts
 init_cjs_shims();
 var fs31 = __toESM(require("fs"), 1);
-var path29 = __toESM(require("path"), 1);
+var path30 = __toESM(require("path"), 1);
 var FEATURE_PREFIX = "feature/";
 var TIER_LEAFS2 = DEFAULT_PROTECTED_TIER_NAMES;
 function readEnv(projectDir) {
-  const envPath = path29.join(projectDir, ".env");
+  const envPath = path30.join(projectDir, ".env");
   const out = /* @__PURE__ */ new Map();
   if (!fs31.existsSync(envPath)) return out;
   const lines = fs31.readFileSync(envPath, "utf8").split("\n");
@@ -95911,7 +96024,7 @@ async function runDoctor(args, deps = {}) {
   }
   for (const wf of ["pr.yml", "merge.yml"]) {
     try {
-      const p = path29.join(projectDir, ".github", "workflows", wf);
+      const p = path30.join(projectDir, ".github", "workflows", wf);
       if (!fs31.existsSync(p)) continue;
       const body = fs31.readFileSync(p, "utf8");
       if (/lakebase-scm-utils#v\d/.test(body)) {
@@ -96128,7 +96241,7 @@ async function fixFinding(args) {
           );
         }
         const sanitized = sanitizeBranchName(branch);
-        const envFile = path29.join(args.projectDir, ".env");
+        const envFile = path30.join(args.projectDir, ".env");
         updateEnvConnection({
           envPath: envFile,
           projectId: readEnvVar(envFile, "LAKEBASE_PROJECT_ID") ?? "",
@@ -96231,10 +96344,10 @@ function shellEscape3(s2) {
 // scripts/lakebase/doctor.ts
 init_cjs_shims();
 var fs32 = __toESM(require("fs"), 1);
-var path30 = __toESM(require("path"), 1);
+var path31 = __toESM(require("path"), 1);
 var cp6 = __toESM(require("child_process"), 1);
 function readEnvFile(projectDir) {
-  const envPath = path30.join(projectDir, ".env");
+  const envPath = path31.join(projectDir, ".env");
   if (!fs32.existsSync(envPath)) return {};
   const out = {};
   for (const line of fs32.readFileSync(envPath, "utf8").split("\n")) {
@@ -96492,7 +96605,7 @@ function checkEnv(projectDir) {
       name: "env-file",
       status: "warn",
       message: ".env not found",
-      detail: { projectDir, envPath: path30.join(projectDir, ".env") },
+      detail: { projectDir, envPath: path31.join(projectDir, ".env") },
       hint: "Run `lakebase-branch sync-env`, or `git checkout <branch>` so the post-checkout hook writes .env (or copy .env.example). The kit stores connection METADATA only , no DB token (the app mints a short-lived credential at runtime)."
     };
   }

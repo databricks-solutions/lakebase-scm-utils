@@ -429,12 +429,12 @@ export async function createProject(
   if (useGithub) {
     report("Setting up CI auth (service principal)...");
     try {
+      // Canonical CI-token identity (durable 90-day PAT, project-scoped comment) — defaults
+      // live in ci-secrets.ts so every mint path (create, repair, pre-push, preflight) matches.
       await syncCiSecrets({
         projectDir,
         databricksHost: host,
         lakebaseProjectId,
-        comment: "GitHub Actions CI",
-        lifetimeSeconds: 86_400,
         ownerRepo: fullRepoName,
       });
       // VERIFY the secrets actually landed — syncCiSecrets fail-softs a dropped PAT, and a

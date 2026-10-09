@@ -18,6 +18,7 @@ import {
   type WorkflowRunSummary,
 } from "../github/pr.js";
 import { getOwnerRepo } from "../git/remote.js";
+import { ensureCiSecretsFreshFromEnv, type CiFreshnessResult } from "../util/ci-secrets.js";
 import { pollUntil } from "../util/poll-until.js";
 import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
@@ -175,6 +176,11 @@ export interface MergeArgs {
   /** Fetch the PR's mergeability (to gate the reconcile). Defaults to the real getPullRequest;
    *  injected in tests so the gate is exercised without the network. */
   fetchPrState?: (ownerRepo: string, headBranch: string) => Promise<{ mergeableState?: string } | undefined>;
+  /** Expiry-aware CI-auth preflight run before the merge: the promote triggers merge.yml, which
+   *  needs a live DATABRICKS_TOKEN secret, and a merge is not a push so the pre-push hook does not
+   *  fire. Re-mints the canonical token when missing / near expiry. BEST-EFFORT: never blocks the
+   *  merge. Defaults to {@link ensureCiSecretsFreshFromEnv}; injected in tests. */
+  ensureCiFresh?: (ownerRepo: string) => Promise<CiFreshnessResult>;
 }
 
 export interface MergeResult {
@@ -447,6 +453,21 @@ export async function mergeFeature(args: MergeArgs): Promise<MergeResult> {
         `Workflow self-heal skipped (${err instanceof Error ? err.message : String(err)}); if the promote's ` +
           `migrate-target fails on the tier guard, refresh .github/workflows (merge.yml must call 'lakebase-schema-migrate apply-tier').`,
       );
+    }
+  }
+
+  // ─── Pre-merge CI-auth freshness preflight ───
+  // The promote merges to the tier branch, which triggers merge.yml (migrate-target) — that needs
+  // a live DATABRICKS_TOKEN repo secret. A merge is not a push, so the pre-push hook does NOT
+  // refresh it here; if the token has expired (or was never provisioned) the promote CI fails on
+  // empty auth. Re-mint the canonical token when missing / near expiry. BEST-EFFORT: never blocks.
+  {
+    const ensure = args.ensureCiFresh ?? ((repo: string) => ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo: repo }));
+    try {
+      const r = await ensure(ownerRepo);
+      if (r.action !== "ok" && r.action !== "skipped") preflightNotes.push(`CI-auth preflight: ${r.reason}`);
+    } catch (err) {
+      preflightNotes.push(`CI-auth preflight skipped (${err instanceof Error ? err.message : String(err)}); if the promote CI fails on auth, run lakebase-sync-ci-secrets.`);
     }
   }
 

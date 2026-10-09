@@ -57,8 +57,8 @@ Flags:
   --host <url>          DATABRICKS_HOST (default: .env DATABRICKS_HOST)
   --project-id <id>     LAKEBASE_PROJECT_ID (default: .env LAKEBASE_PROJECT_ID)
   --repo <owner/name>   Target repo (default: origin remote)
-  --lifetime-sec <n>    CI PAT lifetime (default: 86400 = 24h)
-  --comment <text>      Token comment (default: "GitHub Actions CI")
+  --lifetime-sec <n>    CI PAT lifetime (default: 7776000 = 90d, the canonical durable lifetime)
+  --comment <text>      Token comment (default: canonical "GitHub Actions (<repo>)")
   -h, --help            Show this help
 
 Exit codes:

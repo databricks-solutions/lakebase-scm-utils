@@ -1457,7 +1457,7 @@ var require_light = __commonJS({
 
 // scripts/lakebase/scm-merge.cli.ts
 init_esm_shims();
-import * as path13 from "path";
+import * as path14 from "path";
 
 // scripts/util/cli-entry.ts
 init_esm_shims();
@@ -2549,7 +2549,7 @@ paginateRest.VERSION = VERSION5;
 
 // node_modules/@octokit/plugin-paginate-graphql/dist-bundle/index.js
 init_esm_shims();
-var generateMessage = (path14, cursorValue) => `The cursor at "${path14.join(
+var generateMessage = (path15, cursorValue) => `The cursor at "${path15.join(
   ","
 )}" did not change its value "${cursorValue}" after a page transition. Please make sure your that your query is set up correctly.`;
 var MissingCursorChange = class extends Error {
@@ -2590,9 +2590,9 @@ function findPaginatedResourcePath(responseData) {
   }
   return paginatedResourcePath;
 }
-var deepFindPathToProperty = (object, searchProp, path14 = []) => {
+var deepFindPathToProperty = (object, searchProp, path15 = []) => {
   for (const key of Object.keys(object)) {
-    const currentPath = [...path14, key];
+    const currentPath = [...path15, key];
     const currentValue = object[key];
     if (isObject(currentValue)) {
       if (currentValue.hasOwnProperty(searchProp)) {
@@ -2610,12 +2610,12 @@ var deepFindPathToProperty = (object, searchProp, path14 = []) => {
   }
   return [];
 };
-var get = (object, path14) => {
-  return path14.reduce((current, nextProperty) => current[nextProperty], object);
+var get = (object, path15) => {
+  return path15.reduce((current, nextProperty) => current[nextProperty], object);
 };
-var set = (object, path14, mutator) => {
-  const lastProperty = path14[path14.length - 1];
-  const parentPath = [...path14].slice(0, -1);
+var set = (object, path15, mutator) => {
+  const lastProperty = path15[path15.length - 1];
+  const parentPath = [...path15].slice(0, -1);
   const parent = get(object, parentPath);
   if (typeof mutator === "function") {
     parent[lastProperty] = mutator(parent[lastProperty]);
@@ -2667,22 +2667,22 @@ var mergeResponses = (response1, response2) => {
   if (Object.keys(response1).length === 0) {
     return Object.assign(response1, response2);
   }
-  const path14 = findPaginatedResourcePath(response1);
-  const nodesPath = [...path14, "nodes"];
+  const path15 = findPaginatedResourcePath(response1);
+  const nodesPath = [...path15, "nodes"];
   const newNodes = get(response2, nodesPath);
   if (newNodes) {
     set(response1, nodesPath, (values) => {
       return [...values, ...newNodes];
     });
   }
-  const edgesPath = [...path14, "edges"];
+  const edgesPath = [...path15, "edges"];
   const newEdges = get(response2, edgesPath);
   if (newEdges) {
     set(response1, edgesPath, (values) => {
       return [...values, ...newEdges];
     });
   }
-  const pageInfoPath = [...path14, "pageInfo"];
+  const pageInfoPath = [...path15, "pageInfo"];
   set(response1, pageInfoPath, get(response2, pageInfoPath));
   return response1;
 };
@@ -5103,7 +5103,7 @@ var triggers_notification_paths_default = [
 ];
 function routeMatcher(paths) {
   const regexes = paths.map(
-    (path14) => path14.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
+    (path15) => path15.split("/").map((c) => c.startsWith("{") ? "(?:.+?)" : c).join("/")
   );
   const regex2 = `^(?:${regexes.map((r) => `(?:${r})`).join("|")})[^/]*$`;
   return new RegExp(regex2, "i");
@@ -8378,9 +8378,9 @@ function asBranchUid(s) {
   }
   return s;
 }
-function branchNameFromResourcePath(path14) {
-  if (!path14.includes("/branches/")) return null;
-  const leaf = path14.split("/branches/").pop();
+function branchNameFromResourcePath(path15) {
+  if (!path15.includes("/branches/")) return null;
+  const leaf = path15.split("/branches/").pop();
   if (!leaf) return null;
   try {
     return asBranchName(leaf);
@@ -8817,6 +8817,219 @@ async function getOwnerRepo(cwd) {
   }
 }
 
+// scripts/util/ci-secrets.ts
+init_esm_shims();
+import * as path3 from "path";
+
+// scripts/github/secrets.ts
+init_esm_shims();
+import sodium from "tweetsodium";
+var GitHubSecretsError = class extends Error {
+  status;
+  constructor(message, status) {
+    super(message);
+    this.name = "GitHubSecretsError";
+    this.status = status;
+  }
+};
+async function getOctokit() {
+  const token = await resolveGitHubToken();
+  return new Octokit2({ auth: token });
+}
+function wrap2(err, context) {
+  if (err instanceof RequestError) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`, err.status);
+  }
+  if (err instanceof Error) {
+    throw new GitHubSecretsError(`${context}: ${err.message}`);
+  }
+  throw new GitHubSecretsError(context);
+}
+function encryptSecret(publicKey, secretValue) {
+  const keyBytes = Buffer.from(publicKey, "base64");
+  const messageBytes = Buffer.from(secretValue);
+  const encryptedBytes = sodium.seal(messageBytes, keyBytes);
+  return Buffer.from(encryptedBytes).toString("base64");
+}
+async function setRepoSecret(ownerRepo, secretName, secretValue) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit2 = await getOctokit();
+    const { data: keyData } = await octokit2.rest.actions.getRepoPublicKey({ owner, repo });
+    const encryptedValue = encryptSecret(keyData.key, secretValue);
+    await octokit2.rest.actions.createOrUpdateRepoSecret({
+      owner,
+      repo,
+      secret_name: secretName,
+      encrypted_value: encryptedValue,
+      key_id: keyData.key_id
+    });
+  } catch (err) {
+    if (err instanceof GitHubSecretsError) throw err;
+    wrap2(err, `Failed to set secret ${secretName} on ${ownerRepo}`);
+  }
+}
+async function setRepoSecrets(ownerRepo, secrets) {
+  for (const [name, value] of Object.entries(secrets)) {
+    if (!value) {
+      throw new GitHubSecretsError(`Missing value for secret ${name}`);
+    }
+  }
+  for (const [name, value] of Object.entries(secrets)) {
+    await setRepoSecret(ownerRepo, name, value);
+  }
+}
+async function listSecretNames(ownerRepo) {
+  try {
+    const { owner, repo } = parseOwnerRepo(ownerRepo);
+    const octokit2 = await getOctokit();
+    const { data } = await octokit2.rest.actions.listRepoSecrets({ owner, repo });
+    return data.secrets.map((s) => s.name);
+  } catch {
+    return [];
+  }
+}
+
+// scripts/util/ci-secrets.ts
+var REQUIRED_CI_SECRETS = ["DATABRICKS_HOST", "LAKEBASE_PROJECT_ID", "DATABRICKS_TOKEN"];
+var CI_TOKEN_LIFETIME_SECONDS = 7776e3;
+var CI_TOKEN_REMINT_MARGIN_SECONDS = 86400;
+function ciTokenComment(ownerRepo) {
+  const repoName = ownerRepo.includes("/") ? ownerRepo.slice(ownerRepo.lastIndexOf("/") + 1) : ownerRepo;
+  return `GitHub Actions (${repoName})`;
+}
+async function missingCiSecrets(ownerRepo) {
+  const present = new Set(await listSecretNames(ownerRepo));
+  return REQUIRED_CI_SECRETS.filter((n) => !present.has(n));
+}
+async function mintCiToken(args) {
+  try {
+    const raw = await runDatabricks(
+      ["tokens", "create", "--comment", args.comment, "--lifetime-seconds", String(args.lifetimeSeconds), "-o", "json"],
+      { host: args.databricksHost, cwd: args.projectDir, timeout: 3e4 }
+    );
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    const token = parsed.token_value || parsed.token || "";
+    if (token) return token;
+  } catch {
+  }
+  try {
+    const raw = await runDatabricks(["auth", "token", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("{"))));
+    return parsed.access_token || "";
+  } catch {
+    return "";
+  }
+}
+async function syncCiSecrets(args) {
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  if (!args.databricksHost) {
+    throw new Error("syncCiSecrets: databricksHost is required");
+  }
+  if (!args.lakebaseProjectId) {
+    throw new Error("syncCiSecrets: lakebaseProjectId is required");
+  }
+  const lifetime = args.lifetimeSeconds ?? CI_TOKEN_LIFETIME_SECONDS;
+  const comment = args.comment ?? ciTokenComment(ownerRepo);
+  const secrets = {
+    DATABRICKS_HOST: args.databricksHost,
+    LAKEBASE_PROJECT_ID: args.lakebaseProjectId
+  };
+  const token = await mintCiToken({
+    databricksHost: args.databricksHost,
+    projectDir: args.projectDir,
+    comment,
+    lifetimeSeconds: lifetime
+  });
+  if (token) secrets.DATABRICKS_TOKEN = token;
+  await setRepoSecrets(ownerRepo, secrets);
+}
+async function ciTokenExpiry(args) {
+  const comment = ciTokenComment(args.ownerRepo);
+  let raw;
+  try {
+    raw = await runDatabricks(["tokens", "list", "-o", "json"], {
+      host: args.databricksHost,
+      cwd: args.projectDir,
+      timeout: 3e4
+    });
+  } catch {
+    return null;
+  }
+  let infos;
+  try {
+    const parsed = JSON.parse(raw.slice(Math.max(0, raw.indexOf("["))));
+    infos = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return null;
+  }
+  const expiries = infos.filter((t) => t.comment === comment).map((t) => t.expiry_time === -1 ? Number.POSITIVE_INFINITY : Number(t.expiry_time)).filter((n) => Number.isFinite(n) || n === Number.POSITIVE_INFINITY);
+  if (expiries.length === 0) return null;
+  return Math.max(...expiries);
+}
+async function ensureCiSecretsFresh(args) {
+  const now = args.now ?? Date.now;
+  const marginMs = (args.marginSeconds ?? CI_TOKEN_REMINT_MARGIN_SECONDS) * 1e3;
+  const ownerRepo = args.ownerRepo ?? await getOwnerRepo(args.projectDir);
+  if (!ownerRepo) {
+    throw new Error("Could not resolve GitHub repository from git remote");
+  }
+  const sync = () => syncCiSecrets({
+    projectDir: args.projectDir,
+    databricksHost: args.databricksHost,
+    lakebaseProjectId: args.lakebaseProjectId,
+    ownerRepo
+  });
+  const missing = await missingCiSecrets(ownerRepo);
+  if (missing.length > 0) {
+    await sync();
+    return { action: "provisioned", reason: `CI secret(s) were missing (${missing.join(", ")}); provisioned.` };
+  }
+  const expiry = await ciTokenExpiry({ projectDir: args.projectDir, databricksHost: args.databricksHost, ownerRepo });
+  if (expiry === null) {
+    await sync();
+    return { action: "reminted", reason: "no live CI token found (expired or minted under a different identity); re-minted." };
+  }
+  if (expiry !== Number.POSITIVE_INFINITY && expiry < now() + marginMs) {
+    await sync();
+    const hrs = Math.max(0, Math.round((expiry - now()) / 36e5));
+    return { action: "reminted", reason: `CI token expires in ~${hrs}h (within the re-mint margin); re-minted.` };
+  }
+  return { action: "ok", reason: "CI token is current." };
+}
+async function ensureCiSecretsFreshFromEnv(projectDir, opts) {
+  const envPath = path3.join(projectDir, ".env");
+  const databricksHost = readEnvVar(envPath, "DATABRICKS_HOST");
+  const lakebaseProjectId = readEnvVar(envPath, "LAKEBASE_PROJECT_ID");
+  if (!databricksHost || !lakebaseProjectId) {
+    return {
+      action: "skipped",
+      reason: "CI-auth preflight skipped: .env is missing DATABRICKS_HOST / LAKEBASE_PROJECT_ID."
+    };
+  }
+  try {
+    return await ensureCiSecretsFresh({
+      projectDir,
+      databricksHost,
+      lakebaseProjectId,
+      ownerRepo: opts?.ownerRepo,
+      marginSeconds: opts?.marginSeconds
+    });
+  } catch (err) {
+    return {
+      action: "failed",
+      reason: `CI-auth preflight could not re-mint (${err instanceof Error ? err.message : String(err)}); if CI fails on auth, run lakebase-sync-ci-secrets.`
+    };
+  }
+}
+
 // scripts/util/poll-until.ts
 init_esm_shims();
 
@@ -8911,11 +9124,11 @@ async function resolveGitBase(parentBranch, cwd) {
 // scripts/lakebase/workflow-drift.ts
 init_esm_shims();
 import * as fs3 from "fs";
-import * as path3 from "path";
+import * as path4 from "path";
 function findKitTemplatesDir(start) {
   let dir = start;
   for (let i = 0; i < 6; i++) {
-    const candidate = path3.join(
+    const candidate = path4.join(
       dir,
       "templates",
       "project",
@@ -8924,7 +9137,7 @@ function findKitTemplatesDir(start) {
       "workflows"
     );
     if (fs3.existsSync(candidate)) return candidate;
-    const parent = path3.dirname(dir);
+    const parent = path4.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -8948,13 +9161,13 @@ function unifiedDiff(name, projectContent, templateContent) {
   return out.join("\n");
 }
 function detectWorkflowDrift(args) {
-  const projectWorkflowsDir = path3.join(
+  const projectWorkflowsDir = path4.join(
     args.projectDir,
     ".github",
     "workflows"
   );
-  const here = path3.dirname(new URL(import.meta.url).pathname);
-  const kitWorkflowsDir = args.kitDir ? path3.join(
+  const here = path4.dirname(new URL(import.meta.url).pathname);
+  const kitWorkflowsDir = args.kitDir ? path4.join(
     args.kitDir,
     "templates",
     "project",
@@ -8969,8 +9182,8 @@ function detectWorkflowDrift(args) {
   const files = [];
   for (const name of templateFiles) {
     seen.add(name);
-    const projectPath2 = path3.join(projectWorkflowsDir, name);
-    const templatePath = path3.join(kitWorkflowsDir, name);
+    const projectPath2 = path4.join(projectWorkflowsDir, name);
+    const templatePath = path4.join(kitWorkflowsDir, name);
     if (!fs3.existsSync(projectPath2)) {
       files.push({ name, status: "missing" });
       continue;
@@ -9007,10 +9220,10 @@ function detectWorkflowDrift(args) {
 function readKitVersion(kitWorkflowsDir) {
   let dir = kitWorkflowsDir;
   for (let i = 0; i < 5; i++) {
-    dir = path3.dirname(dir);
+    dir = path4.dirname(dir);
   }
   try {
-    const raw = fs3.readFileSync(path3.join(dir, "package.json"), "utf-8");
+    const raw = fs3.readFileSync(path4.join(dir, "package.json"), "utf-8");
     const pkg = JSON.parse(raw);
     return typeof pkg.version === "string" ? pkg.version : "unknown";
   } catch {
@@ -9021,13 +9234,13 @@ function applyPlaceholders(content, version) {
   return content.replace(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/g, version);
 }
 function updateWorkflows(args) {
-  const projectWorkflowsDir = path3.join(
+  const projectWorkflowsDir = path4.join(
     args.projectDir,
     ".github",
     "workflows"
   );
-  const here = path3.dirname(new URL(import.meta.url).pathname);
-  const kitWorkflowsDir = args.kitDir ? path3.join(
+  const here = path4.dirname(new URL(import.meta.url).pathname);
+  const kitWorkflowsDir = args.kitDir ? path4.join(
     args.kitDir,
     "templates",
     "project",
@@ -9048,8 +9261,8 @@ function updateWorkflows(args) {
   const files = [];
   for (const name of templateFiles) {
     seen.add(name);
-    const projectPath2 = path3.join(projectWorkflowsDir, name);
-    const templatePath = path3.join(kitWorkflowsDir, name);
+    const projectPath2 = path4.join(projectWorkflowsDir, name);
+    const templatePath = path4.join(kitWorkflowsDir, name);
     const templateRaw = fs3.readFileSync(templatePath, "utf-8");
     const desired = substitute ? applyPlaceholders(templateRaw, version) : templateRaw;
     const existed = fs3.existsSync(projectPath2);
@@ -9070,7 +9283,7 @@ function updateWorkflows(args) {
   if (pruneExtras) {
     for (const name of projectFiles) {
       if (seen.has(name)) continue;
-      const projectPath2 = path3.join(projectWorkflowsDir, name);
+      const projectPath2 = path4.join(projectWorkflowsDir, name);
       if (!dryRun) {
         fs3.unlinkSync(projectPath2);
       }
@@ -9091,7 +9304,7 @@ function updateWorkflows(args) {
 // scripts/lakebase/scm-workflow-state.ts
 init_esm_shims();
 import * as fs4 from "fs";
-import * as path4 from "path";
+import * as path5 from "path";
 import { execFileSync as execFileSync4 } from "child_process";
 function isGitTracked(projectDir, rel) {
   try {
@@ -9110,7 +9323,7 @@ function ensureWorkflowStateUntracked(projectDir) {
   } catch {
   }
   try {
-    const gitignore = path4.join(projectDir, ".gitignore");
+    const gitignore = path5.join(projectDir, ".gitignore");
     const existing = fs4.existsSync(gitignore) ? fs4.readFileSync(gitignore, "utf8") : "";
     if (!existing.split("\n").some((l) => l.trim() === rel)) {
       const sep2 = existing === "" || existing.endsWith("\n") ? "" : "\n";
@@ -9138,7 +9351,7 @@ var STATE_INDEX = SCM_STATES.reduce(
 );
 var STATE_FILE_REL = ".lakebase/workflow-state.json";
 function stateFilePath(projectDir) {
-  return path4.join(projectDir, STATE_FILE_REL);
+  return path5.join(projectDir, STATE_FILE_REL);
 }
 function readWorkflowState(projectDir) {
   const p = stateFilePath(projectDir);
@@ -9172,7 +9385,7 @@ function writeWorkflowState(projectDir, state) {
 ${summary}`);
   }
   ensureWorkflowStateUntracked(projectDir);
-  const dir = path4.join(projectDir, ".lakebase");
+  const dir = path5.join(projectDir, ".lakebase");
   fs4.mkdirSync(dir, { recursive: true });
   const target = stateFilePath(projectDir);
   const tmp = `${target}.tmp`;
@@ -9513,6 +9726,15 @@ async function mergeFeature(args) {
     }
   }
   {
+    const ensure = args.ensureCiFresh ?? ((repo) => ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo: repo }));
+    try {
+      const r = await ensure(ownerRepo);
+      if (r.action !== "ok" && r.action !== "skipped") preflightNotes.push(`CI-auth preflight: ${r.reason}`);
+    } catch (err) {
+      preflightNotes.push(`CI-auth preflight skipped (${err instanceof Error ? err.message : String(err)}); if the promote CI fails on auth, run lakebase-sync-ci-secrets.`);
+    }
+  }
+  {
     const fetchState = args.fetchPrState ?? ((o, h) => getPullRequest(o, h));
     const prState = await fetchState(ownerRepo, current.branch).catch(() => void 0);
     if (prState?.mergeableState === "dirty") {
@@ -9730,7 +9952,7 @@ function shellEscape(s) {
 // scripts/lakebase/schema-migrate.ts
 init_esm_shims();
 import * as fs11 from "fs";
-import * as path12 from "path";
+import * as path13 from "path";
 
 // scripts/lakebase/get-connection.ts
 init_esm_shims();
@@ -9750,21 +9972,21 @@ var CONSORT_VERSION_ENV = "CONSORT_VERSION";
 // scripts/lakebase/self-version.ts
 init_esm_shims();
 import * as fs5 from "fs";
-import * as path5 from "path";
+import * as path6 from "path";
 import { fileURLToPath as fileURLToPath3 } from "url";
 var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.2.48".length > 0) {
-    cached = "0.2.48";
+  if ("0.2.49".length > 0) {
+    cached = "0.2.49";
     return cached;
   }
   cached = "unknown";
   try {
-    let dir = path5.dirname(fileURLToPath3(import.meta.url));
+    let dir = path6.dirname(fileURLToPath3(import.meta.url));
     for (let i = 0; i < 8; i++) {
-      const pkgPath = path5.join(dir, "package.json");
+      const pkgPath = path6.join(dir, "package.json");
       if (fs5.existsSync(pkgPath)) {
         try {
           const pkg = JSON.parse(fs5.readFileSync(pkgPath, "utf8"));
@@ -9775,7 +9997,7 @@ function substrateSelfVersion() {
         } catch {
         }
       }
-      const parent = path5.dirname(dir);
+      const parent = path6.dirname(dir);
       if (parent === dir) break;
       dir = parent;
     }
@@ -9871,17 +10093,17 @@ init_esm_shims();
 // scripts/lakebase/adapters/alembic-adapter.ts
 init_esm_shims();
 import * as fs7 from "fs";
-import * as path7 from "path";
+import * as path8 from "path";
 
 // scripts/lakebase/schema-migrate-runners/alembic.ts
 init_esm_shims();
 import { spawn } from "child_process";
 import * as fs6 from "fs";
-import * as path6 from "path";
+import * as path7 from "path";
 function resolveAlembicBin(projectDir) {
   const candidates = [
-    path6.join(projectDir, ".venv", "bin", "alembic"),
-    path6.join(projectDir, "venv", "bin", "alembic")
+    path7.join(projectDir, ".venv", "bin", "alembic"),
+    path7.join(projectDir, "venv", "bin", "alembic")
   ];
   for (const candidate of candidates) {
     try {
@@ -9895,7 +10117,7 @@ function spawnAlembic(projectDir, args, dsn) {
   return new Promise((resolve2, reject) => {
     const bin = resolveAlembicBin(projectDir);
     const env = { ...process.env };
-    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path6.delimiter);
+    env.PYTHONPATH = [projectDir, process.env.PYTHONPATH].filter(Boolean).join(path7.delimiter);
     if (dsn) env.DATABASE_URL = dsn;
     const child = spawn(bin, args, {
       cwd: projectDir,
@@ -9943,10 +10165,10 @@ async function createAlembicRevision(opts) {
   const m = stdout.match(/Generating\s+(\S+\.py)/);
   if (m) return m[1].trim();
   for (const rel of ["migrations/versions", "alembic/versions"]) {
-    const dir = path6.join(opts.projectDir, rel);
+    const dir = path7.join(opts.projectDir, rel);
     if (!fs6.existsSync(dir)) continue;
     const hit = fs6.readdirSync(dir).find((f) => f.startsWith(`${opts.revId}_`) && f.endsWith(".py"));
-    if (hit) return path6.join(dir, hit);
+    if (hit) return path7.join(dir, hit);
   }
   throw new SchemaMigrationError(
     `alembic revision succeeded but the created file could not be located.
@@ -10081,8 +10303,8 @@ async function buildDsn(args) {
 }
 function findVersionsDir(projectDir) {
   const candidates = [
-    path7.join(projectDir, "migrations", "versions"),
-    path7.join(projectDir, "alembic", "versions")
+    path8.join(projectDir, "migrations", "versions"),
+    path8.join(projectDir, "alembic", "versions")
   ];
   return candidates.find((p) => fs7.existsSync(p));
 }
@@ -10114,9 +10336,9 @@ var AlembicAdapter = {
    * here. Callers can still force-select via project.yaml#migration_tool.
    */
   detect(projectDir) {
-    if (fs7.existsSync(path7.join(projectDir, "alembic.ini"))) return true;
-    if (fs7.existsSync(path7.join(projectDir, "migrations", "env.py"))) return true;
-    if (fs7.existsSync(path7.join(projectDir, "alembic", "env.py"))) return true;
+    if (fs7.existsSync(path8.join(projectDir, "alembic.ini"))) return true;
+    if (fs7.existsSync(path8.join(projectDir, "migrations", "env.py"))) return true;
+    if (fs7.existsSync(path8.join(projectDir, "alembic", "env.py"))) return true;
     return false;
   },
   async apply(args) {
@@ -10222,7 +10444,7 @@ var AlembicAdapter = {
         autogenerate: !!args.autogenerate,
         dsn
       });
-      return { status: "ok", version: revId, filename: path7.basename(created), path: created };
+      return { status: "ok", version: revId, filename: path8.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",
@@ -10239,7 +10461,7 @@ var AlembicAdapter = {
       if (heads.length <= 1) return { status: "noop", headsBefore: heads };
       if (args.dryRun) return { status: "ok", headsBefore: heads };
       const created = await mergeAlembicHeads(args.projectDir, args.message ?? "merge heads");
-      const mergeRevision = path7.basename(created).replace(/\.py$/, "").split("_")[0];
+      const mergeRevision = path8.basename(created).replace(/\.py$/, "").split("_")[0];
       return { status: "ok", headsBefore: heads, mergeRevision, path: created };
     } catch (err) {
       return {
@@ -10255,12 +10477,12 @@ registerSchemaMigrationAdapter(AlembicAdapter);
 // scripts/lakebase/adapters/flyway-adapter.ts
 init_esm_shims();
 import * as fs8 from "fs";
-import * as path9 from "path";
+import * as path10 from "path";
 
 // scripts/lakebase/schema-migrate-runners/flyway.ts
 init_esm_shims();
 import { spawn as spawn2 } from "child_process";
-import * as path8 from "path";
+import * as path9 from "path";
 function dsnToFlywayEnv(dsn) {
   const u = new URL(dsn);
   const user = decodeURIComponent(u.username);
@@ -10270,7 +10492,7 @@ function dsnToFlywayEnv(dsn) {
   return { url, user, password };
 }
 function migrationsLocation(projectDir) {
-  return `filesystem:${path8.join(projectDir, "src", "main", "resources", "db", "migration")}`;
+  return `filesystem:${path9.join(projectDir, "src", "main", "resources", "db", "migration")}`;
 }
 function runFlyway(ctx, args) {
   const { url, user, password } = dsnToFlywayEnv(ctx.dsn);
@@ -10371,7 +10593,7 @@ async function statusFlyway(ctx) {
     if (state === "SUCCESS" || state === "BASELINE") {
       current = m.version;
     } else if (state === "PENDING") {
-      const filename = m.filepath ? path8.basename(m.filepath) : `V${m.version}__migration.sql`;
+      const filename = m.filepath ? path9.basename(m.filepath) : `V${m.version}__migration.sql`;
       pending.push({
         version: m.version,
         filename,
@@ -10394,7 +10616,7 @@ async function buildDsn2(args) {
   return result.url;
 }
 function listFlywayFiles(projectDir) {
-  const dir = path9.join(projectDir, "src", "main", "resources", "db", "migration");
+  const dir = path10.join(projectDir, "src", "main", "resources", "db", "migration");
   if (!fs8.existsSync(dir)) return [];
   const files = fs8.readdirSync(dir).filter((f) => /^V\d+(\.\d+)*__.+\.sql$/.test(f));
   return files.map((filename) => {
@@ -10419,7 +10641,7 @@ var FlywayAdapter = {
   id: "flyway",
   languages: ["java", "kotlin"],
   detect(projectDir) {
-    return fs8.existsSync(path9.join(projectDir, "pom.xml"));
+    return fs8.existsSync(path10.join(projectDir, "pom.xml"));
   },
   async apply(args) {
     const dsn = await buildDsn2(args);
@@ -10477,12 +10699,12 @@ var FlywayAdapter = {
   // optional-protocol shape makes this additive.
   async newMigration(args) {
     try {
-      const dir = path9.join(args.projectDir, "src", "main", "resources", "db", "migration");
+      const dir = path10.join(args.projectDir, "src", "main", "resources", "db", "migration");
       fs8.mkdirSync(dir, { recursive: true });
       const version = migrationTimestamp();
       const slug = migrationSlug2(args.slug);
       const filename = `V${version}__${slug}.sql`;
-      const full = path9.join(dir, filename);
+      const full = path10.join(dir, filename);
       if (fs8.existsSync(full)) throw new Error(`${filename} already exists`);
       fs8.writeFileSync(
         full,
@@ -10508,17 +10730,17 @@ registerSchemaMigrationAdapter(FlywayAdapter);
 // scripts/lakebase/adapters/knex-adapter.ts
 init_esm_shims();
 import * as fs10 from "fs";
-import * as path11 from "path";
+import * as path12 from "path";
 
 // scripts/lakebase/schema-migrate-runners/knex.ts
 init_esm_shims();
 import { spawn as spawn3 } from "child_process";
 import * as fs9 from "fs";
-import * as path10 from "path";
+import * as path11 from "path";
 var KNEXFILE_VARIANTS = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function findKnexfile(projectDir) {
   for (const name of KNEXFILE_VARIANTS) {
-    const p = path10.join(projectDir, name);
+    const p = path11.join(projectDir, name);
     if (fs9.existsSync(p)) return p;
   }
   return void 0;
@@ -10671,7 +10893,7 @@ async function buildDsn3(args) {
 }
 var KNEXFILE_VARIANTS2 = ["knexfile.js", "knexfile.ts", "knexfile.mjs", "knexfile.cjs"];
 function listKnexFiles(projectDir) {
-  const dir = path11.join(projectDir, "migrations");
+  const dir = path12.join(projectDir, "migrations");
   if (!fs10.existsSync(dir)) return [];
   const files = fs10.readdirSync(dir).filter((f) => (f.endsWith(".js") || f.endsWith(".ts")) && !f.startsWith("."));
   return files.map((filename) => {
@@ -10693,7 +10915,7 @@ var KnexAdapter = {
    * project.yaml#migration_tool.
    */
   detect(projectDir) {
-    return KNEXFILE_VARIANTS2.some((name) => fs10.existsSync(path11.join(projectDir, name)));
+    return KNEXFILE_VARIANTS2.some((name) => fs10.existsSync(path12.join(projectDir, name)));
   },
   async apply(args) {
     const dsn = await buildDsn3(args);
@@ -10766,9 +10988,9 @@ var KnexAdapter = {
   async newMigration(args) {
     try {
       const created = await createKnexMigration({ projectDir: args.projectDir, slug: migrationSlug2(args.slug) });
-      const stem = path11.basename(created).replace(/\.(js|ts)$/, "");
+      const stem = path12.basename(created).replace(/\.(js|ts)$/, "");
       const version = stem.match(/^(\d{14})_/)?.[1] ?? stem;
-      return { status: "ok", version, filename: path11.basename(created), path: created };
+      return { status: "ok", version, filename: path12.basename(created), path: created };
     } catch (err) {
       return {
         status: "error",
@@ -11061,7 +11283,7 @@ async function runScmMergeCli(argv) {
 `);
     return 0;
   }
-  const projectDir = path13.resolve(args.projectDir ?? process.cwd());
+  const projectDir = path14.resolve(args.projectDir ?? process.cwd());
   const waitMigrate = args.noWaitMigrate ? false : true;
   const verifyMigrateAuth = waitMigrate && !args.noVerifyMigrateAuth ? async () => {
     try {

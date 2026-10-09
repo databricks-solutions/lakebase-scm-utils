@@ -9,6 +9,7 @@ import { exec } from "../util/exec.js";
 import { getCurrentBranch } from "../git/inspect.js";
 import { getAheadBehind, isDirty } from "../git/status.js";
 import { getOwnerRepo } from "../git/remote.js";
+import { ensureCiSecretsFreshFromEnv, type CiFreshnessResult } from "../util/ci-secrets.js";
 import { resolveGitBase } from "./scm-git-base.js";
 import { createPullRequest, getPullRequest } from "../github/pr.js";
 import { RUNTIME_ARTIFACT_IGNORE } from "./constants.js";
@@ -63,6 +64,8 @@ export interface PreparePrResult {
   prUrl: string;
   /** True iff createPullRequest was invoked (vs. reusing an existing open PR). */
   prCreated: boolean;
+  /** Outcome of the expiry-aware CI-auth preflight run before the push (fail-soft). */
+  ciFreshness: CiFreshnessResult;
 }
 
 export async function preparePr(
@@ -138,6 +141,12 @@ export async function preparePr(
     );
   }
 
+  // Expiry-aware CI-auth preflight BEFORE the push: opening/updating the PR triggers
+  // build-and-test, which needs a live DATABRICKS_TOKEN secret. Re-mint the canonical token
+  // when it is missing or near expiry so the run isn't DOA. Fail-soft — never blocks the PR
+  // (the push's pre-push hook also refreshes; this is the belt-and-suspenders guarantee).
+  const ciFreshness = await ensureCiSecretsFreshFromEnv(args.projectDir, { ownerRepo });
+
   const now = (args.now ?? (() => new Date()))();
   let prUrl = args.prUrlOverride ?? "";
   let prCreated = false;
@@ -191,7 +200,7 @@ export async function preparePr(
   };
   writeWorkflowState(args.projectDir, next);
 
-  return { state: next, prUrl, prCreated };
+  return { state: next, prUrl, prCreated, ciFreshness };
 }
 
 async function ensureAheadOfParent(

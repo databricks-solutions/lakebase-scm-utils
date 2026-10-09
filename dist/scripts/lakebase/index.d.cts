@@ -1,5 +1,6 @@
 import { W as WorkflowRunSummary, e as PullRequestInfo, o as mergePairedPullRequest } from '../../pr-e-E4aP4j.cjs';
 import { Pool } from 'pg';
+import { b as CiFreshnessResult } from '../../ci-secrets-CnGrdQV-.cjs';
 
 declare const BRAND: unique symbol;
 /**
@@ -3109,6 +3110,8 @@ interface PreparePrResult {
     prUrl: string;
     /** True iff createPullRequest was invoked (vs. reusing an existing open PR). */
     prCreated: boolean;
+    /** Outcome of the expiry-aware CI-auth preflight run before the push (fail-soft). */
+    ciFreshness: CiFreshnessResult;
 }
 declare function preparePr(args: PreparePrArgs): Promise<PreparePrResult>;
 /**
@@ -3284,6 +3287,11 @@ interface MergeArgs {
     fetchPrState?: (ownerRepo: string, headBranch: string) => Promise<{
         mergeableState?: string;
     } | undefined>;
+    /** Expiry-aware CI-auth preflight run before the merge: the promote triggers merge.yml, which
+     *  needs a live DATABRICKS_TOKEN secret, and a merge is not a push so the pre-push hook does not
+     *  fire. Re-mints the canonical token when missing / near expiry. BEST-EFFORT: never blocks the
+     *  merge. Defaults to {@link ensureCiSecretsFreshFromEnv}; injected in tests. */
+    ensureCiFresh?: (ownerRepo: string) => Promise<CiFreshnessResult>;
 }
 interface MergeResult {
     state: ScmWorkflowState;
