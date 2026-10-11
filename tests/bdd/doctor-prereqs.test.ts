@@ -5,7 +5,11 @@
 // lakebase-doctor-cli-live.test.ts and the freshly-scaffolded-project harness.
 
 import { describe, it, expect } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
+  checkLanguagePrerequisites,
   checkPrerequisites,
   checkLakebaseEnabled,
   type VersionRunner,
@@ -175,5 +179,41 @@ describe("checkLakebaseEnabled (workspace has Lakebase turned on)", () => {
     expect(res.message).toContain("does not have Lakebase enabled");
     expect(res.hint).toBeTruthy();
     expect(res.hint).toContain("Lakebase");
+  });
+});
+
+describe("checkLanguagePrerequisites (.NET SDK, only for dotnet projects)", () => {
+  function project(files: string[]): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lbscm-doctor-lang-"));
+    for (const f of files) fs.writeFileSync(path.join(dir, f), "");
+    return dir;
+  }
+
+  it("checks the .NET SDK floor for a dotnet project", async () => {
+    const dir = project(["App.sln"]);
+    try {
+      const ok = await checkLanguagePrerequisites(dir, fakeRunner({ dotnet: "10.0.401" }));
+      expect(ok).toEqual([expect.objectContaining({ name: "dotnet-sdk", status: "ok" })]);
+
+      const old = await checkLanguagePrerequisites(dir, fakeRunner({ dotnet: "8.0.404" }));
+      expect(old[0].status).toBe("warn");
+
+      const missing = await checkLanguagePrerequisites(dir, fakeRunner({}));
+      expect(missing[0]).toMatchObject({ status: "fail", hint: expect.stringMatching(/\.NET 10 SDK/) });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("adds no checks for other languages or an undetectable project", async () => {
+    const node = project(["package.json"]);
+    const empty = project([]);
+    try {
+      expect(await checkLanguagePrerequisites(node, fakeRunner({}))).toEqual([]);
+      expect(await checkLanguagePrerequisites(empty, fakeRunner({}))).toEqual([]);
+    } finally {
+      fs.rmSync(node, { recursive: true, force: true });
+      fs.rmSync(empty, { recursive: true, force: true });
+    }
   });
 });

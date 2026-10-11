@@ -285,6 +285,33 @@ async function checkPrereq(
   };
 }
 
+/** .NET SDK floor for `dotnet` projects (the scaffold targets net10.0). */
+const DOTNET_PREREQ: PrereqSpec = {
+  name: "dotnet-sdk",
+  cmd: "dotnet",
+  versionArgs: ["--version"],
+  minMajor: 10,
+  label: ".NET SDK",
+  hint: "Install the .NET 10 SDK (e.g. `brew install --cask dotnet-sdk` or https://dot.net). EF Core's dotnet-ef is restored per project from .config/dotnet-tools.json.",
+};
+
+/**
+ * Language-gated prerequisites: checked only when the project is that
+ * language, so a Java or Python user never sees a missing-.NET failure.
+ */
+export async function checkLanguagePrerequisites(
+  projectDir: string,
+  run: VersionRunner = defaultVersionRunner
+): Promise<CheckResult[]> {
+  let lang: string;
+  try {
+    lang = detectLanguage(projectDir);
+  } catch {
+    return [];
+  }
+  return lang === "dotnet" ? [await checkPrereq(DOTNET_PREREQ, run)] : [];
+}
+
 /** All cold-start prerequisite checks, in README order. */
 export async function checkPrerequisites(
   run: VersionRunner = defaultVersionRunner
@@ -712,6 +739,7 @@ export async function runDoctor(args: DoctorArgs = {}): Promise<DoctorReport> {
   // Cold-start prerequisites (Node/Python/JDK/gh/npm): always run, they are
   // local-environment checks with no auth dependency.
   const prereqs = await checkPrerequisites();
+  const languagePrereqs = await checkLanguagePrerequisites(projectDir);
 
   // Lakebase-enabled probe: needs a reachable workspace, so gate on auth like
   // the identity + lakebase-project checks.
@@ -727,6 +755,7 @@ export async function runDoctor(args: DoctorArgs = {}): Promise<DoctorReport> {
   const checks: CheckResult[] = [
     cli,
     ...prereqs,
+    ...languagePrereqs,
     auth,
     identity,
     lakebaseEnabled,
