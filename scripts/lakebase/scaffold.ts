@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { deployLanguageProject } from "./scaffold-language.js";
-import type { ProjectLanguage, ClientFramework } from "./scaffold-language.js";
+import type { ProjectLanguage, ClientFramework, DotnetMigrationTool } from "./scaffold-language.js";
 import { copyDirSubstituted } from "../util/copy-dir-substituted.js";
 import type { SpringInitializrClient } from "./spring-initializr.js";
 
@@ -635,6 +635,8 @@ export interface ScaffoldStaticAllArgs extends ScaffoldOptions {
   databricksHost?: string;
   lakebaseProjectId?: string;
   language?: ProjectLanguage;
+  /** .NET only: "efcore" (default) or "flyway". Ignored for other languages. */
+  migrationTool?: DotnetMigrationTool;
   runnerType?: RunnerType;
   report?: ScaffoldReportFn;
   /**
@@ -766,6 +768,7 @@ export async function scaffoldAll(args: ScaffoldAllArgs): Promise<ScaffoldStatic
     targetDir: args.targetDir,
     language,
     projectName,
+    migrationTool: args.migrationTool,
     templatesDir: args.templatesDir,
     initializrClient: args.initializrClient,
     report,

@@ -30,6 +30,9 @@ import { normalizeTierName, protectedTierNamesFromEnv } from "./branch-utils.js"
 import "./adapters/alembic-adapter.js";
 import "./adapters/flyway-adapter.js";
 import "./adapters/knex-adapter.js";
+import "./adapters/efcore-adapter.js";
+import { isDotnetFlywayProject, flywayMigrationsDir } from "./dotnet-project.js";
+import { listEfCoreFiles } from "./adapters/efcore-adapter.js";
 import {
   resolveSchemaMigrationAdapter,
   type SchemaMigrationAdapterId,
@@ -38,9 +41,9 @@ import {
   type CollapseHeadsResult,
 } from "./schema-migration-adapter.js";
 
-export type SchemaMigrationLanguage = "java" | "kotlin" | "python" | "nodejs";
+export type SchemaMigrationLanguage = "java" | "kotlin" | "python" | "nodejs" | "dotnet";
 
-export type SchemaMigrationToolName = "flyway" | "alembic" | "knex";
+export type SchemaMigrationToolName = "flyway" | "alembic" | "knex" | "efcore";
 
 export interface SchemaMigrationFile {
   /** Stable identifier sortable in apply-order: Flyway `V<n>`, Alembic
@@ -48,7 +51,7 @@ export interface SchemaMigrationFile {
   version: string;
   filename: string;
   description: string;
-  type: "SQL" | "Python" | "JavaScript" | "TypeScript";
+  type: "SQL" | "Python" | "JavaScript" | "TypeScript" | "CSharp";
   /** Tool that should run this file. */
   tool: SchemaMigrationToolName;
 }
@@ -149,16 +152,24 @@ export function detectLanguage(projectDir: string): SchemaMigrationLanguage {
   if (lang === "unknown") {
     throw new SchemaMigrationError(
       `Could not detect project language in ${projectDir}. ` +
-        `Expected one of: pom.xml (java/kotlin), pyproject.toml or alembic.ini (python), package.json (nodejs). ` +
+        `Expected one of: pom.xml (java/kotlin), pyproject.toml or alembic.ini (python), package.json (nodejs), *.sln or *.csproj (dotnet). ` +
         `Pass {language} explicitly to override.`
     );
   }
   return lang;
 }
 
-/** Map a language to the migration tool the kit invokes for it. */
-export function toolForLanguage(language: SchemaMigrationLanguage): SchemaMigrationToolName {
+/**
+ * Map a language to the migration tool the kit invokes for it. .NET supports
+ * two tools, so it also needs the project directory: EF Core when a project
+ * references Microsoft.EntityFrameworkCore.Design, Flyway when SQL migrations
+ * live in db/migrations/ (Flyway wins when both are present), else EF Core.
+ */
+export function toolForLanguage(language: SchemaMigrationLanguage, projectDir?: string): SchemaMigrationToolName {
   switch (language) {
+    case "dotnet":
+      if (projectDir && isDotnetFlywayProject(projectDir)) return "flyway";
+      return "efcore";
     case "java":
     case "kotlin":
       return "flyway";
@@ -182,9 +193,11 @@ export function toolForLanguage(language: SchemaMigrationLanguage): SchemaMigrat
 export function listSchemaMigrations(args: ListSchemaMigrationsArgs = {}): SchemaMigrationFile[] {
   const projectDir = args.projectDir ?? process.cwd();
   const language = args.language ?? detectLanguage(projectDir);
-  const tool = toolForLanguage(language);
+  const tool = toolForLanguage(language, projectDir);
 
   switch (tool) {
+    case "efcore":
+      return listEfCoreFiles(projectDir);
     case "flyway":
       return listFlywayMigrations(projectDir);
     case "alembic":
@@ -195,8 +208,9 @@ export function listSchemaMigrations(args: ListSchemaMigrationsArgs = {}): Schem
 }
 
 function listFlywayMigrations(projectDir: string): SchemaMigrationFile[] {
-  // Flyway convention: src/main/resources/db/migration/V<n>__<desc>.sql
-  const dir = path.join(projectDir, "src", "main", "resources", "db", "migration");
+  // Flyway convention: V<n>__<desc>.sql under the Maven layout (Java/Kotlin)
+  // or db/migrations/ (.NET); see flywayMigrationsDir.
+  const dir = flywayMigrationsDir(projectDir);
   if (!fs.existsSync(dir)) return [];
   const files = fs.readdirSync(dir).filter((f) => /^V\d+(\.\d+)*__.+\.sql$/.test(f));
   return files
@@ -291,7 +305,7 @@ async function dsnFor(args: {
 /** Resolve an adapter, honoring an explicit language override. */
 function adapterFor(projectDir: string, language?: SchemaMigrationLanguage) {
   const override: SchemaMigrationAdapterId | undefined = language
-    ? toolForLanguage(language)
+    ? toolForLanguage(language, projectDir)
     : undefined;
   return resolveSchemaMigrationAdapter(projectDir, override);
 }

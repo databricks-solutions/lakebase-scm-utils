@@ -2,6 +2,14 @@
 
 All notable changes to `@databricks-solutions/lakebase-scm-utils` are documented here.
 
+## Unreleased
+
+- **.NET (ASP.NET Core) is a supported language, with EF Core or Flyway migrations.** A `*.sln` / `*.slnx` / `*.csproj` marks a project as `dotnet` (checked after Java and Python, before `package.json`). The migration tool is chosen from markers: Flyway when SQL migrations live in `db/migrations/`, EF Core when a project references `Microsoft.EntityFrameworkCore.Design`.
+  - New `EfCoreAdapter` (`efcore`): apply, status, list, rollback (EF `Down()`; relative `-N`, `0`, id, version, or name), stamp (writes `__EFMigrationsHistory` rows), and new-migration (`dotnet ef migrations add`, generated from the model diff). It drives `dotnet ef --json --prefix-output` and passes the branch DSN in `DATABASE_URL`, never on the command line. `LAKEBASE_EFCORE_CONNECTION_ARG=1` opts into `--connection` for projects whose design-time factory cannot read the environment.
+  - `FlywayAdapter` also handles .NET: `flywayMigrationsDir()` resolves `db/migrations/` for .NET and keeps the Maven layout for Java/Kotlin.
+  - Scaffold: `deployLanguageProject({ language: "dotnet", migrationTool: "efcore" | "flyway" })` lays down `templates/project/dotnet/` plus a `dotnet-efcore/` or `dotnet-flyway/` overlay: ASP.NET Core on .NET 10, a shared `NpgsqlDataSource` with a runtime-minted Lakebase credential (databricks CLI, like the Python and Node templates), and xUnit tests. `createProject` and `scaffoldAll` accept `migrationTool`.
+  - Scripts and CI: `pr.yml` / `merge.yml` set up .NET from `global.json`, restore packages and tools, run `dotnet test`, install Flyway for `db/migrations/*.sql`, and list .NET migrations in the schema-diff comment. `run-tests.sh`, `flyway-migrate.sh`, `run-dev.sh`, and `prepare-schema-diff.sh` gained .NET branches.
+
 ## 0.2.45
 
 - **The promote self-heals a stale scaffolded `merge.yml` before merging.** A project whose `SCM_UTILS_REF` was bumped past the tier-guard fix keeps an older `merge.yml` whose `migrate-target` calls `lakebase-schema-migrate apply` against the parent tier — which the guard refuses ("pass allowTier: true"), so the promote's CI migrate fails and `cleanup-lakebase-branches` (needs: migrate-target) is skipped. `mergeFeature` now runs a BEST-EFFORT pre-merge workflow self-heal (`defaultRefreshPromoteWorkflows`): it `detectWorkflowDrift` + `updateWorkflows` + commits/pushes the drifted workflow onto the PR head BEFORE the merge, so the merge commit carries the corrected `apply-tier` step and the `<tier> Merge` run passes. Never blocks the merge (a detect/refresh/push failure is a warning; the local-migrate fallback still keeps git + schema in sync). The `lakebase-doctor` workflow-drift hint now names this `apply`→`apply-tier` skew and the self-heal.

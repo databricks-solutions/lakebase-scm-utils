@@ -54,7 +54,7 @@ export interface ConsortSetupHooks {
       agentModels?: Record<string, string>;
       uiTrack?: boolean;
       clientFramework?: string;
-      language?: "java" | "kotlin" | "python" | "nodejs";
+      language?: "java" | "kotlin" | "python" | "nodejs" | "dotnet";
     },
   ): void;
 }
@@ -77,7 +77,9 @@ export interface CreateProjectArgs {
   /** Whether to make the GitHub repo private (default: true). */
   privateRepo?: boolean;
   /** Project language stack (default: 'java'). */
-  language?: "java" | "kotlin" | "python" | "nodejs";
+  language?: "java" | "kotlin" | "python" | "nodejs" | "dotnet";
+  /** .NET only: migration tool, "efcore" (default) or "flyway". */
+  migrationTool?: "efcore" | "flyway";
   /** CI runner type (default: 'self-hosted'). */
   runnerType?: "self-hosted" | "github-hosted";
   /**
@@ -365,6 +367,7 @@ export async function createProject(
     databricksHost: host,
     lakebaseProjectId,
     language,
+    migrationTool: input.migrationTool,
     runnerType,
     skipCommands,
     clientFramework,
@@ -581,6 +584,7 @@ export async function createProject(
     kotlin: "Kotlin/Spring Boot",
     python: "Python/FastAPI",
     nodejs: "Node.js/Express",
+    dotnet: `.NET/ASP.NET Core (${input.migrationTool === "flyway" ? "Flyway" : "EF Core"})`,
   };
   const langLabel = langLabels[language] ?? language;
   report("Creating initial commit...");

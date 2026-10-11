@@ -3,7 +3,7 @@
 // pr.yml + merge.yml to populate `steps.detect-lang.outputs.lang` without
 // duplicating the detection bash inline.
 //
-// Output: prints "java" | "python" | "nodejs" to stdout. Exits non-zero
+// Output: prints "java" | "kotlin" | "python" | "nodejs" | "dotnet" to stdout. Exits non-zero
 // if no recognised marker file is present.
 //
 // Optional flag: --project-dir <path> (defaults to cwd).
@@ -38,7 +38,7 @@ function printHelpAndExit(): never {
     `lakebase-detect-language – print the project's language\n\n` +
       `Usage:\n` +
       `  lakebase-detect-language [--project-dir <path>]\n\n` +
-      `Output (stdout): one of "java", "python", "nodejs"\n` +
+      `Output (stdout): one of "java", "kotlin", "python", "nodejs", "dotnet"\n` +
       `Exits 1 with an error message on stderr if no marker found.\n`,
   );
   process.exit(0);

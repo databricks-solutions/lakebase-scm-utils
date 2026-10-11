@@ -81,6 +81,15 @@ describe("lakebase-detect-language CLI", () => {
     expect(r.stdout.trim()).toBe("nodejs");
   });
 
+  it("prints 'dotnet' when a *.sln is present, even alongside package.json", () => {
+    const dir = mkTmp();
+    fs.writeFileSync(path.join(dir, "App.sln"), "");
+    fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    const r = runCli(dir);
+    expect(r.status).toBe(0);
+    expect(r.stdout.trim()).toBe("dotnet");
+  });
+
   it("prioritises pom.xml over package.json (Java + Node mixed)", () => {
     const dir = mkTmp();
     fs.writeFileSync(path.join(dir, "pom.xml"), "<project/>");

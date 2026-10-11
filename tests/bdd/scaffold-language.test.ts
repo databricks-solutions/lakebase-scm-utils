@@ -93,3 +93,48 @@ describe("deployLanguageProject – java/kotlin path (Initializr w/ fallback)", 
     expect(fs.existsSync(path.join(dir, "mvnw"))).toBe(true);
   });
 });
+
+describe("deployLanguageProject – dotnet path (static copy + migration-tool overlay)", () => {
+  it("scaffolds the EF Core variant by default", async () => {
+    const dir = mkTmp();
+    await deployLanguageProject({ targetDir: dir, language: "dotnet", projectName: "dn-test" });
+    expect(fs.existsSync(path.join(dir, "App.sln"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "global.json"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "src", "App", "Program.cs"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "src", "App", "Lakebase", "LakebaseConnection.cs"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "src", "App", "Data", "DesignTimeDbContextFactory.cs"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "src", "App", "Migrations", "README.md"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, ".config", "dotnet-tools.json"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "tests", "App.Tests", "HealthTests.cs"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "db", "migrations"))).toBe(false);
+    expect(fs.existsSync(path.join(dir, ".gitignore.extra"))).toBe(false);
+    const csproj = fs.readFileSync(path.join(dir, "src", "App", "App.csproj"), "utf-8");
+    expect(csproj).toContain("Microsoft.EntityFrameworkCore.Design");
+    expect(csproj).toContain("dn-test");
+  });
+
+  it("scaffolds the Flyway variant with db/migrations/ and no EF Core design-time package", async () => {
+    const dir = mkTmp();
+    await deployLanguageProject({ targetDir: dir, language: "dotnet", projectName: "dn-fw", migrationTool: "flyway" });
+    expect(fs.existsSync(path.join(dir, "db", "migrations", "README.md"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "src", "App", "Migrations"))).toBe(false);
+    expect(fs.existsSync(path.join(dir, ".config", "dotnet-tools.json"))).toBe(false);
+    const csproj = fs.readFileSync(path.join(dir, "src", "App", "App.csproj"), "utf-8");
+    expect(csproj).not.toContain("Microsoft.EntityFrameworkCore.Design");
+  });
+
+  it("substitutes the scm-utils version label in the connection code", async () => {
+    const dir = mkTmp();
+    await deployLanguageProject({ targetDir: dir, language: "dotnet", projectName: "dn-label" });
+    const conn = fs.readFileSync(path.join(dir, "src", "App", "Lakebase", "LakebaseConnection.cs"), "utf-8");
+    expect(conn).not.toMatch(/\{\{LAKEBASE_SCM_UTILS_VERSION\}\}/);
+    expect(conn).toMatch(/scm-utils\/\d/);
+  });
+
+  it("rejects an unknown migration tool", async () => {
+    const dir = mkTmp();
+    await expect(
+      deployLanguageProject({ targetDir: dir, language: "dotnet", migrationTool: "liquibase" as never }),
+    ).rejects.toThrow(/Unsupported \.NET migration tool/);
+  });
+});

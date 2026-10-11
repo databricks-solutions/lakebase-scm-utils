@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { getConnection } from "../get-connection.js";
+import { flywayMigrationsDir, isDotnetFlywayProject } from "../dotnet-project.js";
 import {
   applyFlyway,
   statusFlyway,
@@ -55,8 +56,9 @@ async function buildDsn(args: {
 }
 
 function listFlywayFiles(projectDir: string): SchemaMigrationFile[] {
-  // Flyway convention: src/main/resources/db/migration/V<n>__<desc>.sql
-  const dir = path.join(projectDir, "src", "main", "resources", "db", "migration");
+  // Flyway convention: V<n>__<desc>.sql under the Maven layout (Java/Kotlin)
+  // or db/migrations/ (.NET); see flywayMigrationsDir.
+  const dir = flywayMigrationsDir(projectDir);
   if (!fs.existsSync(dir)) return [];
   const files = fs.readdirSync(dir).filter((f) => /^V\d+(\.\d+)*__.+\.sql$/.test(f));
   return files
@@ -83,10 +85,11 @@ function versionCompare(a: string, b: string): number {
 
 export const FlywayAdapter: SchemaMigrationAdapter = {
   id: "flyway",
-  languages: ["java", "kotlin"],
+  languages: ["java", "kotlin", "dotnet"],
 
   detect(projectDir: string): boolean {
-    return fs.existsSync(path.join(projectDir, "pom.xml"));
+    // Maven project, or a .NET project that keeps Flyway SQL in db/migrations/.
+    return fs.existsSync(path.join(projectDir, "pom.xml")) || isDotnetFlywayProject(projectDir);
   },
 
   async apply(args: ApplyArgs): Promise<ApplyResult> {
@@ -155,7 +158,7 @@ export const FlywayAdapter: SchemaMigrationAdapter = {
     // so a flat Flyway list never collides across sibling branches. Flyway has
     // no DAG, so no merge-time head collapse is needed. autogenerate is ignored.
     try {
-      const dir = path.join(args.projectDir, "src", "main", "resources", "db", "migration");
+      const dir = flywayMigrationsDir(args.projectDir);
       fs.mkdirSync(dir, { recursive: true });
       const version = migrationTimestamp();
       const slug = migrationSlug(args.slug);

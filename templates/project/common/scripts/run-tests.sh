@@ -140,13 +140,18 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
   else
     uv run --extra dev pytest "$@"
   fi
+elif ls "$REPO_ROOT"/*.sln "$REPO_ROOT"/*.slnx "$REPO_ROOT"/*.csproj >/dev/null 2>&1; then
+  # .NET / EF Core or Flyway + xUnit
+  echo "Running migrations..."
+  "$REPO_ROOT/scripts/flyway-migrate.sh"
+  dotnet test "$@"
 elif [ -f "$REPO_ROOT/package.json" ]; then
   # Node.js / Knex + Jest
   echo "Running Knex migrations..."
   npx knex migrate:latest
   npm test "$@"
 else
-  echo "Could not detect project language. Expected pom.xml (Java), pyproject.toml/requirements.txt (Python), or package.json (Node.js)."
+  echo "Could not detect project language. Expected pom.xml (Java), pyproject.toml/requirements.txt (Python), *.sln/*.csproj (.NET), or package.json (Node.js)."
   exit 1
 fi
 

@@ -67,7 +67,7 @@ Usage:
 
 Flags:
   --project-dir <dir>  Project root (default: cwd)
-  --language <lang>    java | kotlin | python | nodejs (default: auto-detect)
+  --language <lang>    java | kotlin | python | nodejs | dotnet (default: auto-detect)
   --message, -m <txt>  Message for the merge revision (Alembic; default: "merge heads")
   --dry-run            Report the heads without creating a merge revision
   --pretty             Pretty-print JSON output

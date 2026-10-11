@@ -33,9 +33,9 @@ afterEach(() => {
 });
 
 describe("FlywayAdapter: static surface", () => {
-  it("has id='flyway' + languages=['java', 'kotlin']", () => {
+  it("has id='flyway' + languages=['java', 'kotlin', 'dotnet']", () => {
     expect(FlywayAdapter.id).toBe("flyway");
-    expect(FlywayAdapter.languages).toEqual(["java", "kotlin"]);
+    expect(FlywayAdapter.languages).toEqual(["java", "kotlin", "dotnet"]);
   });
 
   it("omits rollback (Flyway Community Edition lacks the capability)", () => {

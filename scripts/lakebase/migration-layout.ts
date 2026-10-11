@@ -11,17 +11,19 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { findEfCoreProject, hasDotnetMarker, isDotnetFlywayProject } from "./dotnet-project.js";
 
 /** Languages the kit knows how to detect. `unknown` maps to the Flyway
  *  defaults (the historical fallback) so callers never crash on an
  *  unrecognized layout. */
-export type MigrationLanguage = "java" | "kotlin" | "python" | "nodejs" | "unknown";
+export type MigrationLanguage = "java" | "kotlin" | "python" | "nodejs" | "dotnet" | "unknown";
 
 const MIGRATION_LANGUAGES: readonly MigrationLanguage[] = [
   "java",
   "kotlin",
   "python",
   "nodejs",
+  "dotnet",
   "unknown",
 ];
 
@@ -41,6 +43,9 @@ export const MIGRATION_DEFAULTS: Record<MigrationLanguage, MigrationDefaults> = 
   kotlin: { path: "src/main/resources/db/migration", pattern: /^V\d+.*\.sql$/i, glob: "*.sql" },
   python: { path: "alembic/versions", pattern: /^[0-9a-f][\w]*.*\.py$/i, glob: "*.py" },
   nodejs: { path: "migrations", pattern: /^\d+.*\.(js|ts)$/i, glob: "*.{js,ts}" },
+  // .NET + Flyway; EF Core projects get their Migrations/ dir from
+  // resolveMigrationLayout (see DOTNET_EFCORE_DEFAULTS).
+  dotnet: { path: "db/migrations", pattern: /^V\d+.*\.sql$/i, glob: "*.sql" },
   unknown: { path: "src/main/resources/db/migration", pattern: /^V\d+.*\.sql$/i, glob: "*.sql" },
 };
 
@@ -69,6 +74,11 @@ export function detectLanguageAt(dir: string): MigrationLanguage {
     fs.existsSync(path.join(dir, "alembic.ini"))
   ) {
     return "python";
+  }
+  // .NET before package.json: an ASP.NET repo may carry a package.json for
+  // front-end tooling, but a *.sln / *.csproj at the root is unambiguous.
+  if (hasDotnetMarker(dir)) {
+    return "dotnet";
   }
   if (fs.existsSync(path.join(dir, "package.json"))) {
     return "nodejs";
@@ -144,6 +154,22 @@ export function compileMigrationPattern(src?: string): RegExp | undefined {
   }
 }
 
+/** EF Core: Migrations/<timestamp>_<Name>.cs, excluding *.Designer.cs and the model snapshot. */
+export const DOTNET_EFCORE_DEFAULTS: MigrationDefaults = {
+  path: "Migrations",
+  pattern: /^\d{14}_(?!.*\.Designer\.cs$).+\.cs$/i,
+  glob: "*.cs",
+};
+
+/** .NET defaults depend on the migration tool: Flyway (db/migrations) or EF Core. */
+function dotnetDefaults(projectDir?: string): MigrationDefaults {
+  if (!projectDir || isDotnetFlywayProject(projectDir)) return MIGRATION_DEFAULTS.dotnet;
+  const ef = findEfCoreProject(projectDir);
+  if (!ef) return MIGRATION_DEFAULTS.dotnet;
+  const rel = path.relative(projectDir, ef.migrationsDir).split(path.sep).join("/");
+  return { ...DOTNET_EFCORE_DEFAULTS, path: rel };
+}
+
 export interface ResolveMigrationLayoutArgs {
   /** Project root. */
   projectDir?: string;
@@ -175,7 +201,7 @@ export interface MigrationLayout {
 export function resolveMigrationLayout(args: ResolveMigrationLayoutArgs): MigrationLayout {
   const configuredMigrationPath = (args.migrationPath ?? "").trim();
   const language = resolveMigrationLanguage(args.projectDir, configuredMigrationPath, args.language);
-  const defaults = MIGRATION_DEFAULTS[language];
+  const defaults = language === "dotnet" ? dotnetDefaults(args.projectDir) : MIGRATION_DEFAULTS[language];
   return {
     language,
     migrationPath: configuredMigrationPath || defaults.path,

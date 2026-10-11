@@ -66,10 +66,42 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
     source .venv/bin/activate
   fi
   alembic upgrade head "$@"
+elif ls "$REPO_ROOT"/*.sln "$REPO_ROOT"/*.slnx "$REPO_ROOT"/*.csproj >/dev/null 2>&1; then
+  # .NET: EF Core or Flyway (db/migrations/).
+  if [ -n "${DATABASE_URL:-}" ]; then
+    # Explicit target (CI secret, ephemeral-verify DSN): run the tool directly.
+    if [ -d "$REPO_ROOT/db/migrations" ]; then
+      _np="${DATABASE_URL#postgresql://}"; _cr="${_np%%@*}"; _hp="${_np#*@}"
+      _urldecode() { local v="${1//+/ }"; printf '%b' "${v//%/\\x}"; }
+      FLYWAY_URL="jdbc:postgresql://${_hp}" \
+      FLYWAY_USER="$(_urldecode "${_cr%%:*}")" \
+      FLYWAY_PASSWORD="$(_urldecode "${_cr#*:}")" \
+        flyway "-locations=filesystem:$REPO_ROOT/db/migrations" \
+          -baselineOnMigrate=true -baselineVersion=0 migrate "$@"
+    else
+      _csproj="$(grep -l "Microsoft.EntityFrameworkCore.Design" \
+        $(find "$REPO_ROOT" -maxdepth 3 -name '*.csproj' -not -path '*/tests/*' -not -path '*/bin/*' -not -path '*/obj/*') 2>/dev/null | head -1)"
+      [ -n "$_csproj" ] || { echo "No *.csproj references Microsoft.EntityFrameworkCore.Design." >&2; exit 1; }
+      dotnet tool restore >/dev/null
+      # The design-time DbContext factory reads DATABASE_URL, so no password
+      # is passed on the command line.
+      dotnet ef database update --project "$_csproj" "$@"
+    fi
+  else
+    # Paired branch from .env metadata: the kit's tool-agnostic migrate CLI
+    # picks the tool, mints a fresh credential, and refuses protected tiers,
+    # exactly as CI does.
+    if [ ! -x "$SCRIPT_DIR/lk" ] || [ -z "${LAKEBASE_PROJECT_ID:-}" ] || [ -z "${LAKEBASE_BRANCH_ID:-}" ]; then
+      echo "Cannot migrate: need scripts/lk plus LAKEBASE_PROJECT_ID and LAKEBASE_BRANCH_ID (written to .env by the post-checkout hook), or DATABASE_URL." >&2
+      exit 1
+    fi
+    "$SCRIPT_DIR/lk" lakebase-schema-migrate apply \
+      --instance "$LAKEBASE_PROJECT_ID" --branch "$LAKEBASE_BRANCH_ID" "$@"
+  fi
 elif [ -f "$REPO_ROOT/package.json" ]; then
   # Node.js / Knex
   npx knex migrate:latest "$@"
 else
-  echo "Could not detect project language. Expected pom.xml (Java), pyproject.toml/requirements.txt (Python), or package.json (Node.js)."
+  echo "Could not detect project language. Expected pom.xml (Java), pyproject.toml/requirements.txt (Python), *.sln/*.csproj (.NET), or package.json (Node.js)."
   exit 1
 fi

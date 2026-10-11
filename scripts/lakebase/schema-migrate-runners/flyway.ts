@@ -1,9 +1,10 @@
-// Flyway runner for Java + Kotlin projects (part of the
-// primitives lift).
+// Flyway runner for Java + Kotlin projects, and .NET projects that use
+// Flyway (part of the primitives lift).
 //
 // Shells to the standalone Flyway Community Edition CLI in JSON output
 // mode. The runner reads the project's migration files from
-// `src/main/resources/db/migration/` (Flyway's standard layout). It
+// `src/main/resources/db/migration/` (Flyway's standard Maven layout) or,
+// for .NET, `db/migrations/` (see flywayMigrationsDir). It
 // passes connection info through FLYWAY_URL / FLYWAY_USER /
 // FLYWAY_PASSWORD env vars rather than command-line flags so the
 // secret never appears in `ps`.
@@ -25,6 +26,7 @@
 
 import { spawn } from "node:child_process";
 import * as path from "node:path";
+import { flywayMigrationsDir } from "../dotnet-project.js";
 import {
   SchemaMigrationError,
   type ApplySchemaMigrationsResult,
@@ -52,7 +54,7 @@ function dsnToFlywayEnv(dsn: string): { url: string; user: string; password: str
 }
 
 function migrationsLocation(projectDir: string): string {
-  return `filesystem:${path.join(projectDir, "src", "main", "resources", "db", "migration")}`;
+  return `filesystem:${flywayMigrationsDir(projectDir)}`;
 }
 
 interface FlywayRun {

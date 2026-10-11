@@ -92,7 +92,7 @@ Usage:
 Flags:
   --name, -m <text>    Human description; slugified into the filename (required)
   --project-dir <dir>  Project root (default: cwd)
-  --language <lang>    java | kotlin | python | nodejs (default: auto-detect)
+  --language <lang>    java | kotlin | python | nodejs | dotnet (default: auto-detect)
   --autogenerate       Alembic only: diff models vs the branch DB to populate
                        the body (requires --instance + --branch)
   --instance <id>      Lakebase project id (only with --autogenerate)

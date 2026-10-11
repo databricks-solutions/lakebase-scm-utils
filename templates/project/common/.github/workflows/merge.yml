@@ -143,6 +143,18 @@ jobs:
           fi
           npm install
 
+      - name: Set up .NET
+        if: steps.detect-lang.outputs.lang == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore .NET packages and tools
+        if: steps.detect-lang.outputs.lang == 'dotnet'
+        run: |
+          dotnet restore
+          if [ -f .config/dotnet-tools.json ]; then dotnet tool restore; fi
+
       # The official action installs to a user-writable path (no sudo). It's
       # a no-op if a compatible databricks CLI is already on PATH.
       - name: Install Databricks CLI
@@ -218,7 +230,7 @@ jobs:
       #   3. Default https://repo1.maven.org/maven2 for GitHub-hosted
       #      runners with public internet.
       - name: Install Flyway CLI
-        if: hashFiles('pom.xml') != ''
+        if: (hashFiles('pom.xml') != '' || hashFiles('db/migrations/*.sql') != '')
         env:
           FLYWAY_DOWNLOAD_BASE_URL: ${{ vars.FLYWAY_DOWNLOAD_BASE_URL }}
         run: |

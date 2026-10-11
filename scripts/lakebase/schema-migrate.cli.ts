@@ -94,7 +94,7 @@ Common flags (for apply, rollback, status):
   --instance <id>            Lakebase project id (required)
   --branch <name>            Branch to migrate against (required)
   --project-dir <dir>        Project root (default: cwd)
-  --language <lang>          java | kotlin | python | nodejs (default: auto-detect)
+  --language <lang>          java | kotlin | python | nodejs | dotnet (default: auto-detect)
   --database <db>            Database name (default: $PGDATABASE or "databricks_postgres")
   --endpoint <name>          Endpoint identifier on the branch (default: "primary")
 
@@ -115,6 +115,8 @@ Language support today:
   python (alembic)  Full: apply, rollback, status, list
   java, kotlin      Full: apply, status, list (rollback unsupported in Flyway Community Edition)
   nodejs (knex)     Full: apply, rollback, status, list
+  dotnet (efcore)   Full: apply, rollback, status, list (stamp via the adapter)
+  dotnet (flyway)   Full: apply, status, list (db/migrations/; rollback unsupported)
 `;
 }
 
