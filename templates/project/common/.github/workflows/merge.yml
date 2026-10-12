@@ -230,7 +230,7 @@ jobs:
       #   3. Default https://repo1.maven.org/maven2 for GitHub-hosted
       #      runners with public internet.
       - name: Install Flyway CLI
-        if: (hashFiles('pom.xml') != '' || hashFiles('db/migrations/*.sql') != '')
+        if: (hashFiles('pom.xml') != '' || hashFiles('db/migrations/**') != '')
         env:
           FLYWAY_DOWNLOAD_BASE_URL: ${{ vars.FLYWAY_DOWNLOAD_BASE_URL }}
         run: |

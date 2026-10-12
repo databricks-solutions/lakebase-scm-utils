@@ -161,13 +161,28 @@ export const DOTNET_EFCORE_DEFAULTS: MigrationDefaults = {
   glob: "*.cs",
 };
 
+// IDE callers resolve the layout on every refresh; .NET resolution scans and
+// reads *.csproj files, so cache it briefly per project root.
+const DOTNET_LAYOUT_TTL_MS = 5000;
+const dotnetLayoutCache = new Map<string, { at: number; value: MigrationDefaults }>();
+
 /** .NET defaults depend on the migration tool: Flyway (db/migrations) or EF Core. */
 function dotnetDefaults(projectDir?: string): MigrationDefaults {
-  if (!projectDir || isDotnetFlywayProject(projectDir)) return MIGRATION_DEFAULTS.dotnet;
-  const ef = findEfCoreProject(projectDir);
-  if (!ef) return MIGRATION_DEFAULTS.dotnet;
-  const rel = path.relative(projectDir, ef.migrationsDir).split(path.sep).join("/");
-  return { ...DOTNET_EFCORE_DEFAULTS, path: rel };
+  if (!projectDir) return MIGRATION_DEFAULTS.dotnet;
+  const key = path.resolve(projectDir);
+  const hit = dotnetLayoutCache.get(key);
+  if (hit && Date.now() - hit.at < DOTNET_LAYOUT_TTL_MS) return hit.value;
+
+  let value = MIGRATION_DEFAULTS.dotnet;
+  if (!isDotnetFlywayProject(projectDir)) {
+    const ef = findEfCoreProject(projectDir);
+    if (ef) {
+      const rel = path.relative(projectDir, ef.migrationsDir).split(path.sep).join("/");
+      value = { ...DOTNET_EFCORE_DEFAULTS, path: rel };
+    }
+  }
+  dotnetLayoutCache.set(key, { at: Date.now(), value });
+  return value;
 }
 
 export interface ResolveMigrationLayoutArgs {

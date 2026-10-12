@@ -35,6 +35,12 @@ import {
 export interface EfCoreCtx {
   projectDir: string;
   dsn: string;
+  /**
+   * Reads applied migration ids from "__EFMigrationsHistory" (ascending), or
+   * null when the table does not exist. Defaults to a direct query; tests
+   * inject a fake.
+   */
+  readHistory?: (dsn: string) => Promise<string[] | null>;
 }
 
 /** One migration as reported by `dotnet ef migrations list --json`. */
@@ -172,16 +178,21 @@ async function ensureRestored(projectDir: string, csproj: string): Promise<void>
   restored.add(projectDir);
 }
 
-/** Run `dotnet ef <args>` against the project's EF Core project. */
+/**
+ * Run `dotnet ef <args>` against the project's EF Core project. `noBuild`
+ * skips the implicit build, for follow-up calls in the same operation.
+ */
 async function runEf(
   projectDir: string,
   args: string[],
-  dsn?: string
+  dsn?: string,
+  opts: { noBuild?: boolean } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   const project = requireProject(projectDir);
   const csproj = path.relative(projectDir, project.csproj) || project.csproj;
   await ensureRestored(projectDir, csproj);
   const full = ["ef", ...args, "--project", csproj, "--prefix-output"];
+  if (opts.noBuild) full.push("--no-build");
   const env: NodeJS.ProcessEnv = {};
   if (dsn) {
     env.DATABASE_URL = dsn;
@@ -190,34 +201,67 @@ async function runEf(
   return spawnDotnet(projectDir, full, env);
 }
 
-/** List migrations with their applied state on the target database. */
-export async function listEfMigrations(ctx: EfCoreCtx): Promise<EfMigrationEntry[]> {
-  const { stdout } = await runEf(ctx.projectDir, ["migrations", "list", "--json"], ctx.dsn);
-  return parseEfJson<EfMigrationEntry[]>(stdout);
+/**
+ * List migrations with their applied state on the target database. EF reports
+ * `applied: null` when it cannot reach the database (exit code 0), so that is
+ * an error here rather than "nothing applied".
+ */
+export async function listEfMigrations(
+  ctx: EfCoreCtx,
+  opts: { noBuild?: boolean } = {}
+): Promise<EfMigrationEntry[]> {
+  const { stdout, stderr } = await runEf(ctx.projectDir, ["migrations", "list", "--json"], ctx.dsn, opts);
+  const entries = parseEfJson<EfMigrationEntry[]>(stdout);
+  if (ctx.dsn && entries.some((e) => e.applied === null)) {
+    const warning = stdout
+      .split(/\r?\n/)
+      .filter((l) => /^(warn|error):/.test(l))
+      .join("\n");
+    throw new SchemaMigrationError(
+      `dotnet ef could not read migration state from the database (check connectivity and credentials).\n${warning || stderr}`.trim()
+    );
+  }
+  return entries;
+}
+
+/** Applied migration ids from "__EFMigrationsHistory", ascending; null when the table is absent. */
+export async function readEfHistory(dsn: string): Promise<string[] | null> {
+  const client = new Client({ connectionString: dsn, application_name: connectionApplicationName() });
+  await client.connect();
+  try {
+    const exists = await client.query(`SELECT to_regclass('"__EFMigrationsHistory"') IS NOT NULL AS present`);
+    if (!exists.rows[0]?.present) return null;
+    const r = await client.query(`SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId"`);
+    return r.rows.map((row: { MigrationId: string }) => row.MigrationId);
+  } finally {
+    await client.end();
+  }
 }
 
 function toApplied(entries: EfMigrationEntry[]): AppliedSchemaMigration[] {
   return entries.map((e) => ({ version: efVersion(e.id), description: efDescription(e.id) }));
 }
 
+/**
+ * `current` comes from "__EFMigrationsHistory" itself, not from
+ * `migrations list` (which only knows migrations compiled into the project),
+ * so a database that is ahead of the code reports its real head and the
+ * kit's orphan check can see it.
+ */
 export async function statusEfcore(ctx: EfCoreCtx): Promise<SchemaMigrationStatusResult> {
   const entries = await listEfMigrations(ctx);
-  let current: string | undefined;
-  const pending: PendingSchemaMigration[] = [];
-  for (const e of entries) {
-    if (e.applied === true) {
-      current = efVersion(e.id);
-    } else {
-      pending.push({ version: efVersion(e.id), filename: `${e.id}.cs`, description: efDescription(e.id) });
-    }
-  }
+  const history = await (ctx.readHistory ?? readEfHistory)(ctx.dsn);
+  const current = history && history.length > 0 ? efVersion(history[history.length - 1]) : undefined;
+  const pending: PendingSchemaMigration[] = entries
+    .filter((e) => e.applied !== true)
+    .map((e) => ({ version: efVersion(e.id), filename: `${e.id}.cs`, description: efDescription(e.id) }));
   return { current, pending, tool: "efcore" };
 }
 
 export async function applyEfcore(ctx: EfCoreCtx): Promise<ApplySchemaMigrationsResult> {
   const before = new Set((await listEfMigrations(ctx)).filter((e) => e.applied).map((e) => e.id));
-  await runEf(ctx.projectDir, ["database", "update"], ctx.dsn);
-  const after = await listEfMigrations(ctx);
+  await runEf(ctx.projectDir, ["database", "update"], ctx.dsn, { noBuild: true });
+  const after = await listEfMigrations(ctx, { noBuild: true });
   const applied = toApplied(after.filter((e) => e.applied && !before.has(e.id)));
   return { applied, alreadyAtLatest: applied.length === 0, tool: "efcore" };
 }
@@ -248,8 +292,8 @@ export function resolveEfTarget(target: string, applied: EfMigrationEntry[]): st
 export async function rollbackEfcore(ctx: EfCoreCtx & { target: string }): Promise<RollbackSchemaMigrationResult> {
   const beforeEntries = (await listEfMigrations(ctx)).filter((e) => e.applied);
   const targetId = resolveEfTarget(ctx.target, beforeEntries);
-  await runEf(ctx.projectDir, ["database", "update", targetId], ctx.dsn);
-  const stillApplied = new Set((await listEfMigrations(ctx)).filter((e) => e.applied).map((e) => e.id));
+  await runEf(ctx.projectDir, ["database", "update", targetId], ctx.dsn, { noBuild: true });
+  const stillApplied = new Set((await listEfMigrations(ctx, { noBuild: true })).filter((e) => e.applied).map((e) => e.id));
   return { rolledBack: toApplied(beforeEntries.filter((e) => !stillApplied.has(e.id)).reverse()), tool: "efcore" };
 }
 
@@ -309,9 +353,12 @@ function efProductVersion(project: EfCoreProject): string {
 }
 
 /**
- * Mark migrations up to `revision` ("head" = all local) as applied WITHOUT
- * running them, for adopting a database whose schema already matches. EF has
- * no native stamp command, so this writes the history rows directly.
+ * Set "__EFMigrationsHistory" to exactly the local migrations up to
+ * `revision` ("head" = all local) WITHOUT running them: rows for those ids are
+ * added and every other row (newer migrations, or orphans whose files are
+ * gone) is removed, matching Alembic's stamp. Used to adopt a database whose
+ * schema already matches, and by reconcile for a database ahead of code. EF
+ * has no native stamp command, so this writes the table in one transaction.
  */
 export async function stampEfcore(ctx: EfCoreCtx & { revision: string }): Promise<string> {
   const project = requireProject(ctx.projectDir);
@@ -326,12 +373,14 @@ export async function stampEfcore(ctx: EfCoreCtx & { revision: string }): Promis
   const client = new Client({ connectionString: ctx.dsn, application_name: connectionApplicationName() });
   await client.connect();
   try {
+    await client.query("BEGIN");
     await client.query(
       `CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
          "MigrationId" character varying(150) NOT NULL,
          "ProductVersion" character varying(32) NOT NULL,
          CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId"))`
     );
+    await client.query(`DELETE FROM "__EFMigrationsHistory" WHERE NOT ("MigrationId" = ANY($1::text[]))`, [toStamp]);
     for (const id of toStamp) {
       await client.query(
         `INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion") VALUES ($1, $2)
@@ -339,6 +388,10 @@ export async function stampEfcore(ctx: EfCoreCtx & { revision: string }): Promis
         [id, productVersion]
       );
     }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw err;
   } finally {
     await client.end();
   }

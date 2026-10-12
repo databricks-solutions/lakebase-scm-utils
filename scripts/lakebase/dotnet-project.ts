@@ -9,8 +9,10 @@
 //   db/migrations/V1__*.sql       <- Flyway migrations (flyway variant)
 //   tests/App.Tests/App.Tests.csproj
 //
-// Existing repos are matched too: a *.csproj / *.sln at the root, or a
-// *.csproj up to two levels down (src/<Name>/, <Name>/).
+// A .NET project is identified by a *.sln / *.slnx / *.csproj at the ROOT
+// (the same rule language detection uses, so the kit never half-recognizes a
+// repo). Once identified, the EF Core project may live up to two levels down
+// (src/<Name>/, <Name>/).
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -84,9 +86,9 @@ export function findEfCoreProject(projectDir: string): EfCoreProject | null {
   return null;
 }
 
-/** True for a .NET repo (marker at the root or a nested *.csproj). */
+/** True for a .NET repo: a *.sln / *.slnx / *.csproj at the root. */
 export function isDotnetProject(projectDir: string): boolean {
-  return hasDotnetMarker(projectDir) || findCsprojFiles(projectDir).length > 0;
+  return hasDotnetMarker(projectDir);
 }
 
 /** True for a .NET repo that uses Flyway SQL migrations under db/migrations/. */

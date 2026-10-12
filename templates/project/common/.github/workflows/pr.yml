@@ -316,8 +316,9 @@ jobs:
       # Install Flyway CLI for Java/Kotlin projects and .NET projects that use
       # Flyway (db/migrations/). The substrate's migrate runner spawns the
       # standalone `flyway` binary; other projects don't need it. Runtime-gated
-      # on pom.xml / db/migrations/*.sql so the YAML is one shape for every
-      # language.
+      # on pom.xml / any file under db/migrations/ (what the adapter checks; a
+      # fresh scaffold has only its README there) so the YAML is one shape for
+      # every language.
       #
       # Resolution order:
       #   1. `flyway` already on PATH (self-hosted runner with brew /
@@ -328,7 +329,7 @@ jobs:
       #   3. Default https://repo1.maven.org/maven2 for GitHub-hosted
       #      runners with public internet.
       - name: Install Flyway CLI
-        if: steps.lakebase-db.outputs.url != '' && (hashFiles('pom.xml') != '' || hashFiles('db/migrations/*.sql') != '')
+        if: steps.lakebase-db.outputs.url != '' && (hashFiles('pom.xml') != '' || hashFiles('db/migrations/**') != '')
         env:
           FLYWAY_DOWNLOAD_BASE_URL: ${{ vars.FLYWAY_DOWNLOAD_BASE_URL }}
         run: |
@@ -585,19 +586,10 @@ jobs:
               desc=$(echo "$base" | sed 's/^[^_]*_//' | sed 's/\.py$//' | tr '_' ' ')
               [ -n "$rev" ] && echo "| $rev | $desc |" >> "$MD"
             done
-          elif [ "$LANG" = "dotnet" ] && [ -d db/migrations ]; then
-            for f in db/migrations/*.sql; do
-              [ -f "$f" ] || continue
-              base=$(basename "$f")
-              ver=$(echo "$base" | sed -n 's/^V\([0-9]*\)__.*/\1/p')
-              desc=$(echo "$base" | sed -n 's/^V[0-9]*__\(.*\)\.sql$/\1/p' | tr '_' ' ')
-              [ -n "$ver" ] && echo "| V$ver | $desc |" >> "$MD"
-            done
           elif [ "$LANG" = "dotnet" ]; then
-            for f in $(find . -path ./tests -prune -o -path '*/Migrations/[0-9]*_*.cs' -print | grep -v '\.Designer\.cs$' | sort); do
-              base=$(basename "$f" .cs)
-              echo "| ${base%%_*} | ${base#*_} (EF Core) |" >> "$MD"
-            done
+            # EF Core or Flyway: the kit's canonical discovery picks the tool + files.
+            npx --yes --package="${SCM_UTILS_NPX_PKG}" lakebase-schema-migrate list \
+              | jq -r '.[] | if .tool == "flyway" then "| V\(.version) | \(.description) |" else "| \(.version) | \(.description) (EF Core) |" end' >> "$MD"
           elif [ "$LANG" = "nodejs" ]; then
             for f in migrations/*.js; do
               [ -f "$f" ] || continue

@@ -113,12 +113,13 @@ touch "$STATE/applied"
 printf '%s|DATABASE_URL=%s\\n' "$*" "$DATABASE_URL" >> "$STATE/calls"
 ALL="${ids}"
 if [ "$1" = "tool" ] || [ "$1" = "restore" ]; then exit 0; fi
+[ -f "$STATE/unreachable" ] && [ "$3" = "list" ] && echo "warn:    An error occurred while accessing the database. Continuing without the information provided by the database."
 if [ "$2" = "migrations" ] && [ "$3" = "list" ]; then
   echo "info:    Build started..."
   echo "data:    ["
   first=1
   for id in $ALL; do
-    if grep -qx "$id" "$STATE/applied"; then a=true; else a=false; fi
+    if [ -f "$STATE/unreachable" ]; then a=null; elif grep -qx "$id" "$STATE/applied"; then a=true; else a=false; fi
     [ $first = 1 ] || echo "data:    ,"
     first=0
     echo "data:      {\\"id\\": \\"$id\\", \\"name\\": \\"\${id#*_}\\", \\"safeName\\": \\"\${id#*_}\\", \\"applied\\": $a}"
@@ -145,6 +146,15 @@ exit 2
   process.env.PATH = `${bin}${path.delimiter}${savedPath}`;
 }
 
+/** History reader backed by the fake dotnet's state file (what the DB holds). */
+function stateHistory(state: string, extra: string[] = []) {
+  return async () => {
+    const f = path.join(state, "applied");
+    const ids = fs.existsSync(f) ? fs.readFileSync(f, "utf-8").split("\n").filter(Boolean) : [];
+    return [...ids, ...extra].sort();
+  };
+}
+
 describe(".NET project discovery", () => {
   it("finds csproj files at depth <= 2 and skips tests/, bin/, obj/", () => {
     const dir = efProject();
@@ -169,6 +179,16 @@ describe(".NET project discovery", () => {
     const csprojOnly = mkTmp();
     write(path.join(csprojOnly, "Api.csproj"), PLAIN_CSPROJ);
     expect(detectLanguageAt(csprojOnly)).toBe("dotnet");
+  });
+
+  it("requires a root marker in every check, so a nested-only repo is consistently not .NET", () => {
+    const dir = mkTmp();
+    write(path.join(dir, "src", "Api", "Api.csproj"), EF_CSPROJ);
+    expect(detectLanguageAt(dir)).toBe("unknown");
+    expect(EfCoreAdapter.detect(dir)).toBe(false);
+    write(path.join(dir, "Api.sln"));
+    expect(detectLanguageAt(dir)).toBe("dotnet");
+    expect(EfCoreAdapter.detect(dir)).toBe(true);
   });
 
   it("still detects Java and Python before .NET markers", () => {
@@ -299,7 +319,7 @@ describe("EF Core runner against a fake dotnet ef", () => {
     const state = mkTmp("lbscm-ef-state-");
     fakeDotnet(state, ids);
 
-    const before = await statusEfcore({ projectDir: dir, dsn: DSN });
+    const before = await statusEfcore({ projectDir: dir, dsn: DSN, readHistory: stateHistory(state) });
     expect(before.current).toBeUndefined();
     expect(before.pending.map((p) => p.version)).toEqual(["20260101000000", "20260102000000"]);
 
@@ -311,7 +331,8 @@ describe("EF Core runner against a fake dotnet ef", () => {
     expect(again.alreadyAtLatest).toBe(true);
 
     const calls = fs.readFileSync(path.join(state, "calls"), "utf-8");
-    expect(calls).toContain(`ef database update --project ${path.join("src", "App", "App.csproj")} --prefix-output`);
+    // Builds once per operation: the update and the second list skip the build.
+    expect(calls).toContain(`ef database update --project ${path.join("src", "App", "App.csproj")} --prefix-output --no-build`);
     expect(calls).toContain(`DATABASE_URL=${DSN}`);
     expect(calls).not.toContain("--connection");
     expect(calls).not.toMatch(/\bs3cret\b.*\|/); // password never in argv (left of the '|')
@@ -325,7 +346,7 @@ describe("EF Core runner against a fake dotnet ef", () => {
 
     const r = await rollbackEfcore({ projectDir: dir, dsn: DSN, target: "-1" });
     expect(r.rolledBack.map((m) => m.version)).toEqual(["20260102000000"]);
-    const status = await statusEfcore({ projectDir: dir, dsn: DSN });
+    const status = await statusEfcore({ projectDir: dir, dsn: DSN, readHistory: stateHistory(state) });
     expect(status.current).toBe("20260101000000");
   });
 
@@ -334,7 +355,7 @@ describe("EF Core runner against a fake dotnet ef", () => {
     const state = mkTmp("lbscm-ef-state-");
     fakeDotnet(state, ids);
     process.env.LAKEBASE_EFCORE_CONNECTION_ARG = "1";
-    await statusEfcore({ projectDir: dir, dsn: DSN });
+    await statusEfcore({ projectDir: dir, dsn: DSN, readHistory: stateHistory(state) });
     expect(fs.readFileSync(path.join(state, "calls"), "utf-8")).toContain("--connection Host=ep-x");
   });
 
@@ -342,5 +363,31 @@ describe("EF Core runner against a fake dotnet ef", () => {
     await expect(statusEfcore({ projectDir: flywayProject(), dsn: DSN })).rejects.toThrow(
       /No EF Core project found/,
     );
+  });
+
+  it("reports an error, not 'nothing applied', when dotnet ef cannot reach the database", async () => {
+    const dir = efProject(ids);
+    const state = mkTmp("lbscm-ef-state-");
+    fakeDotnet(state, ids);
+    fs.writeFileSync(path.join(state, "unreachable"), "");
+    await expect(statusEfcore({ projectDir: dir, dsn: DSN, readHistory: stateHistory(state) })).rejects.toThrow(
+      /could not read migration state from the database/,
+    );
+    await expect(applyEfcore({ projectDir: dir, dsn: DSN })).rejects.toThrow(/could not read migration state/);
+  });
+
+  it("reports the database's real head from __EFMigrationsHistory, so an orphan is visible", async () => {
+    const dir = efProject(ids);
+    const state = mkTmp("lbscm-ef-state-");
+    fakeDotnet(state, ids);
+    await applyEfcore({ projectDir: dir, dsn: DSN });
+    // The DB also holds a newer migration whose file was git-reset away.
+    const status = await statusEfcore({
+      projectDir: dir,
+      dsn: DSN,
+      readHistory: stateHistory(state, ["20260109000000_GoneFromCode"]),
+    });
+    expect(status.current).toBe("20260109000000");
+    expect(listEfCoreFiles(dir).map((f) => f.version)).not.toContain(status.current);
   });
 });

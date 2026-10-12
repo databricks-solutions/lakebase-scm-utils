@@ -59,10 +59,25 @@ public static class LakebaseConnection
         if (host is null || endpoint is null)
             return NpgsqlDataSource.Create(Normalize(builder).ConnectionString); // pure-local fallback
 
-        builder.Username = Env("DB_USERNAME") ?? CurrentUser();
+        // Resolve the user without failing here: design-time commands such as
+        // `dotnet ef migrations add` build a data source but never connect, so
+        // an offline or expired CLI session must only fail when a connection
+        // is actually opened.
+        Exception? userError = null;
+        var user = Env("DB_USERNAME");
+        if (user is null)
+        {
+            try { user = CurrentUser(); }
+            catch (Exception ex) { userError = ex; }
+        }
+
+        builder.Username = user ?? "unresolved-lakebase-user";
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(Normalize(builder).ConnectionString);
         dataSourceBuilder.UsePeriodicPasswordProvider(
-            async (_, ct) => await MintTokenAsync(endpoint, ct),
+            async (_, ct) => userError is null
+                ? await MintTokenAsync(endpoint, ct)
+                : throw new InvalidOperationException(
+                    "Could not resolve the Lakebase user. Set DB_USERNAME in .env or run 'databricks auth login'.", userError),
             successRefreshInterval: TimeSpan.FromMinutes(5),
             failureRefreshInterval: TimeSpan.FromSeconds(10));
         return dataSourceBuilder.Build();

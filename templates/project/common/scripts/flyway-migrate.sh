@@ -72,7 +72,20 @@ elif [ -n "$(find "$REPO_ROOT" -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o
     # Explicit target (CI secret, ephemeral-verify DSN): run the tool directly.
     if [ -d "$REPO_ROOT/db/migrations" ]; then
       _np="${DATABASE_URL#postgresql://}"; _cr="${_np%%@*}"; _hp="${_np#*@}"
-      _urldecode() { local v="${1//+/ }"; printf '%b' "${v//%/\\x}"; }
+      # Decode %XX only ('+' is literal in URL userinfo, and backslashes in a
+      # credential must not be interpreted as escapes).
+      _urldecode() {
+        local s="$1" out="" c
+        while [ -n "$s" ]; do
+          c="${s:0:1}"; s="${s:1}"
+          if [ "$c" = "%" ] && [ "${#s}" -ge 2 ]; then
+            out+="$(printf "\\x${s:0:2}")"; s="${s:2}"
+          else
+            out+="$c"
+          fi
+        done
+        printf '%s' "$out"
+      }
       FLYWAY_URL="jdbc:postgresql://${_hp}" \
       FLYWAY_USER="$(_urldecode "${_cr%%:*}")" \
       FLYWAY_PASSWORD="$(_urldecode "${_cr#*:}")" \
@@ -83,11 +96,13 @@ elif [ -n "$(find "$REPO_ROOT" -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o
       # symlinked directory (e.g. macOS /tmp -> /private/tmp) makes MSBuild see
       # two different project paths and dotnet ef then loses the build output.
       _csproj="$(grep -l "Microsoft.EntityFrameworkCore.Design" \
-        $(find . -maxdepth 3 -name '*.csproj' -not -path '*/tests/*' -not -path '*/bin/*' -not -path '*/obj/*') 2>/dev/null | head -1)"
+        $(find . -maxdepth 3 -name '*.csproj' -not -path '*/tests/*' -not -path '*/test/*' \
+            -not -path '*/client/*' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/node_modules/*' | sort) \
+        2>/dev/null | head -1)"
       [ -n "$_csproj" ] || { echo "No *.csproj references Microsoft.EntityFrameworkCore.Design." >&2; exit 1; }
       # dotnet ef reads project metadata before it builds, so restore first
       # (a fresh clone or a cleaned obj/ has no assets file).
-      dotnet tool restore >/dev/null
+      if [ -f .config/dotnet-tools.json ]; then dotnet tool restore >/dev/null; fi
       dotnet restore "$_csproj" >/dev/null
       # The design-time DbContext factory reads DATABASE_URL, so no password
       # is passed on the command line.

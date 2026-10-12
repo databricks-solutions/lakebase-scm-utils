@@ -107,23 +107,11 @@ if [ -d src/main/resources/db/migration ]; then
     desc="$(echo "$base" | sed -n 's/^V[0-9.]*__\(.*\)\.sql$/\1/p' | tr '_' ' ')"
     [ -n "$ver" ] && echo "| V$ver | $desc |" >> "$MD"
   done
-elif [ -d db/migrations ] && [ -n "$(find . -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \) -print -quit 2>/dev/null)" ]; then
-  # Flyway / .NET
-  for f in db/migrations/V*.sql; do
-    [ -f "$f" ] || continue
-    base="$(basename "$f")"
-    ver="$(echo "$base" | sed -n 's/^V\([0-9.]*\)__.*/\1/p')"
-    desc="$(echo "$base" | sed -n 's/^V[0-9.]*__\(.*\)\.sql$/\1/p' | tr '_' ' ')"
-    [ -n "$ver" ] && echo "| V$ver | $desc |" >> "$MD"
-  done
-elif _efdir="$(find . -maxdepth 4 -type d -name Migrations -not -path './tests/*' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | head -1)" \
-    && [ -n "$_efdir" ] && ls "$_efdir"/[0-9]*_*.cs >/dev/null 2>&1; then
-  # EF Core / .NET
-  for f in "$_efdir"/[0-9]*_*.cs; do
-    case "$f" in *.Designer.cs) continue ;; esac
-    base="$(basename "$f" .cs)"
-    echo "| ${base%%_*} | ${base#*_} (EF Core) |" >> "$MD"
-  done
+elif [ -n "$(find . -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \) -print -quit 2>/dev/null)" ] \
+    && [ -x "$WORK_TREE/scripts/lk" ]; then
+  # .NET (EF Core or Flyway): the kit's canonical discovery picks the tool + files.
+  "$WORK_TREE/scripts/lk" lakebase-schema-migrate list 2>/dev/null \
+    | jq -r '.[] | if .tool == "flyway" then "| V\(.version) | \(.description) |" else "| \(.version) | \(.description) (EF Core) |" end' >> "$MD" || true
 elif [ -d alembic/versions ]; then
   # Alembic / Python
   for f in alembic/versions/*.py; do

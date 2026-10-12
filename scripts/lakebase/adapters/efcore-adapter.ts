@@ -9,7 +9,7 @@
 import * as path from "node:path";
 
 import { getConnection } from "../get-connection.js";
-import { findEfCoreProject } from "../dotnet-project.js";
+import { findEfCoreProject, isDotnetProject } from "../dotnet-project.js";
 import {
   applyEfcore,
   createEfcoreMigration,
@@ -73,9 +73,9 @@ export const EfCoreAdapter: SchemaMigrationAdapter = {
   id: "efcore",
   languages: ["dotnet"],
 
-  /** A .NET project whose *.csproj references Microsoft.EntityFrameworkCore.Design. */
+  /** A .NET project (root marker) with a *.csproj that references Microsoft.EntityFrameworkCore.Design. */
   detect(projectDir: string): boolean {
-    return findEfCoreProject(projectDir) !== null;
+    return isDotnetProject(projectDir) && findEfCoreProject(projectDir) !== null;
   },
 
   async apply(args: ApplyArgs): Promise<ApplyResult> {
