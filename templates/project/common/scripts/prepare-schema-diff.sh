@@ -107,7 +107,7 @@ if [ -d src/main/resources/db/migration ]; then
     desc="$(echo "$base" | sed -n 's/^V[0-9.]*__\(.*\)\.sql$/\1/p' | tr '_' ' ')"
     [ -n "$ver" ] && echo "| V$ver | $desc |" >> "$MD"
   done
-elif [ -d db/migrations ] && ls ./*.sln ./*.slnx ./*.csproj >/dev/null 2>&1; then
+elif [ -d db/migrations ] && [ -n "$(find . -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \) -print -quit 2>/dev/null)" ]; then
   # Flyway / .NET
   for f in db/migrations/V*.sql; do
     [ -f "$f" ] || continue

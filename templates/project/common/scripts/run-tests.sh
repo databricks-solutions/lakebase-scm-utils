@@ -140,7 +140,7 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
   else
     uv run --extra dev pytest "$@"
   fi
-elif ls "$REPO_ROOT"/*.sln "$REPO_ROOT"/*.slnx "$REPO_ROOT"/*.csproj >/dev/null 2>&1; then
+elif [ -n "$(find "$REPO_ROOT" -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \) -print -quit 2>/dev/null)" ]; then
   # .NET / EF Core or Flyway + xUnit
   echo "Running migrations..."
   "$REPO_ROOT/scripts/flyway-migrate.sh"

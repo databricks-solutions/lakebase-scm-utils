@@ -66,7 +66,7 @@ elif [ -f "$REPO_ROOT/requirements.txt" ] || [ -f "$REPO_ROOT/pyproject.toml" ];
     source .venv/bin/activate
   fi
   alembic upgrade head "$@"
-elif ls "$REPO_ROOT"/*.sln "$REPO_ROOT"/*.slnx "$REPO_ROOT"/*.csproj >/dev/null 2>&1; then
+elif [ -n "$(find "$REPO_ROOT" -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' -o -name '*.csproj' \) -print -quit 2>/dev/null)" ]; then
   # .NET: EF Core or Flyway (db/migrations/).
   if [ -n "${DATABASE_URL:-}" ]; then
     # Explicit target (CI secret, ephemeral-verify DSN): run the tool directly.
@@ -79,10 +79,16 @@ elif ls "$REPO_ROOT"/*.sln "$REPO_ROOT"/*.slnx "$REPO_ROOT"/*.csproj >/dev/null 
         flyway "-locations=filesystem:$REPO_ROOT/db/migrations" \
           -baselineOnMigrate=true -baselineVersion=0 migrate "$@"
     else
+      # Relative to the repo root (the cwd here): an absolute path through a
+      # symlinked directory (e.g. macOS /tmp -> /private/tmp) makes MSBuild see
+      # two different project paths and dotnet ef then loses the build output.
       _csproj="$(grep -l "Microsoft.EntityFrameworkCore.Design" \
-        $(find "$REPO_ROOT" -maxdepth 3 -name '*.csproj' -not -path '*/tests/*' -not -path '*/bin/*' -not -path '*/obj/*') 2>/dev/null | head -1)"
+        $(find . -maxdepth 3 -name '*.csproj' -not -path '*/tests/*' -not -path '*/bin/*' -not -path '*/obj/*') 2>/dev/null | head -1)"
       [ -n "$_csproj" ] || { echo "No *.csproj references Microsoft.EntityFrameworkCore.Design." >&2; exit 1; }
+      # dotnet ef reads project metadata before it builds, so restore first
+      # (a fresh clone or a cleaned obj/ has no assets file).
       dotnet tool restore >/dev/null
+      dotnet restore "$_csproj" >/dev/null
       # The design-time DbContext factory reads DATABASE_URL, so no password
       # is passed on the command line.
       dotnet ef database update --project "$_csproj" "$@"
