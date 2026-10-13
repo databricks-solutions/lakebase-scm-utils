@@ -106,6 +106,8 @@ describe("deployLanguageProject – dotnet path (static copy + migration-tool ov
     expect(fs.existsSync(path.join(dir, "src", "App", "Migrations", "README.md"))).toBe(true);
     expect(fs.existsSync(path.join(dir, ".config", "dotnet-tools.json"))).toBe(true);
     expect(fs.existsSync(path.join(dir, "tests", "App.Tests", "HealthTests.cs"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "tests", "App.Tests", "OpenApiTests.cs"))).toBe(true);
+    expect(fs.readFileSync(path.join(dir, "src", "App", "Program.cs"), "utf-8")).toContain('RoutePrefix = "docs"');
     expect(fs.existsSync(path.join(dir, "db", "migrations"))).toBe(false);
     expect(fs.existsSync(path.join(dir, ".gitignore.extra"))).toBe(false);
     const csproj = fs.readFileSync(path.join(dir, "src", "App", "App.csproj"), "utf-8");

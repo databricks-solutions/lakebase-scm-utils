@@ -12,7 +12,17 @@ var builder = WebApplication.CreateBuilder(args);
 // short-lived Lakebase credential refreshed in the background.
 builder.Services.AddLakebaseDbContext<AppDbContext>();
 
+// OpenAPI description of the endpoints, browsable at /docs (like the Node template).
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
+
+app.MapOpenApi("/openapi.json");
+app.UseSwaggerUI(options =>
+{
+    options.RoutePrefix = "docs";
+    options.SwaggerEndpoint("/openapi.json", "API");
+});
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
