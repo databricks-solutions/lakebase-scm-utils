@@ -8098,6 +8098,18 @@ async function getCurrentUser() {
     wrap(err, "GitHub authentication failed");
   }
 }
+async function checkGitHubScopes(required = GITHUB_SCOPES) {
+  try {
+    const ctx = await newContext();
+    const res = await ctx.octokit.rest.users.getAuthenticated();
+    const header = res.headers["x-oauth-scopes"];
+    if (header === void 0 || header === null) return { granted: null, missing: [] };
+    const granted = String(header).split(",").map((s) => s.trim()).filter(Boolean);
+    return { granted, missing: required.filter((s) => !granted.includes(s)) };
+  } catch (err) {
+    wrap(err, "GitHub scope check failed");
+  }
+}
 async function createRepo(name, opts = {}) {
   try {
     const ctx = await newContext();
@@ -9725,8 +9737,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.4".length > 0) {
-    cached = "0.3.4";
+  if ("0.3.8".length > 0) {
+    cached = "0.3.8";
     return cached;
   }
   cached = "unknown";
@@ -11419,6 +11431,22 @@ async function checkDatabricksAuth(host, run = (args) => runDatabricks(args, { h
     return { ok: false, reason: lastLines(e.stderr, 2) || e.message || "databricks auth token failed" };
   }
 }
+async function checkGitHubWorkflowScope(probe = () => checkGitHubScopes(["workflow"])) {
+  try {
+    const { granted, missing } = await probe();
+    if (granted === null) return { ok: true };
+    if (missing.includes("workflow")) {
+      return { ok: false, reason: `token grants [${granted.join(", ") || "none"}] but not \`workflow\`` };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: true };
+  }
+}
+function githubWorkflowScopePrereqMessage(reason) {
+  return "The GitHub token lacks the `workflow` OAuth scope, required to push the project's `.github/workflows/*` CI files. (Without this check, scaffolding runs all the way to the final push, is rejected, and rolls back.) Grant the scope, then re-run:\n  - gh CLI:  gh auth refresh -h github.com -s workflow\n  - VS Code: re-sign in to GitHub and approve the workflow scope\n  - token:   set GITHUB_TOKEN to a PAT that includes the `workflow` scope" + (reason ? `
+(${reason})` : "");
+}
 function databricksAuthPrereqMessage(host, reason) {
   const hostFlag = host ? ` --host ${host.replace(/\/+$/, "")}` : "";
   return `Databricks authentication is required before creating a project. Run: databricks auth login${hostFlag}` + (reason ? `
@@ -12595,6 +12623,9 @@ function ensurePythonBddDeps(args) {
 }
 var RUN_TESTS_E2E_MARKER = "# run Playwright E2E suite when configured";
 var CLIENT_E2E_MARKER = "# run client Playwright E2E suite when configured";
+var escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+var RUN_TESTS_E2E_MARKER_LINE = new RegExp(`^${escapeRe(RUN_TESTS_E2E_MARKER)}$`, "m");
+var CLIENT_E2E_MARKER_LINE = new RegExp(`^${escapeRe(CLIENT_E2E_MARKER)}$`, "m");
 function runTestsE2eBlock() {
   return [
     "",
@@ -12686,14 +12717,22 @@ function addE2eToRunTestsScript(args) {
     return { patched: false, inserted: false };
   }
   const original = fs14.readFileSync(scriptPath, "utf8");
-  const hasBase = original.includes(RUN_TESTS_E2E_MARKER);
-  const hasClient = original.includes(CLIENT_E2E_MARKER);
+  const baseMarker = RUN_TESTS_E2E_MARKER_LINE.exec(original);
+  const hasBase = baseMarker !== null;
+  const hasClient = CLIENT_E2E_MARKER_LINE.test(original);
   if (hasBase && hasClient) {
     return { patched: true, inserted: false };
   }
-  const cut = hasBase ? original.slice(0, original.indexOf(RUN_TESTS_E2E_MARKER)) : original;
+  const cut = hasBase ? original.slice(0, baseMarker.index) : original;
   const base = cut.replace(/\n+$/, "\n");
-  fs14.writeFileSync(scriptPath, base + runTestsE2eBlock(), "utf8");
+  const assembled = base + runTestsE2eBlock();
+  const BODY_SENTINEL = 'REPO_ROOT="$(cd';
+  if (original.includes(BODY_SENTINEL) && !assembled.includes(BODY_SENTINEL)) {
+    throw new Error(
+      `addE2eToRunTestsScript: refusing to write ${scriptPath} \u2014 the E2E assembly would drop the primary-suite body (REPO_ROOT/pytest/vitest). This is the marker-match clobber; the marker must anchor to the appended block's own line, not a prose mention.`
+    );
+  }
+  fs14.writeFileSync(scriptPath, assembled, "utf8");
   return { patched: true, inserted: true };
 }
 function enableE2eForProject(args) {
@@ -13737,6 +13776,13 @@ async function createProject(input, progress) {
   const auth7 = await checkDatabricksAuth(host);
   if (!auth7.ok) {
     throw new Error(databricksAuthPrereqMessage(host, auth7.reason));
+  }
+  if (useGithub) {
+    report("Checking GitHub token scopes...");
+    const scope = await checkGitHubWorkflowScope();
+    if (!scope.ok) {
+      throw new Error(githubWorkflowScopePrereqMessage(scope.reason));
+    }
   }
   if (useGithub) {
     report("Creating GitHub repository...", fullRepoName);
@@ -16388,44 +16434,46 @@ async function adoptScmState(args) {
 
 // scripts/lakebase/scm-abandon-feature.ts
 init_esm_shims();
-var ScmAbandonError = class extends Error {
+
+// scripts/lakebase/scm-release-claim.ts
+init_esm_shims();
+var ScmReleaseError = class extends Error {
   constructor(message, code) {
     super(message);
     this.code = code;
-    this.name = "ScmAbandonError";
+    this.name = "ScmReleaseError";
   }
   code;
 };
-async function abandonFeatureBranch(args) {
+async function prepareClaimRelease(args, verb) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
-    throw new ScmAbandonError(
+    throw new ScmReleaseError(
       `No SCM workflow state found at ${args.projectDir}/.lakebase/workflow-state.json.`,
       "no-state-file"
     );
   }
   if (current.state !== "feature-claimed") {
-    throw new ScmAbandonError(
-      `abandon refuses state "${current.state}". Only feature-claimed is abandonable; later states must complete or be reverted via gh.`,
+    throw new ScmReleaseError(
+      `${verb} refuses state "${current.state}". Only feature-claimed is ${verb}able; later states must complete or be reverted via gh.`,
       "bad-precondition"
     );
   }
   if (!current.feature_id || !current.branch || !current.parent_branch || !current.lakebase_branch_uid) {
-    throw new ScmAbandonError(
-      "feature-claimed row is missing required invariants. Cannot abandon safely; consider re-adopting state first.",
+    throw new ScmReleaseError(
+      `feature-claimed row is missing required invariants. Cannot ${verb} safely; consider re-adopting state first.`,
       "missing-claim-fields"
     );
   }
   if (!args.force) {
     const dirty = await isDirty({ cwd: args.projectDir });
     if (dirty) {
-      throw new ScmAbandonError(
-        "Working tree has uncommitted changes; refusing to abandon (the branch delete would lose them). Commit / stash / discard first, or pass --force.",
+      throw new ScmReleaseError(
+        `Working tree has uncommitted changes; refusing to ${verb} (switching HEAD off the feature branch would strand them). Commit / stash / discard first, or pass --force.`,
         "dirty-working-tree"
       );
     }
   }
-  const instance = args.instance ?? current.project_id;
   const switchTo = args.switchTo ?? current.parent_branch;
   const warnings = [];
   const headBranch = await getCurrentBranch({ cwd: args.projectDir });
@@ -16437,16 +16485,13 @@ async function abandonFeatureBranch(args) {
       });
     } catch (err) {
       warnings.push(
-        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch delete may be skipped.`
+        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch state may be left on the feature branch.`
       );
     }
   }
-  const del = await deletePairedBranch({
-    instance,
-    branch: current.branch,
-    cwd: args.projectDir
-  });
-  warnings.push(...del.warnings);
+  return { current, switchTo, warnings };
+}
+function resetToScaffoldComplete(projectDir, current) {
   const reset = {
     $schema: current.$schema,
     version: 1,
@@ -16454,7 +16499,25 @@ async function abandonFeatureBranch(args) {
     tier_topology: current.tier_topology,
     project_id: current.project_id
   };
-  writeWorkflowState(args.projectDir, reset);
+  writeWorkflowState(projectDir, reset);
+  return reset;
+}
+
+// scripts/lakebase/scm-abandon-feature.ts
+var ScmAbandonError = class extends ScmReleaseError {
+};
+async function abandonFeatureBranch(args) {
+  const { current, warnings } = await prepareClaimRelease(
+    { projectDir: args.projectDir, force: args.force, switchTo: args.switchTo },
+    "abandon"
+  );
+  const del = await deletePairedBranch({
+    instance: args.instance ?? current.project_id,
+    branch: current.branch,
+    cwd: args.projectDir
+  });
+  warnings.push(...del.warnings);
+  const reset = resetToScaffoldComplete(args.projectDir, current);
   return {
     state: reset,
     lakebaseDeleted: del.lakebaseDeleted,
@@ -18476,6 +18539,40 @@ async function checkGitRemote(projectDir) {
     };
   }
 }
+async function checkGitHubTokenScope(probe = () => checkGitHubScopes(["workflow"])) {
+  try {
+    const { granted, missing } = await probe();
+    if (granted === null) {
+      return {
+        name: "github-token-scope",
+        status: "skip",
+        message: "GitHub token scopes not visible (fine-grained PAT / App token) - `workflow` scope unverified"
+      };
+    }
+    if (missing.includes("workflow")) {
+      return {
+        name: "github-token-scope",
+        status: "fail",
+        message: "GitHub token lacks the `workflow` scope - pushes touching .github/workflows/* will be rejected",
+        detail: { granted },
+        hint: "Grant it with `gh auth refresh -h github.com -s workflow`, re-sign in to GitHub in VS Code and approve the workflow scope, or set GITHUB_TOKEN to a PAT that includes `workflow`."
+      };
+    }
+    return {
+      name: "github-token-scope",
+      status: "ok",
+      message: "GitHub token has the `workflow` scope",
+      detail: { granted }
+    };
+  } catch (err) {
+    return {
+      name: "github-token-scope",
+      status: "skip",
+      message: "GitHub token scope check skipped (no token resolved, or GitHub unreachable)",
+      detail: { error: err.message }
+    };
+  }
+}
 function checkLanguage(projectDir) {
   try {
     const lang = detectLanguage(projectDir);
@@ -18585,6 +18682,7 @@ async function runDoctor2(args = {}) {
     host
   );
   const gitRemote = await checkGitRemote(projectDir);
+  const githubTokenScope = await checkGitHubTokenScope();
   const language = checkLanguage(projectDir);
   const hooks = checkHooks(projectDir);
   const workflowDrift = checkWorkflowDrift(projectDir);
@@ -18606,6 +18704,7 @@ async function runDoctor2(args = {}) {
     configProfile,
     lakebaseProject,
     gitRemote,
+    githubTokenScope,
     language,
     hooks,
     workflowDrift
@@ -19328,6 +19427,7 @@ export {
   ScmMergeError,
   ScmPreparePrError,
   ScmRecoverError,
+  ScmReleaseError,
   ScmWaitCiError,
   SpringInitializrClient,
   WorkflowScopeError,
@@ -19352,6 +19452,8 @@ export {
   catalogExists,
   catalogExplorerUrl,
   checkDatabricksAuth,
+  checkGitHubScopes,
+  checkGitHubWorkflowScope,
   checkoutBranch,
   checkoutDetached,
   checkoutPaired,
@@ -19496,6 +19598,7 @@ export {
   getTargetNames,
   gitBranchExists,
   gitInit,
+  githubWorkflowScopePrereqMessage,
   grantLakebasePermission,
   grantUcCatalogPermission,
   hasDotnetMarker,

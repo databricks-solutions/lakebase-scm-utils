@@ -815,45 +815,44 @@ function orderForOutput(state) {
   return out;
 }
 
-// scripts/lakebase/scm-abandon-feature.ts
-var ScmAbandonError = class extends Error {
+// scripts/lakebase/scm-release-claim.ts
+var ScmReleaseError = class extends Error {
   constructor(message, code) {
     super(message);
     this.code = code;
-    this.name = "ScmAbandonError";
+    this.name = "ScmReleaseError";
   }
   code;
 };
-async function abandonFeatureBranch(args) {
+async function prepareClaimRelease(args, verb) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
-    throw new ScmAbandonError(
+    throw new ScmReleaseError(
       `No SCM workflow state found at ${args.projectDir}/.lakebase/workflow-state.json.`,
       "no-state-file"
     );
   }
   if (current.state !== "feature-claimed") {
-    throw new ScmAbandonError(
-      `abandon refuses state "${current.state}". Only feature-claimed is abandonable; later states must complete or be reverted via gh.`,
+    throw new ScmReleaseError(
+      `${verb} refuses state "${current.state}". Only feature-claimed is ${verb}able; later states must complete or be reverted via gh.`,
       "bad-precondition"
     );
   }
   if (!current.feature_id || !current.branch || !current.parent_branch || !current.lakebase_branch_uid) {
-    throw new ScmAbandonError(
-      "feature-claimed row is missing required invariants. Cannot abandon safely; consider re-adopting state first.",
+    throw new ScmReleaseError(
+      `feature-claimed row is missing required invariants. Cannot ${verb} safely; consider re-adopting state first.`,
       "missing-claim-fields"
     );
   }
   if (!args.force) {
     const dirty = await isDirty({ cwd: args.projectDir });
     if (dirty) {
-      throw new ScmAbandonError(
-        "Working tree has uncommitted changes; refusing to abandon (the branch delete would lose them). Commit / stash / discard first, or pass --force.",
+      throw new ScmReleaseError(
+        `Working tree has uncommitted changes; refusing to ${verb} (switching HEAD off the feature branch would strand them). Commit / stash / discard first, or pass --force.`,
         "dirty-working-tree"
       );
     }
   }
-  const instance = args.instance ?? current.project_id;
   const switchTo = args.switchTo ?? current.parent_branch;
   const warnings = [];
   const headBranch = await getCurrentBranch({ cwd: args.projectDir });
@@ -865,16 +864,13 @@ async function abandonFeatureBranch(args) {
       });
     } catch (err) {
       warnings.push(
-        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch delete may be skipped.`
+        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch state may be left on the feature branch.`
       );
     }
   }
-  const del = await deletePairedBranch({
-    instance,
-    branch: current.branch,
-    cwd: args.projectDir
-  });
-  warnings.push(...del.warnings);
+  return { current, switchTo, warnings };
+}
+function resetToScaffoldComplete(projectDir, current) {
   const reset = {
     $schema: current.$schema,
     version: 1,
@@ -882,7 +878,23 @@ async function abandonFeatureBranch(args) {
     tier_topology: current.tier_topology,
     project_id: current.project_id
   };
-  writeWorkflowState(args.projectDir, reset);
+  writeWorkflowState(projectDir, reset);
+  return reset;
+}
+
+// scripts/lakebase/scm-abandon-feature.ts
+async function abandonFeatureBranch(args) {
+  const { current, warnings } = await prepareClaimRelease(
+    { projectDir: args.projectDir, force: args.force, switchTo: args.switchTo },
+    "abandon"
+  );
+  const del = await deletePairedBranch({
+    instance: args.instance ?? current.project_id,
+    branch: current.branch,
+    cwd: args.projectDir
+  });
+  warnings.push(...del.warnings);
+  const reset = resetToScaffoldComplete(args.projectDir, current);
   return {
     state: reset,
     lakebaseDeleted: del.lakebaseDeleted,
@@ -969,7 +981,7 @@ function renderHuman(report) {
   return lines.join("\n");
 }
 function exitCodeForError(err) {
-  if (err instanceof ScmAbandonError) {
+  if (err instanceof ScmReleaseError) {
     if (err.code === "no-state-file") return 1;
     return 2;
   }
@@ -1002,7 +1014,7 @@ async function runScmAbandonFeatureCli(argv) {
     return 0;
   } catch (e) {
     const err = e;
-    const code = err instanceof ScmAbandonError ? err.code : "substrate-failure";
+    const code = err instanceof ScmReleaseError ? err.code : "substrate-failure";
     const report = {
       ok: false,
       error: { code, message: err.message }

@@ -8095,6 +8095,18 @@ async function getCurrentUser() {
     wrap(err, "GitHub authentication failed");
   }
 }
+async function checkGitHubScopes(required = GITHUB_SCOPES) {
+  try {
+    const ctx = await newContext();
+    const res = await ctx.octokit.rest.users.getAuthenticated();
+    const header = res.headers["x-oauth-scopes"];
+    if (header === void 0 || header === null) return { granted: null, missing: [] };
+    const granted = String(header).split(",").map((s) => s.trim()).filter(Boolean);
+    return { granted, missing: required.filter((s) => !granted.includes(s)) };
+  } catch (err) {
+    wrap(err, "GitHub scope check failed");
+  }
+}
 async function createRepo(name, opts = {}) {
   try {
     const ctx = await newContext();
@@ -9023,6 +9035,7 @@ export {
   GitHubRepoError,
   GitHubRunnerError,
   GitHubSecretsError,
+  checkGitHubScopes,
   createPullRequest,
   createRegistrationToken,
   createRepo,

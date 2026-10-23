@@ -55,6 +55,24 @@ declare class GitHubRepoError extends Error {
 }
 /** Returns the GitHub login of the currently authenticated user. */
 declare function getCurrentUser(): Promise<string>;
+interface GitHubScopeStatus {
+    /** Granted OAuth scopes, or null when the token exposes NONE — a fine-grained
+     *  PAT or GitHub App token carries no OAuth scope header; its permissions
+     *  aren't a scope set, so callers MUST treat null as "unknown", never a miss. */
+    granted: string[] | null;
+    /** Required scopes absent from `granted` (empty when `granted` is null). */
+    missing: string[];
+}
+/**
+ * Read the authenticated token's granted OAuth scopes from the GitHub API
+ * `x-oauth-scopes` response header and diff them against `required`. A classic
+ * OAuth/PAT token returns a (possibly empty) comma-separated header; a
+ * fine-grained PAT / GitHub App token omits it entirely → `granted: null`.
+ * Reading your own user needs no special scope, so this succeeds for any VALID
+ * token regardless of scopes (and throws, like the other ops, on a bad token /
+ * network error — callers decide whether that is blocking).
+ */
+declare function checkGitHubScopes(required?: readonly string[]): Promise<GitHubScopeStatus>;
 interface CreateRepoOptions {
     /** Make the repo private. Default: true. */
     private?: boolean;
@@ -127,4 +145,4 @@ declare function setRepoSecrets(ownerRepo: string, secrets: Record<string, strin
 /** List configured secret names (returns empty array on any error). */
 declare function listSecretNames(ownerRepo: string): Promise<string[]>;
 
-export { type CreateRepoOptions, GITHUB_SCOPES, type GitHubAuthDiagnosis, type GitHubAuthSource, GitHubRepoError, GitHubRunnerError, GitHubSecretsError, type RepoRunner, type VsCodeSessionOptions, createRegistrationToken, createRepo, deleteRepo, deleteRunner, diagnoseGitHubAuth, getActionsEnabled, getCurrentUser, getRepoFullName, getRunnerIdByName, getRunnerStatus, listRepoRunners, listSecretNames, repoExists, resolveGitHubToken, setRepoSecret, setRepoSecrets, tryGhAuthToken, tryVsCodeSession };
+export { type CreateRepoOptions, GITHUB_SCOPES, type GitHubAuthDiagnosis, type GitHubAuthSource, GitHubRepoError, GitHubRunnerError, type GitHubScopeStatus, GitHubSecretsError, type RepoRunner, type VsCodeSessionOptions, checkGitHubScopes, createRegistrationToken, createRepo, deleteRepo, deleteRunner, diagnoseGitHubAuth, getActionsEnabled, getCurrentUser, getRepoFullName, getRunnerIdByName, getRunnerStatus, listRepoRunners, listSecretNames, repoExists, resolveGitHubToken, setRepoSecret, setRepoSecrets, tryGhAuthToken, tryVsCodeSession };

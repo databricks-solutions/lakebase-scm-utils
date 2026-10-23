@@ -9393,8 +9393,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.4".length > 0) {
-    cached = "0.3.4";
+  if ("0.3.8".length > 0) {
+    cached = "0.3.8";
     return cached;
   }
   cached = "unknown";
@@ -10045,44 +10045,46 @@ function parentForTopology(t, defaultLeaf) {
 
 // scripts/lakebase/scm-abandon-feature.ts
 init_esm_shims();
-var ScmAbandonError = class extends Error {
+
+// scripts/lakebase/scm-release-claim.ts
+init_esm_shims();
+var ScmReleaseError = class extends Error {
   constructor(message, code) {
     super(message);
     this.code = code;
-    this.name = "ScmAbandonError";
+    this.name = "ScmReleaseError";
   }
   code;
 };
-async function abandonFeatureBranch(args) {
+async function prepareClaimRelease(args, verb) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
-    throw new ScmAbandonError(
+    throw new ScmReleaseError(
       `No SCM workflow state found at ${args.projectDir}/.lakebase/workflow-state.json.`,
       "no-state-file"
     );
   }
   if (current.state !== "feature-claimed") {
-    throw new ScmAbandonError(
-      `abandon refuses state "${current.state}". Only feature-claimed is abandonable; later states must complete or be reverted via gh.`,
+    throw new ScmReleaseError(
+      `${verb} refuses state "${current.state}". Only feature-claimed is ${verb}able; later states must complete or be reverted via gh.`,
       "bad-precondition"
     );
   }
   if (!current.feature_id || !current.branch || !current.parent_branch || !current.lakebase_branch_uid) {
-    throw new ScmAbandonError(
-      "feature-claimed row is missing required invariants. Cannot abandon safely; consider re-adopting state first.",
+    throw new ScmReleaseError(
+      `feature-claimed row is missing required invariants. Cannot ${verb} safely; consider re-adopting state first.`,
       "missing-claim-fields"
     );
   }
   if (!args.force) {
     const dirty = await isDirty({ cwd: args.projectDir });
     if (dirty) {
-      throw new ScmAbandonError(
-        "Working tree has uncommitted changes; refusing to abandon (the branch delete would lose them). Commit / stash / discard first, or pass --force.",
+      throw new ScmReleaseError(
+        `Working tree has uncommitted changes; refusing to ${verb} (switching HEAD off the feature branch would strand them). Commit / stash / discard first, or pass --force.`,
         "dirty-working-tree"
       );
     }
   }
-  const instance = args.instance ?? current.project_id;
   const switchTo = args.switchTo ?? current.parent_branch;
   const warnings = [];
   const headBranch = await getCurrentBranch({ cwd: args.projectDir });
@@ -10094,16 +10096,13 @@ async function abandonFeatureBranch(args) {
       });
     } catch (err) {
       warnings.push(
-        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch delete may be skipped.`
+        `git checkout ${switchTo} failed: ${err instanceof Error ? err.message : String(err)}. Local branch state may be left on the feature branch.`
       );
     }
   }
-  const del = await deletePairedBranch({
-    instance,
-    branch: current.branch,
-    cwd: args.projectDir
-  });
-  warnings.push(...del.warnings);
+  return { current, switchTo, warnings };
+}
+function resetToScaffoldComplete(projectDir, current) {
   const reset = {
     $schema: current.$schema,
     version: 1,
@@ -10111,7 +10110,23 @@ async function abandonFeatureBranch(args) {
     tier_topology: current.tier_topology,
     project_id: current.project_id
   };
-  writeWorkflowState(args.projectDir, reset);
+  writeWorkflowState(projectDir, reset);
+  return reset;
+}
+
+// scripts/lakebase/scm-abandon-feature.ts
+async function abandonFeatureBranch(args) {
+  const { current, warnings } = await prepareClaimRelease(
+    { projectDir: args.projectDir, force: args.force, switchTo: args.switchTo },
+    "abandon"
+  );
+  const del = await deletePairedBranch({
+    instance: args.instance ?? current.project_id,
+    branch: current.branch,
+    cwd: args.projectDir
+  });
+  warnings.push(...del.warnings);
+  const reset = resetToScaffoldComplete(args.projectDir, current);
   return {
     state: reset,
     lakebaseDeleted: del.lakebaseDeleted,
