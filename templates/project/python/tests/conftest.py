@@ -34,7 +34,7 @@ def db_session():
 
 
 @pytest.fixture(autouse=True)
-def _restore_migration_head_after_each_test():
+def _restore_migration_head_after_each_test(request):
     """Within-run test isolation for migration up/down fixtures.
 
     Some tests drive Alembic up/down against the shared verify database (a
@@ -42,10 +42,18 @@ def _restore_migration_head_after_each_test():
     `upgrade head`). Run sequentially against ONE database, those fixtures can
     leave it half-migrated , or, if a downgrade overshoots, below a table a later
     test needs , so the next test fails with `relation ... does not exist`. This
-    autouse teardown brings the DB back to `head` after EVERY test, so each test
-    starts from the fully-migrated schema regardless of what the previous one did.
-    """
+    teardown brings the DB back to `head` after a schema-mutating test.
+
+    SCOPED to ``@pytest.mark.migration`` tests only (perf): ONLY a migration test
+    downgrades/alters the schema , and the ``migration-marker-presence`` smell
+    GUARANTEES every schema-mutating test carries that marker , so a NON-migration
+    test cannot have changed the schema and needs no restore. Restoring after every
+    test ran a full alembic env-load + DB round-trip (~1-2s) after each of the many
+    non-migration tests to 'restore' a schema they never touched , the dominant cost
+    of the non-migration pass. Skipping it there is safe by construction."""
     yield
+    if request.node.get_closest_marker("migration") is None:
+        return  # a non-migration test cannot have altered the schema (marker smell enforces it)
     try:
         from pathlib import Path
 
@@ -249,6 +257,32 @@ def _consort_capture_tables(test_id, item):
                 fh.write("\n".join(lines) + "\n")
     except (OSError, ValueError, TypeError):
         pass
+
+
+def pytest_collection_modifyitems(config, items):
+    """Build-lane SCOPE (per-cycle waste elimination): when ``SFTDD_TEST_IDS`` is set (a space/comma
+    list of test ids), run ONLY the tests whose ``@pytest.mark.testid`` is in that set and DESELECT the
+    rest. The build's per-cycle GREEN verify sets it to the CURRENT STORY's ids, so a cycle re-runs
+    only its own story instead of every feature's suite (intra-story regressions still caught); the
+    story-close REFACTOR + feature-deploy gates leave it UNSET and run the FULL cross-story suite (that
+    is where a cross-story regression is caught, before merge). UNTAGGED items (no testid — shared
+    fixtures / infra) are always KEPT, never deselected. Unset/empty => no-op (full collection)."""
+    import os
+    import re
+
+    raw = (os.environ.get("SFTDD_TEST_IDS") or "").strip()
+    if not raw:
+        return
+    wanted = {t for t in re.split(r"[,\s]+", raw) if t}
+    if not wanted:
+        return
+    selected, deselected = [], []
+    for item in items:
+        tid = _consort_testid(item)
+        (selected if (tid is None or tid in wanted) else deselected).append(item)
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = selected
 
 
 def pytest_runtest_setup(item):

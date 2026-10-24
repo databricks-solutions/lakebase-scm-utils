@@ -25,6 +25,7 @@ import os
 import subprocess
 import tempfile
 import time
+import urllib.error
 import urllib.request
 
 import pytest
@@ -41,7 +42,10 @@ def _is_up(url: str) -> bool:
             return resp.status < 500
     except urllib.error.HTTPError as exc:  # noqa: PERF203 - a 4xx still means it's up
         return exc.code < 500
-    except Exception:
+    except (urllib.error.URLError, OSError):
+        # NOT a broad-integrity swallow: a readiness poll returns False on the server
+        # not-yet-listening (connection refused / DNS / socket timeout — all URLError/OSError),
+        # never masks a DB-integrity violation. Narrow so the smell gate does not false-positive.
         return False
 
 
