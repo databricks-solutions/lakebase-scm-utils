@@ -39,6 +39,9 @@ interface ParsedArgs {
   instance?: string;
   branch?: string;
   parentBranch?: string;
+  fromSnapshot?: string;
+  atTime?: string;
+  atLsn?: string;
   ttl?: string;
   noExpiry?: boolean;
   cwd?: string;
@@ -84,6 +87,15 @@ function parseArgs(argv: string[]): ParsedArgs {
       case "--parent":
       case "--parent-branch":
         out.parentBranch = argv[++i];
+        break;
+      case "--from-snapshot":
+        out.fromSnapshot = argv[++i];
+        break;
+      case "--at-time":
+        out.atTime = argv[++i];
+        break;
+      case "--at-lsn":
+        out.atLsn = argv[++i];
         break;
       case "--ttl":
         out.ttl = argv[++i];
@@ -259,6 +271,9 @@ async function main(): Promise<number> {
           host: args.host,
           branch: args.branch!,
           parentBranch: args.parentBranch,
+          fromSnapshot: args.fromSnapshot,
+          sourceBranchTime: args.atTime,
+          sourceBranchLsn: args.atLsn,
           ttl: args.ttl,
           noExpiry: args.noExpiry,
         });

@@ -34,6 +34,7 @@ const entry = {
   "scripts/lakebase/ci-app-endpoint.cli": "scripts/lakebase/ci-app-endpoint.cli.ts",
   "scripts/lakebase/ci-resolve-branch.cli": "scripts/lakebase/ci-resolve-branch.cli.ts",
   "scripts/lakebase/branch.cli": "scripts/lakebase/branch.cli.ts",
+  "scripts/lakebase/snapshot.cli": "scripts/lakebase/snapshot.cli.ts",
   "scripts/lakebase/doctor.cli": "scripts/lakebase/doctor.cli.ts",
   "scripts/lakebase/scm-state.cli": "scripts/lakebase/scm-state.cli.ts",
   "scripts/lakebase/scm-claim-feature.cli": "scripts/lakebase/scm-claim-feature.cli.ts",

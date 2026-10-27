@@ -287,6 +287,29 @@ interface CreateBranchArgs extends BranchLookupOpts {
      * caller's expectation. Default: false (fallback enabled).
      */
     strictParent?: boolean;
+    /**
+     * Branch from an immutable SNAPSHOT instead of a source branch (the kit's
+     * fast verify-branch provisioning: snapshot the committed schema once, then
+     * branch copy-on-write from it per cycle — no `alembic upgrade head` rebuild,
+     * and a FIXED point so the fork never goes stale). Accepts a bare snapshot id
+     * or a full `projects/<p>/snapshots/<id>` path. Maps to `spec.source_snapshot`,
+     * which the Lakebase API treats as mutually exclusive with source_branch /
+     * source_branch_time / source_branch_lsn — so when set, the parentBranch
+     * resolution below is skipped entirely.
+     */
+    fromSnapshot?: string;
+    /**
+     * Point-in-time for a branch-from-branch create: an ISO-8601 timestamp.
+     * Maps to `spec.source_branch_time` — branch the source branch AS OF this
+     * time (PITR). Mutually exclusive with sourceBranchLsn and with fromSnapshot.
+     */
+    sourceBranchTime?: string;
+    /**
+     * Point-in-time for a branch-from-branch create: an LSN (e.g. "0/16B3748").
+     * Maps to `spec.source_branch_lsn`. Mutually exclusive with sourceBranchTime
+     * and with fromSnapshot.
+     */
+    sourceBranchLsn?: string;
 }
 /**
  * Create a Lakebase branch.

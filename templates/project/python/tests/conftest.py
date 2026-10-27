@@ -270,6 +270,28 @@ def pytest_collection_modifyitems(config, items):
     import os
     import re
 
+    # DEFER superseded cross-story tests off the serial-first AC's verify (SFTDD_DEFER_FILES, set
+    # by the deferred serial-first AC of a parallel-lane fan-out). These prior-story tests fail only
+    # because THIS AC's drop migration superseded them; the coordinator's supersession sweep retargets
+    # them ONCE right after this AC, and the final feature-deploy verify (no defer) re-runs them
+    # retargeted. Deselected by FILE because the migration pass runs them regardless of the testid
+    # scope below, and they are typically cross-story / untagged (so always-KEPT by that scope).
+    defer_raw = (os.environ.get("SFTDD_DEFER_FILES") or "").strip()
+    if defer_raw:
+        defer_files = {f for f in re.split(r"[,\s]+", defer_raw) if f.endswith(".py")}
+        if defer_files:
+            kept, dropped = [], []
+            for item in items:
+                nodefile = item.nodeid.split("::", 1)[0].replace(os.sep, "/")
+                fspath = str(getattr(item, "fspath", "") or "").replace(os.sep, "/")
+                if any(nodefile == df or nodefile.endswith("/" + df) or fspath.endswith("/" + df) for df in defer_files):
+                    dropped.append(item)
+                else:
+                    kept.append(item)
+            if dropped:
+                config.hook.pytest_deselected(items=dropped)
+                items[:] = kept
+
     raw = (os.environ.get("SFTDD_TEST_IDS") or "").strip()
     if not raw:
         return

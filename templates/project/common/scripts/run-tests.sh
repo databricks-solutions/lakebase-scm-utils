@@ -155,6 +155,27 @@ else
   exit 1
 fi
 
+# NOTE: a per-cycle client AC-scope (vitest -t / playwright --grep from SFTDD_TEST_IDS) was tried and
+# REVERTED (live-proven harmful, 2026-10-24): scoping the per-cycle client pass to the current AC's
+# @T specs stops the FULL client suite from running per cycle, which is what detects SUPERSESSION — a
+# prior test asserting an element the current story removed (e.g. S2 split the combined
+# `tracking-not-tracked` cell into batch/serial). Without that in-cycle RED the driver never refactors
+# the superseded test, so it surfaces LATER as a deploy-verify HALT instead of a smooth in-cycle
+# refactor. The client Vitest is cheap (jsdom) and the expensive Playwright E2E is already cost-gated
+# by cycle layer below, so the full per-cycle client run stays — it is load-bearing, not waste.
+#
+# EXCEPTION — #2 parallel-lane scope (gated): in a SCOPED-LANE drive (CONSORT_SCOPE_AC set, i.e. a
+# parallel per-AC lane / the contract story's serial-first AC), the cross-story supersession is owned by
+# the DETERMINISTIC hoist sweep, NOT by this reactive full-client-run. So there the client pass is scoped
+# to THIS AC's @T specs (it must not re-run the cross-story suite + re-trigger supersession wave-by-wave
+# on the lanes' critical path). FLEET drives (no CONSORT_SCOPE_AC) are UNCHANGED — full client suite,
+# supersession detection intact. The gate is what makes the reverted scope safe to re-introduce here.
+SFTDD_CLIENT_GREP=""
+if [ -n "${CONSORT_SCOPE_AC:-}" ] && [ -n "${SFTDD_TEST_IDS:-}" ]; then
+  SFTDD_CLIENT_GREP="@($(echo "$SFTDD_TEST_IDS" | tr -s ' ' '|' | sed 's/^|//;s/|$//'))"
+  echo "Scoped-lane client pass (CONSORT_SCOPE_AC=$CONSORT_SCOPE_AC): client tests scoped to $SFTDD_CLIENT_GREP"
+fi
+
 # React SPA client unit tests (Vitest + Testing Library). Only on a full run
 # (no positional path arg, so a per-cycle backend-layer invocation does not drag
 # in the client suite), and only when a client/ workspace is present. This is the
@@ -192,7 +213,11 @@ if [ "$#" -eq 0 ] && [ -f "$REPO_ROOT/client/package.json" ]; then
   echo "Running client strict typecheck (tsc --noEmit, matching CI's build)..."
   ( cd "$REPO_ROOT/client" && npm run typecheck --if-present )
   echo "Running client unit tests (Vitest)..."
-  ( cd "$REPO_ROOT/client" && npm test )
+  if [ -n "$SFTDD_CLIENT_GREP" ]; then
+    ( cd "$REPO_ROOT/client" && npm test -- -t "$SFTDD_CLIENT_GREP" )
+  else
+    ( cd "$REPO_ROOT/client" && npm test )
+  fi
 fi
 
 # React SPA client E2E (Playwright). The client's end-to-end suite (client/tests/e2e/*.spec.ts) MUST run
@@ -273,7 +298,23 @@ if [ "$#" -eq 0 ] && [ -d "$REPO_ROOT/client/tests/e2e" ] \
     # (old `!CI` and new `!!BASE_URL` alike) so the verify never reuses a stale
     # server bound to an unmigrated branch (issue #197's false-500 misdiagnosis).
     ensure_local_e2e_ports
-    ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && CI=1 npm run test:e2e )
+    e2e_rc=0
+    # #2 scoped-lane: scope the E2E to THIS AC's @T specs (gated on CONSORT_SCOPE_AC; fleet runs full).
+    if [ -n "$SFTDD_CLIENT_GREP" ]; then
+      ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && CI=1 npm run test:e2e -- --grep "$SFTDD_CLIENT_GREP" ) || e2e_rc=$?
+    else
+      ( cd "$REPO_ROOT/client" && ./node_modules/.bin/playwright install chromium && CI=1 npm run test:e2e ) || e2e_rc=$?
+    fi
+    # #7 within-cycle reap: Playwright's webServer SHOULD self-tear-down, but a killed/detached run
+    # leaves a uvicorn (+ vite) on the E2E ports that otherwise lingers until the NEXT cycle's
+    # scan-reaper — so a heavy-E2E cycle's repeated runs pile up. Reap them here, right after the run.
+    # NEVER when BASE_URL is set (the deploy gate owns that server, same guard as ensure_local_e2e_ports).
+    if [ -z "${BASE_URL:-}" ] && command -v lsof >/dev/null 2>&1; then
+      for p in "${E2E_BACKEND_PORT:-}" "${E2E_CLIENT_PORT:-}"; do
+        [ -n "$p" ] && lsof -ti tcp:"$p" 2>/dev/null | xargs kill 2>/dev/null || true
+      done
+    fi
+    [ "$e2e_rc" -eq 0 ] || exit "$e2e_rc"
   fi
 fi
 

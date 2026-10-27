@@ -393,8 +393,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.8".length > 0) {
-    cached = "0.3.8";
+  if ("0.3.10".length > 0) {
+    cached = "0.3.10";
     return cached;
   }
   cached = "unknown";
@@ -441,22 +441,24 @@ async function getConnection(args) {
   const endpointPath = `projects/${args.instance}/branches/${branchId}/endpoints/${endpointName}`;
   if (args.output === "dsn") {
     const host2 = await resolveEndpointHost(args.instance, branchId);
-    const { token, email: email2 } = await mintCredential(endpointPath);
-    const url = buildPostgresUrl({ host: host2, port: POSTGRES_PORT, database, user: email2, password: token });
+    const { token: token2, email: email2 } = await mintCredential(endpointPath);
+    const url = buildPostgresUrl({ host: host2, port: POSTGRES_PORT, database, user: email2, password: token2 });
     return { url, host: host2, port: POSTGRES_PORT, database, user: email2, endpointPath };
   }
   const host = await resolveEndpointHost(args.instance, branchId);
-  const email = await resolveCurrentUser();
   process.env.PGAPPNAME = connectionApplicationName();
-  return createLakebasePool({
-    endpoint: endpointPath,
-    host,
-    database,
-    user: email,
-    // workspaceClient is passed through verbatim. createLakebasePool falls
-    // back to environment / ServiceContext when omitted.
-    ...args.workspaceClient !== void 0 ? { workspaceClient: args.workspaceClient } : {}
-  });
+  if (args.workspaceClient !== void 0) {
+    const email2 = await resolveCurrentUser();
+    return createLakebasePool({
+      endpoint: endpointPath,
+      host,
+      database,
+      user: email2,
+      workspaceClient: args.workspaceClient
+    });
+  }
+  const { token, email } = await mintCredential(endpointPath);
+  return createLakebasePool({ host, database, user: email, password: token });
 }
 async function resolveEndpointHost(instance, branch) {
   const branchId = await resolveBranchId({ instance, branch });

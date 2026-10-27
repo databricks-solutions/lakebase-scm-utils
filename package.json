@@ -1,6 +1,6 @@
 {
   "name": "@databricks-solutions/lakebase-scm-utils",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Lakebase SCM + substrate engine: database branching, paired-branch SCM workflows, connection/credential minting, schema migration, project scaffold + deploy primitives, and the git/github utility layer. Extracted from consort for portable, standalone consumption by lakebase-scm-extension and the SFTDD orchestration.",
   "type": "module",
   "private": false,
@@ -107,6 +107,7 @@
     "lakebase-scm-recover-orphans": "./dist/scripts/lakebase/scm-recover-orphans.cli.js",
     "lakebase-scm-state": "./dist/scripts/lakebase/scm-state.cli.js",
     "lakebase-scm-wait-ci": "./dist/scripts/lakebase/scm-wait-ci.cli.js",
+    "lakebase-snapshot": "./dist/scripts/lakebase/snapshot.cli.js",
     "lakebase-sync-ci-secrets": "./dist/scripts/lakebase/sync-ci-secrets.cli.js"
   },
   "scripts": {

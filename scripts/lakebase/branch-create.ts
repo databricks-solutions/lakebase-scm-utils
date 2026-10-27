@@ -87,6 +87,57 @@ export interface CreateBranchArgs extends BranchLookupOpts {
    * caller's expectation. Default: false (fallback enabled).
    */
   strictParent?: boolean;
+  /**
+   * Branch from an immutable SNAPSHOT instead of a source branch (the kit's
+   * fast verify-branch provisioning: snapshot the committed schema once, then
+   * branch copy-on-write from it per cycle — no `alembic upgrade head` rebuild,
+   * and a FIXED point so the fork never goes stale). Accepts a bare snapshot id
+   * or a full `projects/<p>/snapshots/<id>` path. Maps to `spec.source_snapshot`,
+   * which the Lakebase API treats as mutually exclusive with source_branch /
+   * source_branch_time / source_branch_lsn — so when set, the parentBranch
+   * resolution below is skipped entirely.
+   */
+  fromSnapshot?: string;
+  /**
+   * Point-in-time for a branch-from-branch create: an ISO-8601 timestamp.
+   * Maps to `spec.source_branch_time` — branch the source branch AS OF this
+   * time (PITR). Mutually exclusive with sourceBranchLsn and with fromSnapshot.
+   */
+  sourceBranchTime?: string;
+  /**
+   * Point-in-time for a branch-from-branch create: an LSN (e.g. "0/16B3748").
+   * Maps to `spec.source_branch_lsn`. Mutually exclusive with sourceBranchTime
+   * and with fromSnapshot.
+   */
+  sourceBranchLsn?: string;
+}
+
+/** The create-branch request `spec` — one source group (source_branch [+time|+lsn]
+ *  OR source_snapshot) plus exactly one expiration (no_expiry | ttl). */
+interface BranchSpec {
+  source_branch?: string;
+  source_snapshot?: string;
+  source_branch_time?: string;
+  source_branch_lsn?: string;
+  no_expiry?: boolean;
+  ttl?: string;
+}
+
+/** Resolve a snapshot arg (bare id or full path) to the full snapshot resource path. */
+function snapshotPath(instance: string, snapshot: string): string {
+  return snapshot.includes("/") ? snapshot : `${projectPath(instance)}/snapshots/${snapshot}`;
+}
+
+/** Apply the expiration policy (ttl wins; else default no_expiry: true) onto a spec,
+ *  refusing the inconsistent ttl + noExpiry:true combination. */
+function applyExpiration(spec: BranchSpec, ttl: string | undefined, noExpiry: boolean | undefined): void {
+  if (ttl && noExpiry === true) {
+    throw new LakebaseBranchError(
+      `Cannot set both ttl ("${ttl}") and noExpiry: true on the same branch – they are mutually exclusive. Pass one or the other.`,
+    );
+  }
+  if (ttl) spec.ttl = ttl;
+  else if (noExpiry ?? true) spec.no_expiry = true;
 }
 
 /**
@@ -103,6 +154,38 @@ export interface CreateBranchArgs extends BranchLookupOpts {
 export async function createBranch(args: CreateBranchArgs): Promise<LakebaseBranchInfo> {
   const sanitized = sanitizeBranchName(args.branch);
   const lookup: BranchLookupOpts = { instance: args.instance, host: args.host };
+
+  // SNAPSHOT SOURCE (fast verify-branch provisioning): branch copy-on-write from an
+  // immutable snapshot. source_snapshot is mutually exclusive with the source_branch
+  // family, so this path skips parentBranch resolution entirely. Idempotent: a branch
+  // that already exists under this name is returned as-is (the ephemeral verify branches
+  // this serves are single-use; we don't re-assert the snapshot lineage of a survivor).
+  if (args.fromSnapshot) {
+    if (args.parentBranch || args.sourceBranchTime || args.sourceBranchLsn) {
+      throw new LakebaseBranchError(
+        `fromSnapshot is mutually exclusive with parentBranch / sourceBranchTime / sourceBranchLsn ` +
+          `(the Lakebase API rejects source_snapshot combined with any source_branch field).`,
+      );
+    }
+    const existing = await getBranchByName(sanitized, lookup);
+    if (existing) return existing;
+    const spec: BranchSpec = { source_snapshot: snapshotPath(args.instance, args.fromSnapshot) };
+    applyExpiration(spec, args.ttl, args.noExpiry);
+    try {
+      await createWithTtlRecovery(args.instance, sanitized, spec, args.host);
+    } catch (err) {
+      if (err instanceof LakebaseBranchTtlTooLongError) throw err;
+      const landed = await getBranchByName(sanitized, lookup);
+      if (!landed) throw err;
+    }
+    return waitForBranchReady({
+      instance: args.instance,
+      host: args.host,
+      branch: sanitized,
+      timeoutMs: args.readyTimeoutMs ?? KIT_TIMEOUTS.readyWait,
+      pollIntervalMs: args.pollIntervalMs ?? KIT_TIMEOUTS.readyPoll,
+    });
+  }
 
   // Resolve the source (parent) branch full path first – needed both for
   // create AND for the idempotency-vs-conflict comparison below.
@@ -182,22 +265,18 @@ export async function createBranch(args: CreateBranchArgs): Promise<LakebaseBran
     return existing;
   }
 
-  // Expiration policy: ttl wins if set; otherwise default to no_expiry: true.
-  // Refuse the inconsistent combination (ttl + noExpiry: true both set).
-  if (args.ttl && args.noExpiry === true) {
+  if (args.sourceBranchTime && args.sourceBranchLsn) {
     throw new LakebaseBranchError(
-      `Cannot set both ttl ("${args.ttl}") and noExpiry: true on the same ` +
-        `branch – they are mutually exclusive. Pass one or the other.`,
+      `sourceBranchTime and sourceBranchLsn are mutually exclusive – pass at most one point-in-time.`,
     );
   }
-  const specObj: { source_branch: string; no_expiry?: boolean; ttl?: string } = {
-    source_branch: sourceBranchPath,
-  };
-  if (args.ttl) {
-    specObj.ttl = args.ttl;
-  } else if (args.noExpiry ?? true) {
-    specObj.no_expiry = true;
-  }
+  const specObj: BranchSpec = { source_branch: sourceBranchPath };
+  // PITR: pin the source branch at a timestamp or LSN (source_branch_time /
+  // source_branch_lsn) — e.g. branch the higher env AS OF the committed-schema point.
+  if (args.sourceBranchTime) specObj.source_branch_time = args.sourceBranchTime;
+  else if (args.sourceBranchLsn) specObj.source_branch_lsn = args.sourceBranchLsn;
+  // Expiration policy: ttl wins if set; otherwise default to no_expiry: true.
+  applyExpiration(specObj, args.ttl, args.noExpiry);
   try {
     await createWithTtlRecovery(args.instance, sanitized, specObj, args.host);
   } catch (err) {
@@ -299,7 +378,7 @@ function assertSourceMatches(
 async function createWithTtlRecovery(
   instance: string,
   sanitized: string,
-  specObj: { source_branch: string; no_expiry?: boolean; ttl?: string },
+  specObj: BranchSpec,
   host: string | undefined,
 ): Promise<void> {
   const originalTtl = specObj.ttl;

@@ -86650,9 +86650,46 @@ function dbcli2(args, host, timeout = KIT_TIMEOUTS.cliDefault) {
 }
 
 // scripts/lakebase/branch-create.ts
+function snapshotPath(instance, snapshot) {
+  return snapshot.includes("/") ? snapshot : `${projectPath(instance)}/snapshots/${snapshot}`;
+}
+function applyExpiration(spec, ttl, noExpiry) {
+  if (ttl && noExpiry === true) {
+    throw new LakebaseBranchError(
+      `Cannot set both ttl ("${ttl}") and noExpiry: true on the same branch \u2013 they are mutually exclusive. Pass one or the other.`
+    );
+  }
+  if (ttl) spec.ttl = ttl;
+  else if (noExpiry ?? true) spec.no_expiry = true;
+}
 async function createBranch(args) {
   const sanitized = sanitizeBranchName(args.branch);
   const lookup = { instance: args.instance, host: args.host };
+  if (args.fromSnapshot) {
+    if (args.parentBranch || args.sourceBranchTime || args.sourceBranchLsn) {
+      throw new LakebaseBranchError(
+        `fromSnapshot is mutually exclusive with parentBranch / sourceBranchTime / sourceBranchLsn (the Lakebase API rejects source_snapshot combined with any source_branch field).`
+      );
+    }
+    const existing2 = await getBranchByName(sanitized, lookup);
+    if (existing2) return existing2;
+    const spec = { source_snapshot: snapshotPath(args.instance, args.fromSnapshot) };
+    applyExpiration(spec, args.ttl, args.noExpiry);
+    try {
+      await createWithTtlRecovery(args.instance, sanitized, spec, args.host);
+    } catch (err) {
+      if (err instanceof LakebaseBranchTtlTooLongError) throw err;
+      const landed = await getBranchByName(sanitized, lookup);
+      if (!landed) throw err;
+    }
+    return waitForBranchReady({
+      instance: args.instance,
+      host: args.host,
+      branch: sanitized,
+      timeoutMs: args.readyTimeoutMs ?? KIT_TIMEOUTS.readyWait,
+      pollIntervalMs: args.pollIntervalMs ?? KIT_TIMEOUTS.readyPoll
+    });
+  }
   let sourceBranchPath;
   if (args.parentBranch) {
     if (looksLikeBranchUid(args.parentBranch)) {
@@ -86700,19 +86737,15 @@ async function createBranch(args) {
     assertSourceMatches(existing, sourceBranchPath, sanitized);
     return existing;
   }
-  if (args.ttl && args.noExpiry === true) {
+  if (args.sourceBranchTime && args.sourceBranchLsn) {
     throw new LakebaseBranchError(
-      `Cannot set both ttl ("${args.ttl}") and noExpiry: true on the same branch \u2013 they are mutually exclusive. Pass one or the other.`
+      `sourceBranchTime and sourceBranchLsn are mutually exclusive \u2013 pass at most one point-in-time.`
     );
   }
-  const specObj = {
-    source_branch: sourceBranchPath
-  };
-  if (args.ttl) {
-    specObj.ttl = args.ttl;
-  } else if (args.noExpiry ?? true) {
-    specObj.no_expiry = true;
-  }
+  const specObj = { source_branch: sourceBranchPath };
+  if (args.sourceBranchTime) specObj.source_branch_time = args.sourceBranchTime;
+  else if (args.sourceBranchLsn) specObj.source_branch_lsn = args.sourceBranchLsn;
+  applyExpiration(specObj, args.ttl, args.noExpiry);
   try {
     await createWithTtlRecovery(args.instance, sanitized, specObj, args.host);
   } catch (err) {
@@ -88240,8 +88273,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.8".length > 0) {
-    cached = "0.3.8";
+  if ("0.3.10".length > 0) {
+    cached = "0.3.10";
     return cached;
   }
   cached = "unknown";
@@ -88288,22 +88321,24 @@ async function getConnection(args) {
   const endpointPath2 = `projects/${args.instance}/branches/${branchId}/endpoints/${endpointName}`;
   if (args.output === "dsn") {
     const host2 = await resolveEndpointHost(args.instance, branchId);
-    const { token, email: email2 } = await mintCredential(endpointPath2);
-    const url = buildPostgresUrl({ host: host2, port: POSTGRES_PORT, database, user: email2, password: token });
+    const { token: token2, email: email2 } = await mintCredential(endpointPath2);
+    const url = buildPostgresUrl({ host: host2, port: POSTGRES_PORT, database, user: email2, password: token2 });
     return { url, host: host2, port: POSTGRES_PORT, database, user: email2, endpointPath: endpointPath2 };
   }
   const host = await resolveEndpointHost(args.instance, branchId);
-  const email = await resolveCurrentUser();
   process.env.PGAPPNAME = connectionApplicationName();
-  return createLakebasePool({
-    endpoint: endpointPath2,
-    host,
-    database,
-    user: email,
-    // workspaceClient is passed through verbatim. createLakebasePool falls
-    // back to environment / ServiceContext when omitted.
-    ...args.workspaceClient !== void 0 ? { workspaceClient: args.workspaceClient } : {}
-  });
+  if (args.workspaceClient !== void 0) {
+    const email2 = await resolveCurrentUser();
+    return createLakebasePool({
+      endpoint: endpointPath2,
+      host,
+      database,
+      user: email2,
+      workspaceClient: args.workspaceClient
+    });
+  }
+  const { token, email } = await mintCredential(endpointPath2);
+  return createLakebasePool({ host, database, user: email, password: token });
 }
 async function resolveEndpointHost(instance, branch) {
   const branchId = await resolveBranchId({ instance, branch });

@@ -136,7 +136,6 @@ export async function getConnection(args: ConnectionArgs): Promise<DsnResult | P
 
   // output === "pool"
   const host = await resolveEndpointHost(args.instance, branchId);
-  const email = await resolveCurrentUser();
   // Label the POOLED path too , it is the PRIMARY one (schema-diff, reconcile-tier). Passing
   // application_name in createLakebasePool's config does NOT work: it builds its own pg
   // PoolConfig and drops the field (verified live , the pooled connection came back with an
@@ -145,17 +144,35 @@ export async function getConnection(args: ConnectionArgs): Promise<DsnResult | P
   // call time (not import) so CONSORT_VERSION , which Consort exports at its entry point , is
   // already in the env when connectionApplicationName() reads it.
   process.env.PGAPPNAME = connectionApplicationName();
-  return createLakebasePool({
-    endpoint: endpointPath,
-    host,
-    database,
-    user: email,
-    // workspaceClient is passed through verbatim. createLakebasePool falls
-    // back to environment / ServiceContext when omitted.
-    ...(args.workspaceClient !== undefined
-      ? { workspaceClient: args.workspaceClient as never }
-      : {}),
-  });
+
+  // AppKit OBO: an explicit workspaceClient is a pre-authenticated caller , keep the
+  // OAuth/token-rotation path with it verbatim.
+  if (args.workspaceClient !== undefined) {
+    const email = await resolveCurrentUser();
+    return createLakebasePool({
+      endpoint: endpointPath,
+      host,
+      database,
+      user: email,
+      workspaceClient: args.workspaceClient as never,
+    });
+  }
+
+  // CLI/kit path (no workspaceClient): DO NOT let createLakebasePool self-authenticate
+  // via the SDK default chain. That runs `databricks auth token --host <workspace-host>`
+  // WITHOUT a profile, so when several ~/.databrickscfg profiles match that host (e.g.
+  // DEFAULT + an adb-* + logfood all pointing at the same workspace) the CLI refuses
+  // ("Use --profile to specify which profile to use") and the pool connection fails
+  // ("default auth: databricks-cli: cannot get access token"). That silently broke
+  // schema-diff at deploy-verify (the diff came back empty, failing the schema-diff
+  // test) whenever the host was ambiguous. Instead MINT the credential through the
+  // kit's profile-threaded CLI wrapper (mintCredential -> runDatabricksSync -> the
+  // resolved `--profile`, the same unambiguous path the DSN output uses) and pass it as
+  // `password`: LakebasePoolConfig skips OAuth entirely when a password is supplied. The
+  // kit's pool consumers (schema-diff, reconcile-tier) are short batch reads, well inside
+  // the credential TTL, so forgoing token rotation here is safe.
+  const { token, email } = await mintCredential(endpointPath);
+  return createLakebasePool({ host, database, user: email, password: token });
 }
 
 /**

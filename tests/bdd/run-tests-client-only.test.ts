@@ -81,6 +81,19 @@ describe("run-tests.sh SFTDD_CLIENT_ONLY (Finding 26)", () => {
     expect(ok).toBe(false);
   });
 
+  // REGRESSION GUARD (the reverted #2): the per-cycle client pass must run the FULL client suite even
+  // when SFTDD_TEST_IDS is set — AC-scoping it (vitest -t / playwright --grep) was live-proven to break
+  // in-cycle SUPERSESSION detection (a prior test asserting an element the current story removed never
+  // ran per-cycle, so it surfaced as a deploy-verify HALT). Keep the client pass unscoped.
+  it("does NOT AC-scope the client Vitest even when SFTDD_TEST_IDS is set (supersession-detection guard)", () => {
+    const root = scaffold();
+    const { ok, out } = run(root, { SFTDD_CLIENT_ONLY: "1", SFTDD_TEST_IDS: "T18 T19" });
+    expect(ok).toBe(true);
+    expect(out).toMatch(/CLIENT_VITEST_RAN/);
+    expect(out).not.toMatch(/-t /); // no name filter forwarded to vitest
+    expect(out).not.toMatch(/Client scope/);
+  });
+
   it("runs the strict typecheck BEFORE the tests, matching CI (a scaffolded typecheck script)", () => {
     const root = scaffold();
     fs.writeFileSync(
