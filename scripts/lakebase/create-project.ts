@@ -9,20 +9,23 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeEnvFile } from "./env-file.js";
 import { verifyProject, verifyHooks, verifyWorkflows } from "./project-verify.js";
-import { createRepo, getRepoFullName, getCurrentUser } from "../github/repo.js";
+import { createRepo, getRepoFullName, getCurrentUser, deleteRepo } from "../github/repo.js";
 import { cloneRepo } from "../git/clone.js";
 import { gitInit } from "../git/init.js";
-import { commitAndPush } from "../git/commit-push.js";
+import { commitInitial, pushInitial, WorkflowScopeError } from "../git/commit-push.js";
 import {
   createLakebaseProject,
   getDefaultBranchId,
+  deleteLakebaseProject,
 } from "./lakebase-project.js";
 import {
   checkDatabricksAuth,
   databricksAuthPrereqMessage,
-  checkGitHubWorkflowScope,
-  githubWorkflowScopePrereqMessage,
-  withLakebaseRollback,
+  checkGitHubPreflight,
+  warmAndVerifyKit,
+  kitWarmWarning,
+  createRollbackLedger,
+  withCreateRollback,
   validateCreateInputs,
   dirIsEmpty,
 } from "./create-preflight.js";
@@ -32,7 +35,7 @@ import { createLongRunningBranch } from "./long-running-branch.js";
 import { enableE2eForProject } from "./enable-e2e.js";
 import { ensureClientLockfile } from "./client-lockfile.js";
 import { enableInfraForProject } from "./enable-infra.js";
-import { setupRunner } from "./runner-setup.js";
+import { setupRunner, removeRunner } from "./runner-setup.js";
 import { syncCiSecrets, missingCiSecrets } from "../util/ci-secrets.js";
 import { delay } from "../util/delay.js";
 import {
@@ -291,18 +294,32 @@ export async function createProject(
     throw new Error(databricksAuthPrereqMessage(host, auth.reason));
   }
 
-  // ── GitHub token `workflow` scope precondition ────────────────
-  // The scaffold's final push commits .github/workflows/*, which GitHub rejects
-  // unless the token carries the `workflow` OAuth scope. Check it HERE, before any
-  // GitHub repo or Lakebase project exists, so a missing scope fails in seconds with
-  // a fix instead of at the final push after all provisioning (which then rolls back).
+  // ── GitHub account + requisites precondition (B) ──────────────
+  // ONE up-front GitHub preflight, BEFORE any repo / Lakebase project exists, so a
+  // missing requisite fails in seconds with a fix instead of mid-create (where it
+  // orphans partial artifacts): the active account resolves (else a wrong/absent
+  // token 403s LATE at the push), the full required scope set is present (repo +
+  // workflow — not just workflow), and the repo name is free. Conservative: notes
+  // (owner/org mismatch, invisible/advisory scopes) are surfaced but never block.
   if (useGithub) {
-    report("Checking GitHub token scopes...");
-    const scope = await checkGitHubWorkflowScope();
-    if (!scope.ok) {
-      throw new Error(githubWorkflowScopePrereqMessage(scope.reason));
+    report("Checking GitHub account + token requisites...");
+    const gh = await checkGitHubPreflight({ owner: input.githubOwner!, repoName: input.projectName });
+    for (const w of gh.warnings) {
+      warnings.push(w);
+      report(`Note: ${w}`);
     }
+    if (!gh.ok) throw new Error(gh.reason);
   }
+
+  // The created-resources ledger (A3): each resource registers its teardown the
+  // moment it is created, and a genuine provisioning throw inside the wrapper below
+  // rolls back ALL of them in reverse — the GitHub repo, the runner, the local dir,
+  // AND the Lakebase project together — leaving a clean "name is free" state (not
+  // the old 4-artifact orphan where only the Lakebase project was undone). A
+  // push-only failure is caught locally below and is NOT a provisioning throw, so
+  // it never triggers a rollback.
+  const rollback = createRollbackLedger();
+  return await withCreateRollback(rollback, { report }, async (): Promise<CreateProjectResult> => {
 
   // ── Step 1+2: GitHub repo + clone, OR local-only setup ────────
   if (useGithub) {
@@ -311,6 +328,7 @@ export async function createProject(
       private: input.privateRepo !== false,
       description: `Lakebase project: ${input.projectName}`,
     });
+    rollback.register(`GitHub repo ${fullRepoName}`, () => deleteRepo(fullRepoName));
 
     report("Waiting for GitHub repo to be visible...", fullRepoName);
     const probeDelays = [1000, 2000, 3000, 5000, 8000];
@@ -349,25 +367,23 @@ export async function createProject(
       repoUrl: `https://github.com/${fullRepoName}.git`,
       parentDir: input.parentDir,
     });
+    rollback.register(`local project dir ${projectDir}`, () => fs.rmSync(projectDir, { recursive: true, force: true }));
   } else {
     report("Creating local project directory...", projectDir);
     // A pre-existing EMPTY dir is accepted (validated up front); mkdir with
     // recursive is a no-op on it. A non-empty dir was already rejected.
     fs.mkdirSync(projectDir, { recursive: true });
     await gitInit(projectDir);
+    rollback.register(`local project dir ${projectDir}`, () => fs.rmSync(projectDir, { recursive: true, force: true }));
   }
 
   // ── Step 3: Lakebase project ──────────────────────────────────
   report("Creating Lakebase database (provisioning Postgres)...", lakebaseProjectId);
   await createLakebaseProject({ projectId: lakebaseProjectId, host });
-
-  // From here on the Lakebase project EXISTS. If any later step throws, roll it
-  // back (W9) so the slug isn't orphaned , a retry with the same name would
-  // otherwise collide with the reserved/soft-deleted slug. The wrapper rethrows
-  // with rollback context.
-  return await withLakebaseRollback(
-    { projectId: lakebaseProjectId, host, report },
-    async (): Promise<CreateProjectResult> => {
+  // From here on the Lakebase project EXISTS; register its teardown so a later
+  // provisioning throw rolls it back (W9) alongside the repo + dir above — a retry
+  // with the same name would otherwise collide with the reserved/soft-deleted slug.
+  rollback.register(`Lakebase project ${lakebaseProjectId}`, () => deleteLakebaseProject({ projectId: lakebaseProjectId, host }));
 
   // ── Step 4: Default branch lookup (non-fatal if not ready yet) ─
   report("Resolving database endpoint...");
@@ -481,6 +497,11 @@ export async function createProject(
         projectName: input.projectName,
         report: (m) => report(m),
       });
+      // Registered only after a SUCCESSFUL setup, so a provisioning throw later
+      // tears the runner down (stop + deregister + rm dir) alongside the rest.
+      rollback.register(`self-hosted runner ${input.projectName}`, () =>
+        removeRunner({ fullRepoName, projectName: input.projectName }),
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       warnings.push(`Runner setup failed: ${msg}`);
@@ -594,6 +615,25 @@ export async function createProject(
     );
   }
 
+  // ── Step 7g: pre-warm the toolkit so the first push doesn't cold-download mid-hook (A1) ──
+  // The scaffolded project's pre-push hook runs `./scripts/lk`, which triggers the
+  // one-time cold download of the Consort toolkit (hundreds of npm fetches). If that
+  // very first `lk` is the PUSH's hook, the heavy download races the push and the push
+  // fails (the cold-download incident). Warming HERE — after the scaffold laid down
+  // scripts/lk, before the push — makes the hook find a populated cache. Best-effort
+  // with ONE retry: if warming still fails we do NOT block create (the push then
+  // cold-downloads itself, exactly as before, and the retriable push below absorbs it).
+  if (enableSftdd && useGithub) {
+    report("Warming the Consort toolkit (so the first push doesn't cold-download mid-hook)...");
+    let warm = warmAndVerifyKit(projectDir);
+    if (!warm.ok) warm = warmAndVerifyKit(projectDir);
+    if (!warm.ok) {
+      const m = kitWarmWarning(projectDir, warm.reason);
+      warnings.push(m);
+      report(`Note: ${m}`);
+    }
+  }
+
   // ── Step 8: Initial commit (+ push when GitHub configured) ────
   const langLabels: Record<string, string> = {
     java: "Java/Spring Boot",
@@ -622,11 +662,29 @@ export async function createProject(
   }
 
   report("Creating initial commit...");
-  await commitAndPush({
-    projectDir,
-    message: `Initial project scaffold (${langLabel} + Lakebase)`,
-    push: useGithub,
-  });
+  await commitInitial(projectDir, `Initial project scaffold (${langLabel} + Lakebase)`);
+  // The commit is now LOCAL on disk. A push failure after this point is RETRIABLE,
+  // NOT a provisioning fault (A2): repo + Lakebase + runner + scaffold all succeeded,
+  // so tearing them down for a transient first-push cold download is wrong. Push with
+  // ONE retry (the toolkit is cached after the warm above / the first hook run); if it
+  // STILL fails, leave every resource intact and print the one-line resume — do NOT
+  // throw (which would fire the rollback ledger). A real `workflow`-scope rejection is
+  // not transient and IS surfaced as a hard error.
+  let pushLanded = !useGithub; // local-only: nothing to push → treat as landed
+  if (useGithub) {
+    try {
+      await pushInitial({ projectDir, attempts: 2 });
+      pushLanded = true;
+    } catch (err) {
+      if (err instanceof WorkflowScopeError) throw err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const m =
+        `Provisioning is complete, but the initial push did not land after a retry: ${msg}. ` +
+        `The project on disk is fine , finish it with: cd ${projectDir} && git push -u origin main`;
+      warnings.push(m);
+      report(`WARNING: ${m}`);
+    }
+  }
 
   // ── Step 8b: Long-running tier setup (architectural choice) ───
   // Tier semantics (features are NOT tiers, they are short-lived branches):
@@ -644,7 +702,17 @@ export async function createProject(
   // origin to already have the parent ref (e.g. main, staging).
   // tiers 2/3 with --no-github is rejected up front by validateCreateInputs, so
   // by here useGithub is guaranteed true for any tiers>1 request.
-  if (tiers === 2 || tiers === 3) {
+  // Skip cleanly when the initial push did NOT land (A2): createLongRunningBranch
+  // forks off origin/main, which does not exist yet — cutting a tier now would fail.
+  // Surface the deferral so the user cuts the tiers after finishing the push.
+  if ((tiers === 2 || tiers === 3) && !pushLanded) {
+    const m =
+      `INCOMPLETE TIERS: you requested ${tiers} tiers, but the initial push hasn't landed, so the ` +
+      `tier branches can't fork off origin yet. After you finish the push (above), cut them with ` +
+      `\`./scripts/lk lakebase-cut-tier --name staging --fork-from main\`${tiers === 3 ? " and \`--name dev --fork-from staging\`" : ""}.`;
+    warnings.push(m);
+    report(`WARNING: ${m}`);
+  } else if (tiers === 2 || tiers === 3) {
     report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
     try {
       await createLongRunningBranch({
@@ -712,7 +780,7 @@ export async function createProject(
     warnings,
   };
 
-    } // end withLakebaseRollback closure
+    } // end withCreateRollback closure
   );
 }
 
