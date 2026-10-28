@@ -78982,6 +78982,7 @@ __export(lakebase_exports, {
   catalogExists: () => catalogExists,
   catalogExplorerUrl: () => catalogExplorerUrl,
   checkDatabricksAuth: () => checkDatabricksAuth,
+  checkGitHubPreflight: () => checkGitHubPreflight,
   checkGitHubWorkflowScope: () => checkGitHubWorkflowScope,
   checkoutPaired: () => checkoutPaired,
   claimFeatureBranch: () => claimFeatureBranch,
@@ -78995,6 +78996,7 @@ __export(lakebase_exports, {
   createPairedBranch: () => createPairedBranch,
   createPerfPairedBranch: () => createPerfPairedBranch,
   createProject: () => createProject,
+  createRollbackLedger: () => createRollbackLedger,
   createTestPairedBranch: () => createTestPairedBranch,
   createUatPairedBranch: () => createUatPairedBranch,
   cutBackup: () => cutBackup,
@@ -79164,6 +79166,7 @@ __export(lakebase_exports, {
   waitForBranchReady: () => waitForBranchReady,
   waitForCi: () => waitForCi,
   warmAndVerifyKit: () => warmAndVerifyKit,
+  withCreateRollback: () => withCreateRollback,
   withLakebaseRollback: () => withLakebaseRollback,
   workflowStateFileExists: () => workflowStateFileExists,
   writeEnvFile: () => writeEnvFile,
@@ -81640,8 +81643,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.10".length > 0) {
-    cached = "0.3.10";
+  if ("0.3.11".length > 0) {
+    cached = "0.3.11";
     return cached;
   }
   cached = "unknown";
@@ -90221,6 +90224,26 @@ async function createRepo(name, opts = {}) {
     wrap2(err, `Failed to create repository "${name}"`);
   }
 }
+async function deleteRepo(name) {
+  try {
+    const { owner, repo } = parseOwnerRepo(name);
+    const ctx = await newContext();
+    await ctx.octokit.rest.repos.delete({ owner, repo });
+  } catch (err) {
+    wrap2(err, `Failed to delete repository "${name}"`);
+  }
+}
+async function repoExists(name) {
+  try {
+    const { owner, repo } = parseOwnerRepo(name);
+    const ctx = await newContext();
+    await ctx.octokit.rest.repos.get({ owner, repo });
+    return true;
+  } catch (err) {
+    if (err instanceof RequestError && err.status === 404) return false;
+    wrap2(err, `Failed to check repository "${name}"`);
+  }
+}
 async function getActionsEnabled(ownerRepo) {
   try {
     const { owner, repo } = parseOwnerRepo(ownerRepo);
@@ -90289,6 +90312,70 @@ async function checkGitHubWorkflowScope(probe = () => checkGitHubScopes(["workfl
     return { ok: true };
   }
 }
+async function checkGitHubPreflight(input) {
+  const warnings = [];
+  const hard = input.hardScopes ?? ["repo", "workflow"];
+  const advisory = input.advisoryScopes ?? ["delete_repo"];
+  const currentUserProbe = input.currentUser ?? getCurrentUser;
+  const scopesProbe = input.scopes ?? ((req) => checkGitHubScopes(req));
+  const repoExistsProbe = input.repoExists ?? repoExists;
+  let activeUser;
+  try {
+    activeUser = await currentUserProbe();
+  } catch (err) {
+    return {
+      ok: false,
+      warnings,
+      reason: `GitHub authentication failed: ${err instanceof Error ? err.message : String(err)}. Sign in with \`gh auth login\`, or set GITHUB_TOKEN to a valid token, then re-run.`
+    };
+  }
+  if (activeUser.toLowerCase() !== input.owner.toLowerCase()) {
+    warnings.push(
+      `Signed in to GitHub as "${activeUser}" but creating under "${input.owner}" (an org or another account); ensure "${activeUser}" can create repositories there.`
+    );
+  }
+  try {
+    const { granted, missing } = await scopesProbe([...hard, ...advisory]);
+    if (granted !== null) {
+      const missingHard = missing.filter((s2) => hard.includes(s2));
+      const missingAdvisory = missing.filter((s2) => advisory.includes(s2));
+      if (missingHard.length > 0) {
+        return {
+          ok: false,
+          warnings,
+          activeUser,
+          reason: `GitHub token missing required scope(s): ${missingHard.join(", ")} (grants [${granted.join(", ") || "none"}]). Fix: gh auth refresh -h github.com -s ${[...hard].join(",")}`
+        };
+      }
+      if (missingAdvisory.length > 0) {
+        warnings.push(
+          `GitHub token missing the ${missingAdvisory.join(", ")} scope \u2014 automatic rollback of the repo on a failed create is unavailable (you would delete it by hand). Grant it with: gh auth refresh -h github.com -s delete_repo`
+        );
+      }
+    } else {
+      warnings.push(
+        "GitHub token scopes are not visible (fine-grained PAT or App token); cannot pre-verify repo/workflow access , the create will surface any gap when it pushes."
+      );
+    }
+  } catch {
+    warnings.push("Could not read GitHub token scopes (probe error); skipping the scope pre-check.");
+  }
+  try {
+    if (await repoExistsProbe(`${input.owner}/${input.repoName}`)) {
+      return {
+        ok: false,
+        warnings,
+        activeUser,
+        reason: `GitHub repo "${input.owner}/${input.repoName}" already exists. Pick a different project name, or delete the existing repo first.`
+      };
+    }
+  } catch {
+    warnings.push(
+      `Could not check whether "${input.owner}/${input.repoName}" already exists (probe error); the create will fail clearly if it does.`
+    );
+  }
+  return { ok: true, warnings, activeUser };
+}
 function githubWorkflowScopePrereqMessage(reason) {
   return "The GitHub token lacks the `workflow` OAuth scope, required to push the project's `.github/workflows/*` CI files. (Without this check, scaffolding runs all the way to the final push, is rejected, and rolls back.) Grant the scope, then re-run:\n  - gh CLI:  gh auth refresh -h github.com -s workflow\n  - VS Code: re-sign in to GitHub and approve the workflow scope\n  - token:   set GITHUB_TOKEN to a PAT that includes the `workflow` scope" + (reason ? `
 (${reason})` : "");
@@ -90349,6 +90436,53 @@ async function withLakebaseRollback(opts, fn) {
     }
     const base = err instanceof Error ? err.message : String(err);
     const suffix = rolledBack ? ` (rolled back the Lakebase project "${opts.projectId}"; its slug is now SOFT-deleted, so a same-name retry collides with "already exists" , retry with a DIFFERENT project name, or purge the soft-deleted slug first)` : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; delete it with \`databricks postgres delete-project ${opts.projectId}\`, then retry with a DIFFERENT name , the soft-deleted slug blocks reusing this one until it is purged)`;
+    const wrapped = err instanceof Error ? err : new Error(base);
+    wrapped.message = `${base}${suffix}`;
+    throw wrapped;
+  }
+}
+function createRollbackLedger() {
+  const steps = [];
+  return {
+    register: (label, undo) => {
+      steps.push({ label, undo });
+    },
+    steps: () => steps
+  };
+}
+async function withCreateRollback(ledger, opts, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    const report = opts.report ?? (() => {
+    });
+    const steps = [...ledger.steps()].reverse();
+    const rolledBack = [];
+    const failed = [];
+    if (steps.length > 0) report(`Create failed; rolling back ${steps.length} created resource(s)...`);
+    for (const s2 of steps) {
+      try {
+        report(`  rolling back: ${s2.label}`);
+        await s2.undo();
+        rolledBack.push(s2.label);
+      } catch (e2) {
+        const m2 = e2 instanceof Error ? e2.message : String(e2);
+        if (/not.?found/i.test(m2)) {
+          rolledBack.push(s2.label);
+          continue;
+        }
+        failed.push(`${s2.label} (${m2})`);
+      }
+    }
+    const base = err instanceof Error ? err.message : String(err);
+    const parts = [];
+    if (rolledBack.length) parts.push(`rolled back: ${rolledBack.join(", ")}`);
+    if (failed.length) {
+      parts.push(
+        `COULD NOT roll back: ${failed.join("; ")} , clean these up by hand before retrying the same name`
+      );
+    }
+    const suffix = parts.length ? ` (${parts.join("; ")})` : "";
     const wrapped = err instanceof Error ? err : new Error(base);
     wrapped.message = `${base}${suffix}`;
     throw wrapped;
@@ -90421,27 +90555,34 @@ To finish:
     this.name = "WorkflowScopeError";
   }
 };
-async function commitAndPush(args) {
-  await exec2("git add -A", { cwd: args.projectDir });
-  await exec2(`git commit -m ${JSON.stringify(args.message)}`, {
-    cwd: args.projectDir,
+async function commitInitial(projectDir, message) {
+  await exec2("git add -A", { cwd: projectDir });
+  await exec2(`git commit -m ${JSON.stringify(message)}`, {
+    cwd: projectDir,
     timeout: 3e4
   });
-  if (args.push === false) return;
+}
+async function pushInitial(args) {
   const remote = args.remote ?? "origin";
   const branch = args.branch ?? "main";
-  try {
-    await exec2(`git push -u ${remote} ${branch}`, {
-      cwd: args.projectDir,
-      timeout: 3e4
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/without `?workflow`? scope|workflow scope/i.test(msg)) {
-      throw new WorkflowScopeError(args.projectDir);
+  const attempts = Math.max(1, args.attempts ?? 1);
+  const sleep2 = args.sleep ?? ((ms) => new Promise((r2) => setTimeout(r2, ms)));
+  const run = args.run ?? ((cmd, cwd) => exec2(cmd, { cwd, timeout: 3e4 }).then(() => void 0));
+  let lastErr;
+  for (let i2 = 1; i2 <= attempts; i2++) {
+    try {
+      await run(`git push -u ${remote} ${branch}`, args.projectDir);
+      return;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/without `?workflow`? scope|workflow scope/i.test(msg)) {
+        throw new WorkflowScopeError(args.projectDir);
+      }
+      lastErr = err;
+      if (i2 < attempts) await sleep2(args.delayMs ?? 1500);
     }
-    throw err;
   }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 // scripts/lakebase/scaffold.ts
@@ -92747,64 +92888,72 @@ async function createProject(input, progress) {
     throw new Error(databricksAuthPrereqMessage(host, auth7.reason));
   }
   if (useGithub) {
-    report("Checking GitHub token scopes...");
-    const scope = await checkGitHubWorkflowScope();
-    if (!scope.ok) {
-      throw new Error(githubWorkflowScopePrereqMessage(scope.reason));
+    report("Checking GitHub account + token requisites...");
+    const gh = await checkGitHubPreflight({ owner: input.githubOwner, repoName: input.projectName });
+    for (const w of gh.warnings) {
+      warnings.push(w);
+      report(`Note: ${w}`);
     }
+    if (!gh.ok) throw new Error(gh.reason);
   }
-  if (useGithub) {
-    report("Creating GitHub repository...", fullRepoName);
-    await createRepo(fullRepoName, {
-      private: input.privateRepo !== false,
-      description: `Lakebase project: ${input.projectName}`
-    });
-    report("Waiting for GitHub repo to be visible...", fullRepoName);
-    const probeDelays = [1e3, 2e3, 3e3, 5e3, 8e3];
-    let probeErr = "";
-    let visible = false;
-    for (const waitMs of probeDelays) {
-      try {
-        await getRepoFullName(fullRepoName);
-        visible = true;
-        break;
-      } catch (err) {
-        probeErr = err instanceof Error ? err.message : String(err);
-        await delay(waitMs);
-      }
-    }
-    if (!visible) {
-      let activeUser = "";
-      try {
-        activeUser = await getCurrentUser();
-      } catch {
-      }
-      const samlHint = /SAML|scope does not match|sso/i.test(probeErr) ? "\n\nThe error mentions SAML \u2013 re-sign in to GitHub and authorize SSO for this org." : "";
-      const userHint = activeUser && activeUser !== input.githubOwner ? `
+  const rollback = createRollbackLedger();
+  return await withCreateRollback(
+    rollback,
+    { report },
+    async () => {
+      if (useGithub) {
+        report("Creating GitHub repository...", fullRepoName);
+        await createRepo(fullRepoName, {
+          private: input.privateRepo !== false,
+          description: `Lakebase project: ${input.projectName}`
+        });
+        rollback.register(`GitHub repo ${fullRepoName}`, () => deleteRepo(fullRepoName));
+        report("Waiting for GitHub repo to be visible...", fullRepoName);
+        const probeDelays = [1e3, 2e3, 3e3, 5e3, 8e3];
+        let probeErr = "";
+        let visible = false;
+        for (const waitMs of probeDelays) {
+          try {
+            await getRepoFullName(fullRepoName);
+            visible = true;
+            break;
+          } catch (err) {
+            probeErr = err instanceof Error ? err.message : String(err);
+            await delay(waitMs);
+          }
+        }
+        if (!visible) {
+          let activeUser = "";
+          try {
+            activeUser = await getCurrentUser();
+          } catch {
+          }
+          const samlHint = /SAML|scope does not match|sso/i.test(probeErr) ? "\n\nThe error mentions SAML \u2013 re-sign in to GitHub and authorize SSO for this org." : "";
+          const userHint = activeUser && activeUser !== input.githubOwner ? `
 
 Note: signed in as "${activeUser}", but the repo was created under "${input.githubOwner}".` : "";
-      throw new Error(
-        `GitHub repo "${fullRepoName}" was created but isn't visible after ~19s of polling.${samlHint}${userHint}
+          throw new Error(
+            `GitHub repo "${fullRepoName}" was created but isn't visible after ~19s of polling.${samlHint}${userHint}
 
 Last probe error:
   ${probeErr.split("\n")[0].slice(0, 200)}`
-      );
-    }
-    report("Cloning repository...", projectDir);
-    await cloneRepo({
-      repoUrl: `https://github.com/${fullRepoName}.git`,
-      parentDir: input.parentDir
-    });
-  } else {
-    report("Creating local project directory...", projectDir);
-    fs20.mkdirSync(projectDir, { recursive: true });
-    await gitInit(projectDir);
-  }
-  report("Creating Lakebase database (provisioning Postgres)...", lakebaseProjectId);
-  await createLakebaseProject({ projectId: lakebaseProjectId, host });
-  return await withLakebaseRollback(
-    { projectId: lakebaseProjectId, host, report },
-    async () => {
+          );
+        }
+        report("Cloning repository...", projectDir);
+        await cloneRepo({
+          repoUrl: `https://github.com/${fullRepoName}.git`,
+          parentDir: input.parentDir
+        });
+        rollback.register(`local project dir ${projectDir}`, () => fs20.rmSync(projectDir, { recursive: true, force: true }));
+      } else {
+        report("Creating local project directory...", projectDir);
+        fs20.mkdirSync(projectDir, { recursive: true });
+        await gitInit(projectDir);
+        rollback.register(`local project dir ${projectDir}`, () => fs20.rmSync(projectDir, { recursive: true, force: true }));
+      }
+      report("Creating Lakebase database (provisioning Postgres)...", lakebaseProjectId);
+      await createLakebaseProject({ projectId: lakebaseProjectId, host });
+      rollback.register(`Lakebase project ${lakebaseProjectId}`, () => deleteLakebaseProject({ projectId: lakebaseProjectId, host }));
       report("Resolving database endpoint...");
       const defaultBranchId = await getDefaultBranchId({
         projectId: lakebaseProjectId,
@@ -92888,6 +93037,10 @@ Last probe error:
             projectName: input.projectName,
             report: (m2) => report(m2)
           });
+          rollback.register(
+            `self-hosted runner ${input.projectName}`,
+            () => removeRunner({ fullRepoName, projectName: input.projectName })
+          );
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           warnings.push(`Runner setup failed: ${msg}`);
@@ -92956,6 +93109,16 @@ Last probe error:
           "The Consort toolkit downloads on first use , run `./scripts/lk --refresh`, or just your first `./scripts/lk` command, and it installs then."
         );
       }
+      if (enableSftdd && useGithub) {
+        report("Warming the Consort toolkit (so the first push doesn't cold-download mid-hook)...");
+        let warm = warmAndVerifyKit(projectDir);
+        if (!warm.ok) warm = warmAndVerifyKit(projectDir);
+        if (!warm.ok) {
+          const m2 = kitWarmWarning(projectDir, warm.reason);
+          warnings.push(m2);
+          report(`Note: ${m2}`);
+        }
+      }
       const langLabels = {
         java: "Java/Spring Boot",
         kotlin: "Kotlin/Spring Boot",
@@ -92976,12 +93139,25 @@ Last probe error:
         }
       }
       report("Creating initial commit...");
-      await commitAndPush({
-        projectDir,
-        message: `Initial project scaffold (${langLabel} + Lakebase)`,
-        push: useGithub
-      });
-      if (tiers === 2 || tiers === 3) {
+      await commitInitial(projectDir, `Initial project scaffold (${langLabel} + Lakebase)`);
+      let pushLanded = !useGithub;
+      if (useGithub) {
+        try {
+          await pushInitial({ projectDir, attempts: 2 });
+          pushLanded = true;
+        } catch (err) {
+          if (err instanceof WorkflowScopeError) throw err;
+          const msg = err instanceof Error ? err.message : String(err);
+          const m2 = `Provisioning is complete, but the initial push did not land after a retry: ${msg}. The project on disk is fine , finish it with: cd ${projectDir} && git push -u origin main`;
+          warnings.push(m2);
+          report(`WARNING: ${m2}`);
+        }
+      }
+      if ((tiers === 2 || tiers === 3) && !pushLanded) {
+        const m2 = `INCOMPLETE TIERS: you requested ${tiers} tiers, but the initial push hasn't landed, so the tier branches can't fork off origin yet. After you finish the push (above), cut them with \`./scripts/lk lakebase-cut-tier --name staging --fork-from main\`${tiers === 3 ? " and `--name dev --fork-from staging`" : ""}.`;
+        warnings.push(m2);
+        report(`WARNING: ${m2}`);
+      } else if (tiers === 2 || tiers === 3) {
         report(`Cutting staging tier (tiers=${tiers}) via createLongRunningBranch...`);
         try {
           await createLongRunningBranch({
@@ -93032,7 +93208,7 @@ Last probe error:
         warnings
       };
     }
-    // end withLakebaseRollback closure
+    // end withCreateRollback closure
   );
 }
 
@@ -97831,6 +98007,7 @@ function isUcMissingError(msg) {
   catalogExists,
   catalogExplorerUrl,
   checkDatabricksAuth,
+  checkGitHubPreflight,
   checkGitHubWorkflowScope,
   checkoutPaired,
   claimFeatureBranch,
@@ -97844,6 +98021,7 @@ function isUcMissingError(msg) {
   createPairedBranch,
   createPerfPairedBranch,
   createProject,
+  createRollbackLedger,
   createTestPairedBranch,
   createUatPairedBranch,
   cutBackup,
@@ -98013,6 +98191,7 @@ function isUcMissingError(msg) {
   waitForBranchReady,
   waitForCi,
   warmAndVerifyKit,
+  withCreateRollback,
   withLakebaseRollback,
   workflowStateFileExists,
   writeEnvFile,

@@ -1,3 +1,61 @@
+declare class GitHubRepoError extends Error {
+    readonly status?: number;
+    constructor(message: string, status?: number);
+}
+/** Returns the GitHub login of the currently authenticated user. */
+declare function getCurrentUser(): Promise<string>;
+interface GitHubScopeStatus {
+    /** Granted OAuth scopes, or null when the token exposes NONE — a fine-grained
+     *  PAT or GitHub App token carries no OAuth scope header; its permissions
+     *  aren't a scope set, so callers MUST treat null as "unknown", never a miss. */
+    granted: string[] | null;
+    /** Required scopes absent from `granted` (empty when `granted` is null). */
+    missing: string[];
+}
+/**
+ * Read the authenticated token's granted OAuth scopes from the GitHub API
+ * `x-oauth-scopes` response header and diff them against `required`. A classic
+ * OAuth/PAT token returns a (possibly empty) comma-separated header; a
+ * fine-grained PAT / GitHub App token omits it entirely → `granted: null`.
+ * Reading your own user needs no special scope, so this succeeds for any VALID
+ * token regardless of scopes (and throws, like the other ops, on a bad token /
+ * network error — callers decide whether that is blocking).
+ */
+declare function checkGitHubScopes(required?: readonly string[]): Promise<GitHubScopeStatus>;
+interface CreateRepoOptions {
+    /** Make the repo private. Default: true. */
+    private?: boolean;
+    description?: string;
+}
+/**
+ * Create a new GitHub repository. Accepts either bare name (creates for the
+ * authenticated user) or "owner/name" (creates in org if owner != login).
+ *
+ * @returns the repo HTML URL.
+ */
+declare function createRepo(name: string, opts?: CreateRepoOptions): Promise<string>;
+/** Delete a GitHub repository. Requires the `delete_repo` OAuth scope. */
+declare function deleteRepo(name: string): Promise<void>;
+/** True iff the repository exists and is visible to the authenticated user. */
+declare function repoExists(name: string): Promise<boolean>;
+/**
+ * Whether GitHub Actions is enabled for `ownerRepo`. `GET .../actions/permissions`
+ * returns `enabled:false` both when a repo admin disabled Actions AND when an org
+ * policy disables it for the repo. When Actions is off, the kit's CI workflows
+ * (pr.yml / merge.yml) silently never run, which presents as "CI didn't follow
+ * the kit workflow". Returns:
+ *   - true / false  : the determined state
+ *   - undefined     : couldn't determine (no token, repo invisible, API error) ,
+ *                     callers must treat this as "unknown", never as disabled,
+ *                     so a missing token never produces a false alarm.
+ */
+declare function getActionsEnabled(ownerRepo: string): Promise<boolean | undefined>;
+/**
+ * Resolve the canonical `owner/repo` slug. Used by create-project to poll
+ * until a freshly-created repo is visible (SAML / propagation delays).
+ */
+declare function getRepoFullName(name: string): Promise<string>;
+
 declare class GitHubPullRequestError extends Error {
     readonly status?: number | undefined;
     constructor(message: string, status?: number | undefined);
@@ -172,4 +230,4 @@ interface MergePairedPullRequestResult {
  */
 declare function mergePairedPullRequest(args: MergePairedPullRequestArgs): Promise<MergePairedPullRequestResult>;
 
-export { type CreatePullRequestArgs as C, type FastForwardBranchArgs as F, GitHubPullRequestError as G, type MergePairedPullRequestArgs as M, type PullRequestCheck as P, type WorkflowRunSummary as W, type MergePairedPullRequestResult as a, type MergePullRequestArgs as b, type MergePullRequestResult as c, type PullRequestFile as d, type PullRequestInfo as e, type PullRequestReview as f, createPullRequest as g, fastForwardBranch as h, getPullRequest as i, getPullRequestComments as j, getPullRequestFiles as k, getPullRequestReviews as l, listIssueComments as m, listWorkflowRuns as n, mergePairedPullRequest as o, mergePullRequest as p };
+export { type CreatePullRequestArgs as C, type FastForwardBranchArgs as F, GitHubPullRequestError as G, type MergePairedPullRequestArgs as M, type PullRequestCheck as P, type WorkflowRunSummary as W, type CreateRepoOptions as a, GitHubRepoError as b, type GitHubScopeStatus as c, type MergePairedPullRequestResult as d, type MergePullRequestArgs as e, type MergePullRequestResult as f, type PullRequestFile as g, type PullRequestInfo as h, type PullRequestReview as i, checkGitHubScopes as j, createPullRequest as k, createRepo as l, deleteRepo as m, fastForwardBranch as n, getActionsEnabled as o, getCurrentUser as p, getPullRequest as q, getPullRequestComments as r, getPullRequestFiles as s, getPullRequestReviews as t, getRepoFullName as u, listIssueComments as v, listWorkflowRuns as w, mergePairedPullRequest as x, mergePullRequest as y, repoExists as z };

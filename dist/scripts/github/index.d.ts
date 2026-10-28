@@ -1,4 +1,4 @@
-export { C as CreatePullRequestArgs, F as FastForwardBranchArgs, G as GitHubPullRequestError, M as MergePairedPullRequestArgs, a as MergePairedPullRequestResult, b as MergePullRequestArgs, c as MergePullRequestResult, P as PullRequestCheck, d as PullRequestFile, e as PullRequestInfo, f as PullRequestReview, W as WorkflowRunSummary, g as createPullRequest, h as fastForwardBranch, i as getPullRequest, j as getPullRequestComments, k as getPullRequestFiles, l as getPullRequestReviews, m as listIssueComments, n as listWorkflowRuns, o as mergePairedPullRequest, p as mergePullRequest } from '../../pr-e-E4aP4j.js';
+export { C as CreatePullRequestArgs, a as CreateRepoOptions, F as FastForwardBranchArgs, G as GitHubPullRequestError, b as GitHubRepoError, c as GitHubScopeStatus, M as MergePairedPullRequestArgs, d as MergePairedPullRequestResult, e as MergePullRequestArgs, f as MergePullRequestResult, P as PullRequestCheck, g as PullRequestFile, h as PullRequestInfo, i as PullRequestReview, W as WorkflowRunSummary, j as checkGitHubScopes, k as createPullRequest, l as createRepo, m as deleteRepo, n as fastForwardBranch, o as getActionsEnabled, p as getCurrentUser, q as getPullRequest, r as getPullRequestComments, s as getPullRequestFiles, t as getPullRequestReviews, u as getRepoFullName, v as listIssueComments, w as listWorkflowRuns, x as mergePairedPullRequest, y as mergePullRequest, z as repoExists } from '../../pr-D-eayWyJ.js';
 
 /** OAuth scopes the workflow ops collectively need. */
 declare const GITHUB_SCOPES: readonly ["repo", "workflow", "delete_repo"];
@@ -49,64 +49,6 @@ interface GitHubAuthDiagnosis {
     scopes: string[];
 }
 
-declare class GitHubRepoError extends Error {
-    readonly status?: number;
-    constructor(message: string, status?: number);
-}
-/** Returns the GitHub login of the currently authenticated user. */
-declare function getCurrentUser(): Promise<string>;
-interface GitHubScopeStatus {
-    /** Granted OAuth scopes, or null when the token exposes NONE — a fine-grained
-     *  PAT or GitHub App token carries no OAuth scope header; its permissions
-     *  aren't a scope set, so callers MUST treat null as "unknown", never a miss. */
-    granted: string[] | null;
-    /** Required scopes absent from `granted` (empty when `granted` is null). */
-    missing: string[];
-}
-/**
- * Read the authenticated token's granted OAuth scopes from the GitHub API
- * `x-oauth-scopes` response header and diff them against `required`. A classic
- * OAuth/PAT token returns a (possibly empty) comma-separated header; a
- * fine-grained PAT / GitHub App token omits it entirely → `granted: null`.
- * Reading your own user needs no special scope, so this succeeds for any VALID
- * token regardless of scopes (and throws, like the other ops, on a bad token /
- * network error — callers decide whether that is blocking).
- */
-declare function checkGitHubScopes(required?: readonly string[]): Promise<GitHubScopeStatus>;
-interface CreateRepoOptions {
-    /** Make the repo private. Default: true. */
-    private?: boolean;
-    description?: string;
-}
-/**
- * Create a new GitHub repository. Accepts either bare name (creates for the
- * authenticated user) or "owner/name" (creates in org if owner != login).
- *
- * @returns the repo HTML URL.
- */
-declare function createRepo(name: string, opts?: CreateRepoOptions): Promise<string>;
-/** Delete a GitHub repository. Requires the `delete_repo` OAuth scope. */
-declare function deleteRepo(name: string): Promise<void>;
-/** True iff the repository exists and is visible to the authenticated user. */
-declare function repoExists(name: string): Promise<boolean>;
-/**
- * Whether GitHub Actions is enabled for `ownerRepo`. `GET .../actions/permissions`
- * returns `enabled:false` both when a repo admin disabled Actions AND when an org
- * policy disables it for the repo. When Actions is off, the kit's CI workflows
- * (pr.yml / merge.yml) silently never run, which presents as "CI didn't follow
- * the kit workflow". Returns:
- *   - true / false  : the determined state
- *   - undefined     : couldn't determine (no token, repo invisible, API error) ,
- *                     callers must treat this as "unknown", never as disabled,
- *                     so a missing token never produces a false alarm.
- */
-declare function getActionsEnabled(ownerRepo: string): Promise<boolean | undefined>;
-/**
- * Resolve the canonical `owner/repo` slug. Used by create-project to poll
- * until a freshly-created repo is visible (SAML / propagation delays).
- */
-declare function getRepoFullName(name: string): Promise<string>;
-
 declare class GitHubRunnerError extends Error {
     readonly status?: number;
     constructor(message: string, status?: number);
@@ -145,4 +87,4 @@ declare function setRepoSecrets(ownerRepo: string, secrets: Record<string, strin
 /** List configured secret names (returns empty array on any error). */
 declare function listSecretNames(ownerRepo: string): Promise<string[]>;
 
-export { type CreateRepoOptions, GITHUB_SCOPES, type GitHubAuthDiagnosis, type GitHubAuthSource, GitHubRepoError, GitHubRunnerError, type GitHubScopeStatus, GitHubSecretsError, type RepoRunner, type VsCodeSessionOptions, checkGitHubScopes, createRegistrationToken, createRepo, deleteRepo, deleteRunner, diagnoseGitHubAuth, getActionsEnabled, getCurrentUser, getRepoFullName, getRunnerIdByName, getRunnerStatus, listRepoRunners, listSecretNames, repoExists, resolveGitHubToken, setRepoSecret, setRepoSecrets, tryGhAuthToken, tryVsCodeSession };
+export { GITHUB_SCOPES, type GitHubAuthDiagnosis, type GitHubAuthSource, GitHubRunnerError, GitHubSecretsError, type RepoRunner, type VsCodeSessionOptions, createRegistrationToken, deleteRunner, diagnoseGitHubAuth, getRunnerIdByName, getRunnerStatus, listRepoRunners, listSecretNames, resolveGitHubToken, setRepoSecret, setRepoSecrets, tryGhAuthToken, tryVsCodeSession };

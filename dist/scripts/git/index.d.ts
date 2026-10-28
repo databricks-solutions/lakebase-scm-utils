@@ -56,6 +56,37 @@ declare class WorkflowScopeError extends Error {
  * For non-initial-commit flows, prefer the primitives in ./commits.ts.
  */
 declare function commitAndPush(args: CommitAndPushArgs): Promise<void>;
+/** Stage everything and make the initial commit (no push). */
+declare function commitInitial(projectDir: string, message: string): Promise<void>;
+interface PushInitialArgs {
+    projectDir: string;
+    /** Remote name. Default: "origin". */
+    remote?: string;
+    /** Branch name. Default: "main". */
+    branch?: string;
+    /**
+     * Total push attempts (>= 1). Default 1 (preserves commitAndPush's behavior).
+     * The create flow passes 2: the FIRST push fires the project's pre-push hook,
+     * which triggers the one-time cold download of the Consort toolkit — that race
+     * can fail the push, but the toolkit is CACHED afterward, so a single retry then
+     * sails through (the cold-download incident). A `workflow`-scope rejection is a
+     * real auth gap, never retried.
+     */
+    attempts?: number;
+    /** Delay between attempts (ms). Default 1500. Injected in tests. */
+    delayMs?: number;
+    /** Injectable sleep (tests). */
+    sleep?: (ms: number) => Promise<void>;
+    /** Injectable runner (tests); defaults to the real `git push`. */
+    run?: (cmd: string, cwd: string) => Promise<void>;
+}
+/**
+ * Push the initial branch with `-u`, retrying a transient failure up to
+ * `attempts` times. Maps the GitHub `workflow`-scope rejection to
+ * {@link WorkflowScopeError} (thrown immediately, never retried). Throws the last
+ * error after the final attempt.
+ */
+declare function pushInitial(args: PushInitialArgs): Promise<void>;
 
 interface AddRemoteArgs {
     cwd: string;
@@ -763,4 +794,4 @@ declare function revert(args: ShaArgs): Promise<void>;
 /** `git cherry-pick <sha>`. */
 declare function cherryPick(args: ShaArgs): Promise<void>;
 
-export { type AddRemoteArgs, type AheadBehind, type AmendArgs, type BranchesAtCommitArgs, type CheckoutBranchArgs, type CloneRepoArgs, type CommitAllArgs, type CommitAndPushArgs, type CommitArgs, type CommitFilesArgs, type CreateTagArgs, type CreateWorktreeArgs, type CwdOnlyArgs, type DeleteLocalBranchArgs, type DeleteRemoteBranchArgs, type DeleteRemoteTagArgs, type DeleteTagArgs, type DiffFilesArgs, type DiscardAllChangesArgs, type FetchArgs, type FileChangeShort, type GetFileAtRefArgs, type GetMergeBaseArgs, type GitBranchInfo, type HasRemoteBranchArgs, type IsDirtyArgs, type ListLocalBranchesArgs, type ListMigrationsOnBranchArgs, type ListRemoteBranchesArgs, type LogRawArgs, type MergeBranchArgs, type MergeCommit, type NearestParent, type OutgoingIncomingArgs, ProtectedBranchError, type PublishBranchArgs, type PullFromArgs, type PushCurrentBranchForPrArgs, type PushToArgs, type RebaseBranchArgs, type RecentMergesArgs, type RemoveRemoteArgs, type RemoveWorktreeArgs, type RenameBranchArgs, type ResolveNearestParentArgs, type ShaArgs, type StashIndexArgs, type StashWithMessageArgs, type UndoLastCommitArgs, WorkflowScopeError, abortRebase, addRemote, checkoutBranch, checkoutDetached, cherryPick, cloneRepo, commit, commitAll, commitAllIfChanged, commitAllSignedOff, commitAmend, commitAndPush, commitSignedOff, createTag, createWorktree, deleteLocalBranch, deleteRemoteBranch, deleteRemoteTag, deleteTag, discardAllChanges, fetch, getAheadBehind, getBranchesAtCommit, getCommitFiles, getCurrentBranch, getDiffFiles, getFileAtRef, getGitHubUrl, getIncomingCommits, getLogRaw, getLogShortstat, getMergeBase, getNearestParentName, getOutgoingCommits, getOwnerRepo, getRecentMerges, getRepoRoot, gitBranchExists, gitInit, hasRemoteBranch, hasUpstream, isDirty, isRebasing, listLocalBranches, listMigrationsOnBranch, listRemoteBranches, listRemotes, listTags, listWorktrees, mergeBranch, publishBranch, pull, pullFrom, pullRebase, push, pushCurrentBranchForPr, pushTo, rebaseBranch, removeRemote, removeWorktree, renameBranch, resolveDefaultBranch, resolveNearestParent, revert, stash, stashApply, stashDrop, stashDropAll, stashIncludeUntracked, stashList, stashPop, stashStaged, sync, undoLastCommit };
+export { type AddRemoteArgs, type AheadBehind, type AmendArgs, type BranchesAtCommitArgs, type CheckoutBranchArgs, type CloneRepoArgs, type CommitAllArgs, type CommitAndPushArgs, type CommitArgs, type CommitFilesArgs, type CreateTagArgs, type CreateWorktreeArgs, type CwdOnlyArgs, type DeleteLocalBranchArgs, type DeleteRemoteBranchArgs, type DeleteRemoteTagArgs, type DeleteTagArgs, type DiffFilesArgs, type DiscardAllChangesArgs, type FetchArgs, type FileChangeShort, type GetFileAtRefArgs, type GetMergeBaseArgs, type GitBranchInfo, type HasRemoteBranchArgs, type IsDirtyArgs, type ListLocalBranchesArgs, type ListMigrationsOnBranchArgs, type ListRemoteBranchesArgs, type LogRawArgs, type MergeBranchArgs, type MergeCommit, type NearestParent, type OutgoingIncomingArgs, ProtectedBranchError, type PublishBranchArgs, type PullFromArgs, type PushCurrentBranchForPrArgs, type PushInitialArgs, type PushToArgs, type RebaseBranchArgs, type RecentMergesArgs, type RemoveRemoteArgs, type RemoveWorktreeArgs, type RenameBranchArgs, type ResolveNearestParentArgs, type ShaArgs, type StashIndexArgs, type StashWithMessageArgs, type UndoLastCommitArgs, WorkflowScopeError, abortRebase, addRemote, checkoutBranch, checkoutDetached, cherryPick, cloneRepo, commit, commitAll, commitAllIfChanged, commitAllSignedOff, commitAmend, commitAndPush, commitInitial, commitSignedOff, createTag, createWorktree, deleteLocalBranch, deleteRemoteBranch, deleteRemoteTag, deleteTag, discardAllChanges, fetch, getAheadBehind, getBranchesAtCommit, getCommitFiles, getCurrentBranch, getDiffFiles, getFileAtRef, getGitHubUrl, getIncomingCommits, getLogRaw, getLogShortstat, getMergeBase, getNearestParentName, getOutgoingCommits, getOwnerRepo, getRecentMerges, getRepoRoot, gitBranchExists, gitInit, hasRemoteBranch, hasUpstream, isDirty, isRebasing, listLocalBranches, listMigrationsOnBranch, listRemoteBranches, listRemotes, listTags, listWorktrees, mergeBranch, publishBranch, pull, pullFrom, pullRebase, push, pushCurrentBranchForPr, pushInitial, pushTo, rebaseBranch, removeRemote, removeWorktree, renameBranch, resolveDefaultBranch, resolveNearestParent, revert, stash, stashApply, stashDrop, stashDropAll, stashIncludeUntracked, stashList, stashPop, stashStaged, sync, undoLastCommit };

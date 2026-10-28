@@ -50,26 +50,38 @@ To finish:
   }
 };
 async function commitAndPush(args) {
-  await exec2("git add -A", { cwd: args.projectDir });
-  await exec2(`git commit -m ${JSON.stringify(args.message)}`, {
-    cwd: args.projectDir,
+  await commitInitial(args.projectDir, args.message);
+  if (args.push === false) return;
+  await pushInitial({ projectDir: args.projectDir, remote: args.remote, branch: args.branch });
+}
+async function commitInitial(projectDir, message) {
+  await exec2("git add -A", { cwd: projectDir });
+  await exec2(`git commit -m ${JSON.stringify(message)}`, {
+    cwd: projectDir,
     timeout: 3e4
   });
-  if (args.push === false) return;
+}
+async function pushInitial(args) {
   const remote = args.remote ?? "origin";
   const branch = args.branch ?? "main";
-  try {
-    await exec2(`git push -u ${remote} ${branch}`, {
-      cwd: args.projectDir,
-      timeout: 3e4
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/without `?workflow`? scope|workflow scope/i.test(msg)) {
-      throw new WorkflowScopeError(args.projectDir);
+  const attempts = Math.max(1, args.attempts ?? 1);
+  const sleep = args.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const run = args.run ?? ((cmd, cwd) => exec2(cmd, { cwd, timeout: 3e4 }).then(() => void 0));
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await run(`git push -u ${remote} ${branch}`, args.projectDir);
+      return;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/without `?workflow`? scope|workflow scope/i.test(msg)) {
+        throw new WorkflowScopeError(args.projectDir);
+      }
+      lastErr = err;
+      if (i < attempts) await sleep(args.delayMs ?? 1500);
     }
-    throw err;
   }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 // scripts/util/parse-owner-repo.ts
@@ -872,6 +884,7 @@ export {
   commitAllSignedOff,
   commitAmend,
   commitAndPush,
+  commitInitial,
   commitSignedOff,
   createTag,
   createWorktree,
@@ -916,6 +929,7 @@ export {
   pullRebase,
   push,
   pushCurrentBranchForPr,
+  pushInitial,
   pushTo,
   rebaseBranch,
   removeRemote,
