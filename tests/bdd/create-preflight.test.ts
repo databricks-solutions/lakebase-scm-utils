@@ -16,7 +16,11 @@ import {
   checkDatabricksAuth,
   checkGitHubWorkflowScope,
   githubWorkflowScopePrereqMessage,
+  checkGitHubPreflight,
+  createRollbackLedger,
+  withCreateRollback,
 } from "../../scripts/lakebase/create-preflight.js";
+import type { GitHubScopeStatus } from "../../scripts/github/repo.js";
 
 const tmpDirs: string[] = [];
 afterEach(() => {
@@ -301,5 +305,117 @@ describe("checkGitHubWorkflowScope (fail-fast before the scaffold's final push)"
     expect(msg).toMatch(/gh auth refresh -h github\.com -s workflow/);
     expect(msg).toMatch(/GITHUB_TOKEN/);
     expect(msg).toMatch(/token grants \[repo\]/);
+  });
+});
+
+// ── B: up-front GitHub preflight (account + requisites, before anything is created) ──
+describe("checkGitHubPreflight (B: account + scopes + name, fail-fast before create)", () => {
+  const ok = (over: Partial<Parameters<typeof checkGitHubPreflight>[0]> = {}) =>
+    checkGitHubPreflight({
+      owner: "acme",
+      repoName: "demo",
+      currentUser: async () => "acme",
+      scopes: async (): Promise<GitHubScopeStatus> => ({ granted: ["repo", "workflow", "delete_repo"], missing: [] }),
+      repoExists: async () => false,
+      ...over,
+    });
+
+  it("passes when the account resolves, all scopes present, and the name is free", async () => {
+    const r = await ok();
+    expect(r.ok).toBe(true);
+    expect(r.activeUser).toBe("acme");
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("B1: HARD-fails with an auth remediation when the active account can't resolve", async () => {
+    const r = await ok({ currentUser: async () => { throw new Error("Bad credentials"); } });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/GitHub authentication failed: Bad credentials/);
+    expect(r.reason).toMatch(/gh auth login|GITHUB_TOKEN/);
+  });
+
+  it("B2: HARD-fails naming ALL missing happy-path scopes (repo + workflow), not just workflow", async () => {
+    const r = await ok({ scopes: async () => ({ granted: ["delete_repo"], missing: ["repo", "workflow"] }) });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/repo/);
+    expect(r.reason).toMatch(/workflow/);
+    expect(r.reason).toMatch(/gh auth refresh/);
+  });
+
+  it("B2: a missing ADVISORY scope (delete_repo) only WARNS — rollback repo-delete unavailable, not a block", async () => {
+    const r = await ok({ scopes: async () => ({ granted: ["repo", "workflow"], missing: ["delete_repo"] }) });
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join("\n")).toMatch(/delete_repo.*rollback|rollback.*delete_repo/i);
+  });
+
+  it("B2: granted null (fine-grained PAT / App token) can't be asserted → ok + a note", async () => {
+    const r = await ok({ scopes: async () => ({ granted: null, missing: [] }) });
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join("\n")).toMatch(/not visible|fine-grained/i);
+  });
+
+  it("B3: HARD-fails when the repo name is already taken (before anything is created)", async () => {
+    const r = await ok({ repoExists: async () => true });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/acme\/demo.*already exists|already exists/);
+    expect(r.reason).toMatch(/different project name|delete the existing/);
+  });
+
+  it("B4: a login different from the owner is a NOTE (org/other account), never a block", async () => {
+    const r = await ok({ currentUser: async () => "alice" });
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join("\n")).toMatch(/Signed in to GitHub as "alice".*creating under "acme"/);
+  });
+
+  it("CONSERVATIVE: a scopes-probe error does not block (warns + continues)", async () => {
+    const r = await ok({ scopes: async () => { throw new Error("network down"); } });
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join("\n")).toMatch(/Could not read GitHub token scopes/);
+  });
+});
+
+// ── A3: atomic created-resources rollback ledger ──
+describe("createRollbackLedger + withCreateRollback (A3: tear down ALL created resources on a provisioning fault)", () => {
+  it("returns the value and tears down NOTHING when fn succeeds", async () => {
+    const ledger = createRollbackLedger();
+    const undone: string[] = [];
+    ledger.register("repo", () => { undone.push("repo"); });
+    const out = await withCreateRollback(ledger, {}, async () => 42);
+    expect(out).toBe(42);
+    expect(undone).toEqual([]);
+  });
+
+  it("on a throw, tears down EVERY registered resource in REVERSE order + rethrows with a summary", async () => {
+    const ledger = createRollbackLedger();
+    const undone: string[] = [];
+    // registered in create order: repo, dir, lakebase, runner
+    ledger.register("GitHub repo acme/demo", () => { undone.push("repo"); });
+    ledger.register("local project dir /p/demo", () => { undone.push("dir"); });
+    ledger.register("Lakebase project demo", () => { undone.push("lakebase"); });
+    ledger.register("self-hosted runner demo", () => { undone.push("runner"); });
+    await expect(
+      withCreateRollback(ledger, {}, async () => { throw new Error("scaffold blew up"); }),
+    ).rejects.toThrow(/scaffold blew up.*rolled back: self-hosted runner demo, Lakebase project demo, local project dir \/p\/demo, GitHub repo acme\/demo/s);
+    // reverse of registration (last-created first)
+    expect(undone).toEqual(["runner", "lakebase", "dir", "repo"]);
+  });
+
+  it("captures a FAILED teardown (not thrown) and still runs the others; summary flags it", async () => {
+    const ledger = createRollbackLedger();
+    const undone: string[] = [];
+    ledger.register("GitHub repo acme/demo", () => { undone.push("repo"); });
+    ledger.register("Lakebase project demo", () => { throw new Error("500 server error"); });
+    await expect(
+      withCreateRollback(ledger, {}, async () => { throw new Error("commit failed"); }),
+    ).rejects.toThrow(/commit failed.*rolled back: GitHub repo acme\/demo.*COULD NOT roll back: Lakebase project demo \(500 server error\)/s);
+    expect(undone).toEqual(["repo"]); // the repo teardown still ran despite the lakebase failure
+  });
+
+  it("treats a not-found teardown as already rolled back", async () => {
+    const ledger = createRollbackLedger();
+    ledger.register("Lakebase project demo", () => { throw new Error("project not found"); });
+    await expect(
+      withCreateRollback(ledger, {}, async () => { throw new Error("boom"); }),
+    ).rejects.toThrow(/rolled back: Lakebase project demo/);
   });
 });

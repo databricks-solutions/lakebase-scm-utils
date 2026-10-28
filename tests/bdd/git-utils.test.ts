@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { gitInit } from "../../scripts/git/init.js";
-import { commitAndPush, WorkflowScopeError } from "../../scripts/git/commit-push.js";
+import { commitAndPush, pushInitial, WorkflowScopeError } from "../../scripts/git/commit-push.js";
 import { commitAll } from "../../scripts/git/commits.js";
 import { cloneRepo } from "../../scripts/git/clone.js";
 import { exec, shq } from "../../scripts/util/exec.js";
@@ -134,5 +134,60 @@ describe("cloneRepo", () => {
         timeoutMs: 5_000,
       })
     ).rejects.toThrow();
+  });
+});
+
+// A2: the initial push is retriable (the first push fires the pre-push hook, which
+// triggers the one-time cold toolkit download that can race the push; the toolkit is
+// cached afterward, so one retry lands). All injected — no real git/network.
+describe("pushInitial (A2: retry the first push, surface a workflow-scope gap immediately)", () => {
+  const nosleep = async () => {};
+
+  it("retries once after a transient failure, then succeeds (attempts:2)", async () => {
+    let calls = 0;
+    await pushInitial({
+      projectDir: "/p",
+      attempts: 2,
+      sleep: nosleep,
+      run: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("fatal: unable to access ... Could not resolve host (cold toolkit mid-hook)");
+      },
+    });
+    expect(calls).toBe(2); // first fails, retry lands
+  });
+
+  it("throws the last error after exhausting attempts", async () => {
+    let calls = 0;
+    await expect(
+      pushInitial({
+        projectDir: "/p",
+        attempts: 2,
+        sleep: nosleep,
+        run: async () => { calls += 1; throw new Error("push still failing"); },
+      }),
+    ).rejects.toThrow(/push still failing/);
+    expect(calls).toBe(2);
+  });
+
+  it("maps a `workflow`-scope rejection to WorkflowScopeError IMMEDIATELY — never retried", async () => {
+    let calls = 0;
+    await expect(
+      pushInitial({
+        projectDir: "/p",
+        attempts: 2,
+        sleep: nosleep,
+        run: async () => { calls += 1; throw new Error("refusing to allow ... without `workflow` scope"); },
+      }),
+    ).rejects.toBeInstanceOf(WorkflowScopeError);
+    expect(calls).toBe(1); // a real auth gap is not transient; no retry
+  });
+
+  it("defaults to a single attempt (no retry) — preserves commitAndPush's behavior", async () => {
+    let calls = 0;
+    await expect(
+      pushInitial({ projectDir: "/p", sleep: nosleep, run: async () => { calls += 1; throw new Error("x"); } }),
+    ).rejects.toThrow(/x/);
+    expect(calls).toBe(1);
   });
 });

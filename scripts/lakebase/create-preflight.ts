@@ -19,7 +19,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { deleteLakebaseProject } from "./lakebase-project.js";
 import { runDatabricks } from "./databricks-cli.js";
-import { checkGitHubScopes } from "../github/repo.js";
+import { checkGitHubScopes, getCurrentUser, repoExists, type GitHubScopeStatus } from "../github/repo.js";
 
 export interface PreflightResult {
   ok: boolean;
@@ -145,6 +145,134 @@ export async function checkGitHubWorkflowScope(
   }
 }
 
+export interface GitHubPreflightInput {
+  /** Target repo owner (user or org). */
+  owner: string;
+  /** Bare repo name (the project name). */
+  repoName: string;
+  /** Scopes whose absence BLOCKS the happy path (create + push). Default ["repo","workflow"]. */
+  hardScopes?: readonly string[];
+  /** Scopes whose absence only WARNS (e.g. delete_repo, needed for rollback repo-delete). Default ["delete_repo"]. */
+  advisoryScopes?: readonly string[];
+  /** Injected probes (default to the real GitHub reads). */
+  currentUser?: () => Promise<string>;
+  scopes?: (required: readonly string[]) => Promise<GitHubScopeStatus>;
+  repoExists?: (fullName: string) => Promise<boolean>;
+}
+
+export interface GitHubPreflightResult extends PreflightResult {
+  /** Non-blocking notes (org/owner mismatch, missing advisory scope, invisible scopes). */
+  warnings: string[];
+  /** The resolved authenticated login, when B1 succeeded. */
+  activeUser?: string;
+}
+
+/**
+ * One up-front GitHub preflight run BEFORE any repo / Lakebase project is created,
+ * so a missing requisite fails in seconds with a fix instead of mid-create (where
+ * it orphans partially-created artifacts). Supersedes the workflow-only check:
+ *
+ *   B1  active account   getCurrentUser() must resolve (a valid token) — else a
+ *                        wrong/absent token otherwise 403s LATE at the push.
+ *   B2  scope set        checkGitHubScopes([...hard, ...advisory]): a missing HARD
+ *                        scope (repo/workflow) fails; a missing ADVISORY scope
+ *                        (delete_repo) warns (rollback repo-delete unavailable);
+ *                        granted null (fine-grained PAT / App) can't be asserted.
+ *   B3  name availability  repoExists(owner/name) → fail before anything exists.
+ *   B4  owner note       login != owner ⇒ creating under an org/other account —
+ *                        surfaced (createRepo enforces the real org-create right).
+ *
+ * CONSERVATIVE: hard-fails ONLY on the clear blockers (invalid token, missing
+ * happy-path scope, name taken); every other uncertainty is a warning, never a
+ * false block (same ethos as checkGitHubWorkflowScope). All probes injected, so
+ * this is unit-testable with no network.
+ */
+export async function checkGitHubPreflight(input: GitHubPreflightInput): Promise<GitHubPreflightResult> {
+  const warnings: string[] = [];
+  const hard = input.hardScopes ?? ["repo", "workflow"];
+  const advisory = input.advisoryScopes ?? ["delete_repo"];
+  const currentUserProbe = input.currentUser ?? getCurrentUser;
+  const scopesProbe = input.scopes ?? ((req: readonly string[]) => checkGitHubScopes(req));
+  const repoExistsProbe = input.repoExists ?? repoExists;
+
+  // B1: active account — a valid token. Hard blocker; nothing downstream works without it.
+  let activeUser: string;
+  try {
+    activeUser = await currentUserProbe();
+  } catch (err) {
+    return {
+      ok: false,
+      warnings,
+      reason:
+        `GitHub authentication failed: ${err instanceof Error ? err.message : String(err)}. ` +
+        "Sign in with `gh auth login`, or set GITHUB_TOKEN to a valid token, then re-run.",
+    };
+  }
+
+  // B4 (note): a login different from the owner means an org (or another account).
+  // Not a hard block — createRepo surfaces the real org-create permission — but
+  // surface it so a wrong active account is visible BEFORE the push's late 403.
+  if (activeUser.toLowerCase() !== input.owner.toLowerCase()) {
+    warnings.push(
+      `Signed in to GitHub as "${activeUser}" but creating under "${input.owner}" (an org or another account); ` +
+        `ensure "${activeUser}" can create repositories there.`,
+    );
+  }
+
+  // B2: the full required scope set — not just `workflow`.
+  try {
+    const { granted, missing } = await scopesProbe([...hard, ...advisory]);
+    if (granted !== null) {
+      const missingHard = missing.filter((s) => hard.includes(s));
+      const missingAdvisory = missing.filter((s) => advisory.includes(s));
+      if (missingHard.length > 0) {
+        return {
+          ok: false,
+          warnings,
+          activeUser,
+          reason:
+            `GitHub token missing required scope(s): ${missingHard.join(", ")} ` +
+            `(grants [${granted.join(", ") || "none"}]). Fix: gh auth refresh -h github.com -s ${[...hard].join(",")}`,
+        };
+      }
+      if (missingAdvisory.length > 0) {
+        warnings.push(
+          `GitHub token missing the ${missingAdvisory.join(", ")} scope — automatic rollback of the repo on a failed ` +
+            "create is unavailable (you would delete it by hand). Grant it with: gh auth refresh -h github.com -s delete_repo",
+        );
+      }
+    } else {
+      warnings.push(
+        "GitHub token scopes are not visible (fine-grained PAT or App token); cannot pre-verify repo/workflow access , " +
+          "the create will surface any gap when it pushes.",
+      );
+    }
+  } catch {
+    warnings.push("Could not read GitHub token scopes (probe error); skipping the scope pre-check.");
+  }
+
+  // B3: name availability — fail before anything is created.
+  try {
+    if (await repoExistsProbe(`${input.owner}/${input.repoName}`)) {
+      return {
+        ok: false,
+        warnings,
+        activeUser,
+        reason:
+          `GitHub repo "${input.owner}/${input.repoName}" already exists. ` +
+          "Pick a different project name, or delete the existing repo first.",
+      };
+    }
+  } catch {
+    warnings.push(
+      `Could not check whether "${input.owner}/${input.repoName}" already exists (probe error); ` +
+        "the create will fail clearly if it does.",
+    );
+  }
+
+  return { ok: true, warnings, activeUser };
+}
+
 /** The actionable prereq message for a GitHub token missing the `workflow` scope. */
 export function githubWorkflowScopePrereqMessage(reason?: string): string {
   return (
@@ -253,6 +381,90 @@ export async function withLakebaseRollback<T>(opts: RollbackOptions, fn: () => P
       : ` (WARNING: could not roll back the Lakebase project "${opts.projectId}"; delete it with` +
         ` \`databricks postgres delete-project ${opts.projectId}\`, then retry with a DIFFERENT name , the` +
         ` soft-deleted slug blocks reusing this one until it is purged)`;
+    const wrapped = err instanceof Error ? err : new Error(base);
+    wrapped.message = `${base}${suffix}`;
+    throw wrapped;
+  }
+}
+
+export interface RollbackStep {
+  label: string;
+  undo: () => Promise<void> | void;
+}
+
+export interface RollbackLedger {
+  /** Record a teardown for a resource the moment it is created. */
+  register(label: string, undo: () => Promise<void> | void): void;
+  /** The steps, in registration order (teardown runs them REVERSED). */
+  steps(): readonly RollbackStep[];
+}
+
+/** A created-resources ledger for the full create flow (A3). */
+export function createRollbackLedger(): RollbackLedger {
+  const steps: RollbackStep[] = [];
+  return {
+    register: (label, undo) => {
+      steps.push({ label, undo });
+    },
+    steps: () => steps,
+  };
+}
+
+export interface CreateRollbackOptions {
+  report?: (step: string, detail?: string) => void;
+}
+
+/**
+ * A3: run `fn`; on a throw, tear down EVERY resource the ledger recorded, in
+ * REVERSE order (last-created first), then rethrow with a summary of what was
+ * and wasn't cleaned up.
+ *
+ * Unlike {@link withLakebaseRollback} (Lakebase project only), this undoes the
+ * GitHub repo, the self-hosted runner, the local dir, AND the Lakebase project
+ * together — so a genuine provisioning fault leaves a clean "name is free" state
+ * instead of orphaning three of the four artifacts (the exact 4-artifact manual
+ * cleanup the cold-download incident caused). A step's own failure is captured +
+ * reported, never thrown, so one stuck teardown can't block the others; a
+ * "not found" teardown counts as already-gone. The caller registers a step the
+ * instant each resource is created, so a failure anywhere inside `fn` rolls back
+ * exactly what existed at that point.
+ */
+export async function withCreateRollback<T>(
+  ledger: RollbackLedger,
+  opts: CreateRollbackOptions,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const report = opts.report ?? (() => {});
+    const steps = [...ledger.steps()].reverse();
+    const rolledBack: string[] = [];
+    const failed: string[] = [];
+    if (steps.length > 0) report(`Create failed; rolling back ${steps.length} created resource(s)...`);
+    for (const s of steps) {
+      try {
+        report(`  rolling back: ${s.label}`);
+        await s.undo();
+        rolledBack.push(s.label);
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        if (/not.?found/i.test(m)) {
+          rolledBack.push(s.label);
+          continue;
+        }
+        failed.push(`${s.label} (${m})`);
+      }
+    }
+    const base = err instanceof Error ? err.message : String(err);
+    const parts: string[] = [];
+    if (rolledBack.length) parts.push(`rolled back: ${rolledBack.join(", ")}`);
+    if (failed.length) {
+      parts.push(
+        `COULD NOT roll back: ${failed.join("; ")} , clean these up by hand before retrying the same name`,
+      );
+    }
+    const suffix = parts.length ? ` (${parts.join("; ")})` : "";
     const wrapped = err instanceof Error ? err : new Error(base);
     wrapped.message = `${base}${suffix}`;
     throw wrapped;
