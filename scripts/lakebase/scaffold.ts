@@ -517,6 +517,39 @@ export async function deployVscodeSettings(targetDir: string, opts?: ScaffoldOpt
   fs.copyFileSync(src, path.join(destDir, "settings.json"));
 }
 
+/**
+ * The per-test capture modules that live at the PROJECT ROOT. They are a pair:
+ * `consort-test-reporter.ts` imports `./consort-capture`, and the client's test
+ * surface reaches up to them from `client/` — `client/vite.config.ts` wires
+ * `setupFiles: "./tests/setup.ts"` + `reporters: […, "./consort-vitest-reporter.ts"]`,
+ * both of which `import … from "../../consort-capture"` / `"../consort-capture"`,
+ * and `client/playwright.config.ts` (and the Node-backend root `playwright.config.ts`)
+ * name `../consort-test-reporter.ts` / `./consort-test-reporter.ts` as a reporter.
+ * Without these two files at the root, `vitest run` can't start and Playwright
+ * can't load. They ship in `templates/project/common/` but are NOT part of the
+ * file-by-file static copy above, so they must be deployed explicitly.
+ */
+export const TEST_CAPTURE_ROOT_FILES = ["consort-capture.ts", "consort-test-reporter.ts"] as const;
+
+/**
+ * Deploy the root test-capture modules (TEST_CAPTURE_ROOT_FILES) from
+ * `common/` to the project root. Throws if a source template is missing (a
+ * kit packaging bug, not a user error). Returns the relative paths written.
+ */
+export function deployTestCaptureRoot(targetDir: string, opts?: ScaffoldOptions): string[] {
+  const src = commonDir(opts);
+  const written: string[] = [];
+  for (const rel of TEST_CAPTURE_ROOT_FILES) {
+    const from = path.join(src, rel);
+    if (!fs.existsSync(from)) {
+      throw new Error(`Kit template missing: ${from}`);
+    }
+    fs.copyFileSync(from, path.join(targetDir, rel));
+    written.push(rel);
+  }
+  return written;
+}
+
 /** Deploy .gitignore: common/.gitignore.base + <language>/.gitignore.extra. */
 export async function deployGitignore(
   targetDir: string,
@@ -675,6 +708,10 @@ export interface ScaffoldStaticAllResult {
   /** `client/*` files written when the React SPA client was scaffolded
    *  (clientFramework="react"); empty/omitted otherwise. */
   client?: string[];
+  /** Root per-test capture modules (consort-capture.ts, consort-test-reporter.ts)
+   *  written for a Node-flavored test surface (React client or Node backend);
+   *  empty/omitted for Python/Java backends with no React client. */
+  testCapture?: string[];
 }
 
 /**
@@ -793,6 +830,19 @@ export async function scaffoldAll(args: ScaffoldAllArgs): Promise<ScaffoldStatic
       templatesDir: args.templatesDir,
     });
     if (client.length > 0) staticResult.client = client;
+  }
+
+  // Root per-test capture modules (consort-capture.ts + consort-test-reporter.ts).
+  // A Node-flavored test surface reaches up to these at the project root: the
+  // React client's vitest reporter + setup + playwright config, and the Node
+  // backend's root playwright config. Without them `vitest run` / Playwright
+  // fail to load (the scaffold-defect halt). Python/Java backends with no React
+  // client use conftest.py and never import the .ts pair, so skip them.
+  if (args.clientFramework === "react" || language === "nodejs") {
+    report("Deploying root test-capture modules");
+    staticResult.testCapture = deployTestCaptureRoot(args.targetDir, {
+      templatesDir: args.templatesDir,
+    });
   }
 
   return staticResult;

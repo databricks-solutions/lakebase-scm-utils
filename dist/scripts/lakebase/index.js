@@ -2554,8 +2554,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.11".length > 0) {
-    cached = "0.3.11";
+  if ("0.3.12".length > 0) {
+    cached = "0.3.12";
     return cached;
   }
   cached = "unknown";
@@ -12226,6 +12226,20 @@ async function deployVscodeSettings(targetDir, opts) {
   fs12.mkdirSync(destDir, { recursive: true });
   fs12.copyFileSync(src, path11.join(destDir, "settings.json"));
 }
+var TEST_CAPTURE_ROOT_FILES = ["consort-capture.ts", "consort-test-reporter.ts"];
+function deployTestCaptureRoot(targetDir, opts) {
+  const src = commonDir(opts);
+  const written = [];
+  for (const rel of TEST_CAPTURE_ROOT_FILES) {
+    const from = path11.join(src, rel);
+    if (!fs12.existsSync(from)) {
+      throw new Error(`Kit template missing: ${from}`);
+    }
+    fs12.copyFileSync(from, path11.join(targetDir, rel));
+    written.push(rel);
+  }
+  return written;
+}
 async function deployGitignore(targetDir, language = "java", opts) {
   const base = fs12.readFileSync(path11.join(commonDir(opts), ".gitignore.base"), "utf-8");
   const extraPath = path11.join(langDir(language, opts), ".gitignore.extra");
@@ -12359,6 +12373,12 @@ async function scaffoldAll(args) {
       templatesDir: args.templatesDir
     });
     if (client.length > 0) staticResult.client = client;
+  }
+  if (args.clientFramework === "react" || language === "nodejs") {
+    report("Deploying root test-capture modules");
+    staticResult.testCapture = deployTestCaptureRoot(args.targetDir, {
+      templatesDir: args.templatesDir
+    });
   }
   return staticResult;
 }
@@ -18898,6 +18918,7 @@ export {
   ScmReleaseError,
   ScmWaitCiError,
   SpringInitializrClient,
+  TEST_CAPTURE_ROOT_FILES,
   _testMakeBrownfieldFixture,
   abandonFeatureBranch,
   addE2eToRunTestsScript,
@@ -18954,6 +18975,7 @@ export {
   deployLanguageProject,
   deployScripts,
   deploySpringStarter,
+  deployTestCaptureRoot,
   deployVscodeSettings,
   deployWorkflows,
   deriveCiAppName,
