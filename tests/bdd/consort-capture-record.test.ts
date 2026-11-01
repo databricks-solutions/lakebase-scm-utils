@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { recordTestResultEvent } from "../../templates/project/common/consort-capture";
+import { recordTestResultEvent, emitTableSnapshot } from "../../templates/project/common/consort-capture";
 
 let root: string;
 let consortDir: string;
@@ -95,5 +95,36 @@ describe("recordTestResultEvent: durable per-test test.result at run time", () =
     const mirrored = agentLogEvents(recordDir).filter((e) => e.event === "test.result");
     expect(mirrored).toHaveLength(1);
     expect(mirrored[0].message).toBe("TEST T5 red");
+  });
+});
+
+function snapshotLines(): Array<Record<string, unknown>> {
+  const f = join(consortDir, "table-snapshots.jsonl");
+  return existsSync(f) ? readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+}
+// emitTableSnapshot finds `.consort` by walking up from cwd, so chdir into the temp project root.
+function inProject<T>(fn: () => T): T {
+  const cwd = process.cwd();
+  try { process.chdir(root); return fn(); } finally { process.chdir(cwd); }
+}
+
+describe("emitTableSnapshot: stamps feature/story so the dashboard scopes snapshots per feature", () => {
+  it("stamps feature_id + story_id resolved from the test-lists (test ids repeat across features)", () => {
+    writeStoryList("F2-stock-adjustment", "S1-adjust", [{ id: "T40", ac_id: "AC1", scenario_file: "tests/test_adjust.py" }]);
+    inProject(() => emitTableSnapshot("T40", join(root, "tests/test_adjust.py"), "stock_records", [{ sku: "X", quantity: 2 }], 1));
+    const lines = snapshotLines();
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ test_id: "T40", feature_id: "F2-stock-adjustment", story_id: "S1-adjust", table: "stock_records" });
+  });
+
+  it("omits the stamp when the id resolves to NO single owner — back-compat, the reader keeps it by test id", () => {
+    // T40 owned in TWO features; the running file pins neither and there is no next.json -> unresolved.
+    writeStoryList("F1-stock-visibility", "S2", [{ id: "T40", ac_id: "AC1" }]);
+    writeStoryList("F2-stock-adjustment", "S1", [{ id: "T40", ac_id: "AC1" }]);
+    inProject(() => emitTableSnapshot("T40", join(root, "tests/unrelated.py"), "stock_records", [], 0));
+    const line = snapshotLines()[0];
+    expect(line.test_id).toBe("T40");
+    expect(line.feature_id).toBeUndefined();
+    expect(line.story_id).toBeUndefined();
   });
 });
