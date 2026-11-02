@@ -5,6 +5,44 @@
 // All methods read from the bundled templates/project/ tree. By default the
 // module locates it relative to its own source by walking up looking for
 // the gitignore-base marker file; tests can override with `templatesDir`.
+//
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  SCAFFOLD ↔ UPGRADE SURFACE CONTRACT — READ THIS WHEN YOU ADD OR CHANGE A SCAFFOLD FILE
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Scaffolding (this module + scaffold-language.ts, driven by create-project.ts) only runs ONCE, at
+//  project creation. EXISTING projects get new/changed files ONLY via `consort-upgrade`
+//  (consort: consort/lakebase/upgrade.ts → `refreshSurface`). A file you add here that is NOT also
+//  wired into refreshSurface will be correct on FRESH scaffolds and STALE FOREVER on every project
+//  already in the field. That is the recurring "fix shipped but never reached the running app" bug
+//  (e.g. app/consort_capture.py stayed pre-stamp on projects pinned to a newer scm-utils).
+//
+//  SO: every time you add a file under templates/project/ or a deploy step here, CLASSIFY it and act:
+//
+//    • PROJECT-OWNED  — the user edits it after scaffold (app/main.py, app/models.py, app/routes,
+//                       client/src/**, tests/test_app.py, config like .env.example, deploy-targets.yaml).
+//                       Scaffold deploys it as a STARTING POINT. refreshSurface must NOT overwrite it.
+//                       → Nothing more to do. Do NOT add it to refreshSurface.
+//
+//    • KIT-OWNED      — generated/instrumentation/plumbing CODE the user must NOT hand-edit and that
+//                       must track the kit (scripts/**, .github/workflows/**, the per-test
+//                       instrumentation family below, substrate plumbing). A fix here is worthless to
+//                       existing projects unless it is force-refreshed on upgrade.
+//                       → You MUST add it to `refreshSurface` in consort/lakebase/upgrade.ts AND add
+//                         a BDD assertion (consort tests/bdd/upgrade-*.test.ts) that upgrade brings it
+//                         forward, so this contract is enforced by a test, not by memory.
+//
+//  Kit-owned per-test INSTRUMENTATION family (all of these are refreshed on upgrade — keep in lockstep):
+//    - common/consort-capture.ts                  (root; table-snapshot capture)
+//    - common/consort-test-reporter.ts            (root; Playwright per-test reporter)
+//    - common/tests/e2e/conftest.py               (e2e readiness)
+//    - python/tests/conftest.py                   (pytest per-test reporter)
+//    - python/app/consort_capture.py              (backend STORED/RETRIEVED row capture + feature/story stamp)
+//    - client/consort-vitest-reporter.ts          (Vitest per-test reporter)
+//    - client/tests/e2e/consort-fixtures.ts       (Playwright X-Consort-Test-Id header fixture)
+//
+//  If you add a NEW member of this family (or any other kit-owned file), add it HERE (the list above)
+//  and in refreshSurface in the same change.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
 
 import * as cp from "node:child_process";
 import * as fs from "node:fs";
