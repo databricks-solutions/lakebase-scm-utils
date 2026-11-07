@@ -63,22 +63,22 @@ describe("recordTestResultEvent: durable per-test test.result at run time", () =
     expect(agentLogEvents(consortDir).filter((e) => e.event === "test.result")).toHaveLength(1);
   });
 
-  it("falls back to the currently-building feature (next.json) for a reused id whose file pins no owner", () => {
+  it("NEVER attributes a reused id by the active feature (next.json) — an unresolvable one is left to the cycle-scoped emit", () => {
     // The real cross-feature collision: F1/S2's T9 is a client e2e spec (has a scenario_file); F6/S3's
-    // T9 is a fitness/behavior test (NO scenario_file). During F6's build the full suite runs both: F1's
-    // spec resolves to itself by file; F6's fitness test runs from a pytest file that matches no
-    // scenario_file -> must attribute to the active feature (F6), not drop the green.
+    // T9 is a fitness/behavior test (NO scenario_file). During F6's build the full suite runs both. F1's
+    // spec resolves to itself BY FILE. F6's fitness test runs from a pytest file matching no
+    // scenario_file -> UNRESOLVABLE. The reporter must NOT guess the active feature: a cross-feature
+    // re-run under a later lane would mis-stamp the row and the dashboard would scope it out. It records
+    // nothing for the unresolvable one; the kit's cycle-scoped emit (run-cycle.ts) — which holds the
+    // cycle's AUTHORITATIVE feature/story — backfills that green with the correct owner instead.
     writeStoryList("F1", "S2", [{ id: "T9", ac_id: "AC1", scenario_file: "client/tests/e2e/a.spec.ts" }]);
     writeStoryList("F6", "S3", [{ id: "T9", ac_id: "AC2" }]); // fitness: no scenario_file
-    writeFileSync(join(consortDir, "next.json"), JSON.stringify({ feature: "F6" }) + "\n");
-    // F1's own spec still resolves to F1 by file match (sibling feature unaffected by the fallback).
-    recordTestResultEvent(consortDir, "T9", "green", "client/tests/e2e/a.spec.ts", "2026-10-23T02:00:00.000Z");
-    // F6's fitness test (pytest file, matches no scenario_file) -> active-feature fallback -> F6/S3.
-    recordTestResultEvent(consortDir, "T9", "green", "tests/test_contract.py", "2026-10-23T02:00:05.000Z");
+    writeFileSync(join(consortDir, "next.json"), JSON.stringify({ feature: "F6" }) + "\n"); // MUST be ignored for attribution
+    recordTestResultEvent(consortDir, "T9", "green", "client/tests/e2e/a.spec.ts", "2026-10-23T02:00:00.000Z"); // -> F1 by file
+    recordTestResultEvent(consortDir, "T9", "green", "tests/test_contract.py", "2026-10-23T02:00:05.000Z"); // unresolvable -> NOT recorded (no active-feature guess)
     const evts = agentLogEvents(consortDir).filter((e) => e.event === "test.result");
-    expect(evts).toHaveLength(2);
+    expect(evts).toHaveLength(1);
     expect((evts[0].metadata as Record<string, unknown>).feature_id).toBe("F1");
-    expect((evts[1].metadata as Record<string, unknown>)).toMatchObject({ feature_id: "F6", story_id: "S3" });
   });
 
   it("mirrors the recorded event into the corpus when LAKEBASE_CONSORT_RECORD_DIR is set", () => {

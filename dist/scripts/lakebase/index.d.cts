@@ -3292,8 +3292,8 @@ declare function preparePr(args: PreparePrArgs): Promise<PreparePrResult>;
 declare function pushFailureHint(rawMessage: string): string;
 
 declare class ScmWaitCiError extends Error {
-    readonly code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "timeout" | "pr-not-found";
-    constructor(message: string, code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "timeout" | "pr-not-found");
+    readonly code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "no-runner" | "timeout" | "pr-not-found";
+    constructor(message: string, code: "no-state-file" | "bad-precondition" | "no-github-remote" | "ci-failed" | "pr-conflicting" | "no-runner" | "timeout" | "pr-not-found");
 }
 interface WaitCiArgs {
     projectDir: string;
@@ -3301,6 +3301,15 @@ interface WaitCiArgs {
     timeoutMs?: number;
     /** Interval between polls, milliseconds. Default: 30 seconds. */
     pollMs?: number;
+    /**
+     * Grace window for a run to START (transition QUEUED -> IN_PROGRESS), milliseconds. If CI is still
+     * pending AND every check is still QUEUED (none ever started) past this window, no runner picked the
+     * run up — almost always a self-hosted runner that is offline. Fail FAST with an actionable
+     * diagnosis rather than dead-waiting the full timeoutMs on a run that can never advance (mirrors the
+     * conflicting-PR fast-fail). A GitHub-hosted run, or a self-hosted run with an online idle runner,
+     * starts within seconds, so the default is generous enough to never false-trip those. Default: 3 min.
+     */
+    runnerGraceMs?: number;
     /** Clock injection for testability. */
     now?: () => Date;
     /**

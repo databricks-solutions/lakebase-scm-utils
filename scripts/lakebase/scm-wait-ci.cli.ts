@@ -13,6 +13,7 @@ interface ParsedArgs {
   projectDir?: string;
   timeoutSec?: number;
   pollSec?: number;
+  runnerGraceSec?: number;
   json?: boolean;
   pretty?: boolean;
   help?: boolean;
@@ -32,6 +33,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--poll-sec":
         out.pollSec = Number.parseInt(argv[++i], 10);
+        break;
+      case "--runner-grace-sec":
+        out.runnerGraceSec = Number.parseInt(argv[++i], 10);
         break;
       case "--json":
         out.json = true;
@@ -61,6 +65,7 @@ Flags:
   --project-dir <dir>     Project root (default: cwd)
   --timeout-sec <n>       Total poll budget (default: 1800 = 30 minutes)
   --poll-sec <n>          Seconds between polls (default: 30)
+  --runner-grace-sec <n>  Grace for a run to START before a no-runner fast-fail (default: 180)
   --json                  Machine-readable JSON output
   --pretty                Pretty-print JSON
   -h, --help              Show this help
@@ -71,6 +76,7 @@ Exit codes:
   2 = precondition refused (wrong state, missing branch)
   3 = CI failed (state unchanged; re-push fixes + re-run)
   4 = timeout (state unchanged; re-run with a larger budget)
+  5 = no runner (CI queued, never started; a self-hosted runner is offline — start it + re-run)
 `;
 
 interface Report {
@@ -104,6 +110,8 @@ function exitCodeForError(err: Error): number {
         return 3;
       case "timeout":
         return 4;
+      case "no-runner":
+        return 5;
       case "no-github-remote":
       case "pr-not-found":
         return 2;
@@ -124,6 +132,7 @@ export async function runScmWaitCiCli(argv: string[]): Promise<number> {
       projectDir,
       timeoutMs: args.timeoutSec ? args.timeoutSec * 1000 : undefined,
       pollMs: args.pollSec ? args.pollSec * 1000 : undefined,
+      runnerGraceMs: args.runnerGraceSec ? args.runnerGraceSec * 1000 : undefined,
     });
     const report: Report = { ok: true, result };
     if (args.json) {

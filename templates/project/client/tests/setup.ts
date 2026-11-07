@@ -8,18 +8,31 @@
 // shim is inert, so a pure-presentation component test is unaffected.
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { captureTablesFromRoute } from "../../consort-capture";
+import { captureTablesFromRoute, consortOwnerHeaders, findConsortDir } from "../../consort-capture";
+
+// Component tests await REAL `/api` round-trips to the backend the harness booted, so a render that
+// fires a request can take longer than React Testing Library's 1000ms default asyncUtilTimeout.
+// Under full-suite load that default flaked waitFor/findBy assertions (the request simply had not
+// returned within 1s). Raise it so real-backend latency, not an arbitrary 1s cap, bounds how long
+// waitFor / findBy polls.
+configure({ asyncUtilTimeout: 10000 });
 
 const TEST_ID = /@(T\d+(?:-[a-z0-9-]+)?)/;
 
 // The @T<id> of the test currently running, so the fetch shim can tag each /api request with it (the
 // backend attributes the rows the request RETRIEVES/STORED to this test — app/consort_capture.py).
+// ALSO the test's OWNING feature/story, resolved from the per-story test-list by (this spec file +
+// id) — carried on the request so the backend stamps the OWNER, never the active feature (next.json).
 let currentTestId: string | null = null;
-beforeEach((ctx: { task?: { name?: string } }) => {
+let currentOwnerHeaders: Record<string, string> = {};
+beforeEach((ctx: { task?: { name?: string; file?: { filepath?: string } } }) => {
   currentTestId = TEST_ID.exec(ctx?.task?.name ?? "")?.[1] ?? null;
+  currentOwnerHeaders = currentTestId
+    ? consortOwnerHeaders(findConsortDir(process.cwd()), currentTestId, ctx?.task?.file?.filepath ?? "")
+    : {};
 });
 
 function backendBase(): string {
@@ -48,6 +61,7 @@ if (BACKEND_BASE) {
     if (!currentTestId || !isApi(url)) return init;
     const headers = new Headers(init?.headers);
     headers.set("X-Consort-Test-Id", currentTestId);
+    for (const [k, v] of Object.entries(currentOwnerHeaders)) headers.set(k, v); // OWNER, not active feature
     return { ...init, headers };
   };
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
@@ -58,7 +72,10 @@ if (BACKEND_BASE) {
     }
     if (input instanceof Request && input.url.startsWith("/")) {
       const r = new Request(reroute(input.url), input);
-      if (currentTestId && isApi(input.url)) r.headers.set("X-Consort-Test-Id", currentTestId);
+      if (currentTestId && isApi(input.url)) {
+        r.headers.set("X-Consort-Test-Id", currentTestId);
+        for (const [k, v] of Object.entries(currentOwnerHeaders)) r.headers.set(k, v); // OWNER, not active feature
+      }
       return realFetch(r, init);
     }
     return realFetch(input, init);

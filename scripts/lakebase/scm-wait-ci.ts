@@ -25,6 +25,7 @@ export class ScmWaitCiError extends Error {
       | "no-github-remote"
       | "ci-failed"
       | "pr-conflicting"
+      | "no-runner"
       | "timeout"
       | "pr-not-found",
   ) {
@@ -39,6 +40,15 @@ export interface WaitCiArgs {
   timeoutMs?: number;
   /** Interval between polls, milliseconds. Default: 30 seconds. */
   pollMs?: number;
+  /**
+   * Grace window for a run to START (transition QUEUED -> IN_PROGRESS), milliseconds. If CI is still
+   * pending AND every check is still QUEUED (none ever started) past this window, no runner picked the
+   * run up — almost always a self-hosted runner that is offline. Fail FAST with an actionable
+   * diagnosis rather than dead-waiting the full timeoutMs on a run that can never advance (mirrors the
+   * conflicting-PR fast-fail). A GitHub-hosted run, or a self-hosted run with an online idle runner,
+   * starts within seconds, so the default is generous enough to never false-trip those. Default: 3 min.
+   */
+  runnerGraceMs?: number;
   /** Clock injection for testability. */
   now?: () => Date;
   /**
@@ -67,6 +77,15 @@ export interface WaitCiResult {
 
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const DEFAULT_POLL_MS = 30 * 1000;
+const DEFAULT_RUNNER_GRACE_MS = 3 * 60 * 1000;
+
+/** A check-run that has left the QUEUED state — a runner has picked it up (or it already finished). */
+function hasStarted(check: { status?: string; conclusion?: string }): boolean {
+  const s = (check.status ?? "").toUpperCase();
+  const c = (check.conclusion ?? "").toUpperCase();
+  // status is IN_PROGRESS/COMPLETED once a runner takes it; a conclusion means it ran to an end.
+  return (s !== "" && s !== "QUEUED" && s !== "PENDING" && s !== "WAITING") || (c !== "" && c !== "NEUTRAL");
+}
 
 export async function waitForCi(args: WaitCiArgs): Promise<WaitCiResult> {
   const current = readWorkflowState(args.projectDir);
@@ -98,10 +117,16 @@ export async function waitForCi(args: WaitCiArgs): Promise<WaitCiResult> {
 
   const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const pollMs = args.pollMs ?? DEFAULT_POLL_MS;
+  const runnerGraceMs = args.runnerGraceMs ?? DEFAULT_RUNNER_GRACE_MS;
   const fetchPr = args.fetchPr ?? getPullRequest;
   const now = args.now ?? (() => new Date());
   // Hoist into a local so the async closure sees a narrowed string.
   const headBranch = current.branch;
+  // Track the loop start + whether any check ever LEFT the QUEUED state. A run that started and then
+  // hangs is a genuine CI stall (let it ride to the timeout); a run that NEVER starts is a missing
+  // runner (fail fast). everStarted latches true so a later transient re-query can't un-set it.
+  const startedAt = now().getTime();
+  let everStarted = false;
 
   // The probe encodes the three terminal outcomes: success (done +
   // value), pending (done: false), and the two throw-cases (PR
@@ -143,6 +168,26 @@ export async function waitForCi(args: WaitCiArgs): Promise<WaitCiResult> {
         throw new ScmWaitCiError(
           `CI failed for PR ${lastPr.url}. Failed checks: ${failed.join(", ") || "(unknown)"}.`,
           "ci-failed",
+        );
+      }
+      // Fast-fail a run NO RUNNER picks up. Once checks exist, latch everStarted the moment any leaves
+      // QUEUED. If, past the grace window, checks exist but NONE ever started, the run is stuck QUEUED
+      // with no available runner (overwhelmingly a self-hosted runner that is offline) — it can never
+      // advance, so surface at once with the fix instead of spinning to the full timeout. (A run that
+      // started then stalled keeps everStarted=true and rides to the timeout as a genuine CI hang.)
+      if (lastPr.checks.some(hasStarted)) everStarted = true;
+      if (
+        !everStarted &&
+        lastPr.checks.length > 0 &&
+        now().getTime() - startedAt >= runnerGraceMs
+      ) {
+        const queued = lastPr.checks.map((c) => `${c.name} (${c.status || "QUEUED"})`).join(", ");
+        throw new ScmWaitCiError(
+          `CI for PR ${lastPr.url} has been QUEUED for ${Math.round((now().getTime() - startedAt) / 1000)}s with no runner picking it up — the check(s) [${queued}] never started. ` +
+            `This almost always means the repo's self-hosted CI runner is OFFLINE. Verify with: ` +
+            `gh api repos/<owner>/<repo>/actions/runners (look for status:"online"); for a Lakebase scaffold, start it with ` +
+            `\`( cd ~/.lakebase/runners/<project> && nohup ./run.sh >/dev/null 2>&1 & )\`. Then re-run wait-ci.`,
+          "no-runner",
         );
       }
       return { done: false };

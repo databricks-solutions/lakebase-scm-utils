@@ -2554,8 +2554,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.14".length > 0) {
-    cached = "0.3.14";
+  if ("0.3.15".length > 0) {
+    cached = "0.3.15";
     return cached;
   }
   cached = "unknown";
@@ -16790,6 +16790,12 @@ var ScmWaitCiError = class extends Error {
 };
 var DEFAULT_TIMEOUT_MS2 = 30 * 60 * 1e3;
 var DEFAULT_POLL_MS = 30 * 1e3;
+var DEFAULT_RUNNER_GRACE_MS = 3 * 60 * 1e3;
+function hasStarted(check) {
+  const s = (check.status ?? "").toUpperCase();
+  const c = (check.conclusion ?? "").toUpperCase();
+  return s !== "" && s !== "QUEUED" && s !== "PENDING" && s !== "WAITING" || c !== "" && c !== "NEUTRAL";
+}
 async function waitForCi(args) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
@@ -16819,9 +16825,12 @@ async function waitForCi(args) {
   }
   const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS2;
   const pollMs = args.pollMs ?? DEFAULT_POLL_MS;
+  const runnerGraceMs = args.runnerGraceMs ?? DEFAULT_RUNNER_GRACE_MS;
   const fetchPr = args.fetchPr ?? getPullRequest;
   const now = args.now ?? (() => /* @__PURE__ */ new Date());
   const headBranch = current.branch;
+  const startedAt = now().getTime();
+  let everStarted = false;
   let lastPr;
   const result = await pollUntil({
     timeoutMs,
@@ -16850,6 +16859,14 @@ async function waitForCi(args) {
         throw new ScmWaitCiError(
           `CI failed for PR ${lastPr.url}. Failed checks: ${failed.join(", ") || "(unknown)"}.`,
           "ci-failed"
+        );
+      }
+      if (lastPr.checks.some(hasStarted)) everStarted = true;
+      if (!everStarted && lastPr.checks.length > 0 && now().getTime() - startedAt >= runnerGraceMs) {
+        const queued = lastPr.checks.map((c) => `${c.name} (${c.status || "QUEUED"})`).join(", ");
+        throw new ScmWaitCiError(
+          `CI for PR ${lastPr.url} has been QUEUED for ${Math.round((now().getTime() - startedAt) / 1e3)}s with no runner picking it up \u2014 the check(s) [${queued}] never started. This almost always means the repo's self-hosted CI runner is OFFLINE. Verify with: gh api repos/<owner>/<repo>/actions/runners (look for status:"online"); for a Lakebase scaffold, start it with \`( cd ~/.lakebase/runners/<project> && nohup ./run.sh >/dev/null 2>&1 & )\`. Then re-run wait-ci.`,
+          "no-runner"
         );
       }
       return { done: false };

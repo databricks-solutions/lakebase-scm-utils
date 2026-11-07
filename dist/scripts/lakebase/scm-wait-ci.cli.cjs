@@ -8615,6 +8615,12 @@ var ScmWaitCiError = class extends Error {
 };
 var DEFAULT_TIMEOUT_MS = 30 * 60 * 1e3;
 var DEFAULT_POLL_MS = 30 * 1e3;
+var DEFAULT_RUNNER_GRACE_MS = 3 * 60 * 1e3;
+function hasStarted(check) {
+  const s = (check.status ?? "").toUpperCase();
+  const c = (check.conclusion ?? "").toUpperCase();
+  return s !== "" && s !== "QUEUED" && s !== "PENDING" && s !== "WAITING" || c !== "" && c !== "NEUTRAL";
+}
 async function waitForCi(args) {
   const current = readWorkflowState(args.projectDir);
   if (!current) {
@@ -8644,9 +8650,12 @@ async function waitForCi(args) {
   }
   const timeoutMs = args.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const pollMs = args.pollMs ?? DEFAULT_POLL_MS;
+  const runnerGraceMs = args.runnerGraceMs ?? DEFAULT_RUNNER_GRACE_MS;
   const fetchPr = args.fetchPr ?? getPullRequest;
   const now = args.now ?? (() => /* @__PURE__ */ new Date());
   const headBranch = current.branch;
+  const startedAt = now().getTime();
+  let everStarted = false;
   let lastPr;
   const result = await pollUntil({
     timeoutMs,
@@ -8675,6 +8684,14 @@ async function waitForCi(args) {
         throw new ScmWaitCiError(
           `CI failed for PR ${lastPr.url}. Failed checks: ${failed.join(", ") || "(unknown)"}.`,
           "ci-failed"
+        );
+      }
+      if (lastPr.checks.some(hasStarted)) everStarted = true;
+      if (!everStarted && lastPr.checks.length > 0 && now().getTime() - startedAt >= runnerGraceMs) {
+        const queued = lastPr.checks.map((c) => `${c.name} (${c.status || "QUEUED"})`).join(", ");
+        throw new ScmWaitCiError(
+          `CI for PR ${lastPr.url} has been QUEUED for ${Math.round((now().getTime() - startedAt) / 1e3)}s with no runner picking it up \u2014 the check(s) [${queued}] never started. This almost always means the repo's self-hosted CI runner is OFFLINE. Verify with: gh api repos/<owner>/<repo>/actions/runners (look for status:"online"); for a Lakebase scaffold, start it with \`( cd ~/.lakebase/runners/<project> && nohup ./run.sh >/dev/null 2>&1 & )\`. Then re-run wait-ci.`,
+          "no-runner"
         );
       }
       return { done: false };
@@ -8718,6 +8735,9 @@ function parseArgs(argv) {
       case "--poll-sec":
         out.pollSec = Number.parseInt(argv[++i], 10);
         break;
+      case "--runner-grace-sec":
+        out.runnerGraceSec = Number.parseInt(argv[++i], 10);
+        break;
       case "--json":
         out.json = true;
         break;
@@ -8745,6 +8765,7 @@ Flags:
   --project-dir <dir>     Project root (default: cwd)
   --timeout-sec <n>       Total poll budget (default: 1800 = 30 minutes)
   --poll-sec <n>          Seconds between polls (default: 30)
+  --runner-grace-sec <n>  Grace for a run to START before a no-runner fast-fail (default: 180)
   --json                  Machine-readable JSON output
   --pretty                Pretty-print JSON
   -h, --help              Show this help
@@ -8755,6 +8776,7 @@ Exit codes:
   2 = precondition refused (wrong state, missing branch)
   3 = CI failed (state unchanged; re-push fixes + re-run)
   4 = timeout (state unchanged; re-run with a larger budget)
+  5 = no runner (CI queued, never started; a self-hosted runner is offline \u2014 start it + re-run)
 `;
 function renderHuman(r) {
   if (!r.ok) {
@@ -8782,6 +8804,8 @@ function exitCodeForError(err) {
         return 3;
       case "timeout":
         return 4;
+      case "no-runner":
+        return 5;
       case "no-github-remote":
       case "pr-not-found":
         return 2;
@@ -8801,7 +8825,8 @@ async function runScmWaitCiCli(argv) {
     const result = await waitForCi({
       projectDir,
       timeoutMs: args.timeoutSec ? args.timeoutSec * 1e3 : void 0,
-      pollMs: args.pollSec ? args.pollSec * 1e3 : void 0
+      pollMs: args.pollSec ? args.pollSec * 1e3 : void 0,
+      runnerGraceMs: args.runnerGraceSec ? args.runnerGraceSec * 1e3 : void 0
     });
     const report = { ok: true, result };
     if (args.json) {

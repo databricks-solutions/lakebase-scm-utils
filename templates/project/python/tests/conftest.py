@@ -20,6 +20,16 @@ def client(request):
     test_id = _consort_testid(request.node)
     if test_id:
         c.headers["X-Consort-Test-Id"] = test_id
+        # Carry the test's OWNING feature/story (from the test-list by this test's file + id) so the
+        # backend stamps the OWNER, never the active feature (next.json). Absent/unresolved -> unscoped.
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        file_rel = str(Path(str(request.node.fspath))).replace(f"{root}/", "")
+        owner = _consort_test_owner(root / ".consort", test_id, file_rel)
+        if owner:
+            c.headers["X-Consort-Feature"] = owner[0] or ""
+            c.headers["X-Consort-Story"] = owner[1] or ""
     return c
 
 
@@ -118,13 +128,14 @@ def _consort_emit_test_run(test_id, status, item):
 
 
 def _consort_test_owner(consort_dir, test_id, file_rel):
-    """Resolve (feature_id, story_id, ac_id) for a test id from the per-story test-lists — the
-    attribution the reporter lacks (it sees only id + file). Ids are unique only WITHIN a story, so a
-    reused id has several owners: (1) the owner whose scenario_file basename matches ``file_rel`` (a
-    client/e2e spec pins ITSELF); then (2) the owner in the feature currently on the build lane
-    (``next.json``) — a fitness/behavior test carries no scenario_file, so during THIS feature's build
-    its reused id belongs to the active feature (a sibling feature's same-id test already resolved via
-    (1)). Else None (skip, never mis-key). Mirrors consort-capture.ts resolveOwner. Scoped, best-effort."""
+    """Resolve (feature_id, story_id, ac_id) for a test id from the per-story test-lists — a property
+    of the TEST, read from the authoritative test-list, NEVER from which feature happens to be building
+    now. Ids are unique only WITHIN a story, so a reused id has several owners; disambiguate by the
+    owner whose scenario_file basename matches ``file_rel`` (the running test file pins ITSELF). If the
+    running file still can't disambiguate, return None (leave it UNSCOPED) rather than attribute by the
+    active feature — a full-suite re-run under a LATER feature's lane would otherwise mis-stamp this
+    test's rows with that feature and the dashboard would scope them out. ``next.json`` is deliberately
+    NOT consulted. Mirrors consort-capture.ts resolveOwner. Scoped, best-effort."""
     try:
         import glob
         import json
@@ -148,21 +159,12 @@ def _consort_test_owner(consort_dir, test_id, file_rel):
             return None
         if len(owners) == 1:
             return owners[0][:3]
-        # (1) the owner whose scenario_file matches the running file (unique match)
+        # Disambiguate a reused id by the owner whose scenario_file matches the running file. No
+        # active-feature fallback: an unresolved id stays unscoped, never attributed to the run's feature.
         fb = os.path.basename(file_rel or "")
         by_file = [o for o in owners if o[3] and os.path.basename(o[3]) == fb]
         if len(by_file) == 1:
             return by_file[0][:3]
-        # (2) fall back to the owner in the currently-building feature (one match only)
-        try:
-            with open(os.path.join(str(consort_dir), "next.json"), encoding="utf-8") as fh:
-                active = json.load(fh).get("feature")
-        except (OSError, ValueError):
-            active = None
-        if active:
-            by_feat = [o for o in owners if o[0] == active]
-            if len(by_feat) == 1:
-                return by_feat[0][:3]
         return None
     except (OSError, ValueError, TypeError):
         return None

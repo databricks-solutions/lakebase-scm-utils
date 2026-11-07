@@ -66,32 +66,6 @@ def _record(table: str, op: str, row: dict[str, Any]) -> None:
     buf.append({"table": table, "op": op, "row": {k: _jsonable(v) for k, v in row.items()}})
 
 
-def _consort_scope(consort_dir: str) -> tuple[str | None, str | None]:
-    """Best-effort (feature_id, story_id) to STAMP each capture line so the dashboard can scope
-    reads/writes per feature (test ids repeat across features — e.g. F1 and F2 both have a T40, so an
-    unstamped log commingles their reads). The app sees only the test id (from the header), not the
-    test FILE, so it scopes by the CURRENTLY-driven feature (`.consort/next.json` `feature`, the same
-    active-feature signal the reporter's owner-resolution uses) and that feature's active story
-    (`features/<f>/pipeline.json` `build_active` — null during a whole-feature deploy, which the reader
-    treats as "any story of this feature"). Never raises."""
-    feature_id: str | None = None
-    story_id: str | None = None
-    try:
-        with open(os.path.join(consort_dir, "next.json"), encoding="utf-8") as fh:
-            feat = json.load(fh).get("feature")
-            feature_id = feat if isinstance(feat, str) and feat else None
-    except (OSError, ValueError):
-        pass
-    if feature_id:
-        try:
-            with open(os.path.join(consort_dir, "features", feature_id, "pipeline.json"), encoding="utf-8") as fh:
-                active = json.load(fh).get("build_active")
-                story_id = active if isinstance(active, str) and active else None
-        except (OSError, ValueError):
-            pass
-    return feature_id, story_id
-
-
 def _flush(path: str, test_id: str, buf: list[dict[str, Any]], feature_id: str | None, story_id: str | None) -> None:
     if not buf:
         return
@@ -127,6 +101,14 @@ def install(app: Any, engine: Engine, base: type[DeclarativeBase]) -> None:
     @app.middleware("http")
     async def _consort_tag_request(request: Any, call_next: Any) -> Any:
         test_id = request.headers.get("x-consort-test-id")
+        # The OWNER (feature, story) travels WITH the test: the harness resolves it from the test-list
+        # by the test's own file+id and sends it on every request. Stamp THAT — never the active
+        # feature (next.json). A full-suite re-run under a LATER feature's lane would otherwise stamp
+        # this test's reads/writes with that feature, and the dashboard would scope them out (the
+        # "retrieved shows nothing" bug). Absent header -> leave unscoped (the reader keeps it by
+        # test id, back-compat), never mis-stamped.
+        feature_id = request.headers.get("x-consort-feature") or None
+        story_id = request.headers.get("x-consort-story") or None
         id_token = _TEST_ID.set(test_id)
         buf_token = _BUFFER.set([] if test_id else None)
         try:
@@ -134,7 +116,6 @@ def install(app: Any, engine: Engine, base: type[DeclarativeBase]) -> None:
         finally:
             buf = _BUFFER.get()
             if test_id and buf:
-                feature_id, story_id = _consort_scope(consort_dir)
                 _flush(interactions_path, test_id, buf, feature_id, story_id)
             _BUFFER.reset(buf_token)
             _TEST_ID.reset(id_token)

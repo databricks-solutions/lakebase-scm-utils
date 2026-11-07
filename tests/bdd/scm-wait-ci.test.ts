@@ -229,4 +229,70 @@ describe("waitForCi poll loop", () => {
     ).rejects.toMatchObject({ code: "timeout" });
     expect(calls).toBeGreaterThan(1);
   });
+
+  // A run NO RUNNER picks up sits QUEUED forever (a self-hosted runner is offline) — it can never
+  // advance, so the waiter must fast-fail with an actionable no-runner diagnosis rather than dead-wait
+  // the full (30-min) timeout. Mirrors the pr-conflicting fast-fail. (The live F2 deploy hung 30 min
+  // here because restore.sh had killed the runner.)
+  it("throws no-runner (not timeout) when checks stay QUEUED past the grace window — a self-hosted runner is offline", async () => {
+    seedPrReady();
+    const queued = {
+      ...makePr("pending"),
+      checks: [
+        { name: "build-and-test", status: "QUEUED", conclusion: "", detailsUrl: "https://github.com/kevin-hartman/demo/actions/runs/9999" },
+      ],
+    };
+    const fetchPr = vi.fn().mockResolvedValue(queued);
+    const clock = (() => {
+      let t = Date.parse("2026-06-03T12:00:00Z");
+      return () => {
+        const out = new Date(t);
+        t += 5000;
+        return out;
+      };
+    })();
+    await expect(
+      wait.waitForCi({
+        projectDir: tmpDir,
+        fetchPr,
+        sleep: () => Promise.resolve(),
+        pollMs: 1,
+        timeoutMs: 10_000_000, // huge: proves it did NOT reach the timeout
+        runnerGraceMs: 1000,
+        now: clock,
+      }),
+    ).rejects.toMatchObject({ code: "no-runner" });
+    // State unchanged, and it surfaced fast (not spun to the huge timeout).
+    expect(state.readWorkflowState(tmpDir)?.state).toBe("pr-ready");
+  });
+
+  it("does NOT fast-fail no-runner once a check has STARTED (a started-then-hung run rides to the timeout)", async () => {
+    seedPrReady();
+    // IN_PROGRESS from the first poll: a runner picked it up, then it hangs. everStarted latches, so
+    // the no-runner path never trips even past the grace window — this is a genuine CI stall → timeout.
+    const inProgress = {
+      ...makePr("pending"),
+      checks: [{ name: "build-and-test", status: "IN_PROGRESS", conclusion: "", detailsUrl: "u" }],
+    };
+    const fetchPr = vi.fn().mockResolvedValue(inProgress);
+    const clock = (() => {
+      let t = Date.parse("2026-06-03T12:00:00Z");
+      return () => {
+        const out = new Date(t);
+        t += 5000;
+        return out;
+      };
+    })();
+    await expect(
+      wait.waitForCi({
+        projectDir: tmpDir,
+        fetchPr,
+        sleep: () => Promise.resolve(),
+        pollMs: 1,
+        timeoutMs: 20_000, // moderate: it rides here, not to no-runner
+        runnerGraceMs: 1000, // small: would trip no-runner IF the run hadn't started
+        now: clock,
+      }),
+    ).rejects.toMatchObject({ code: "timeout" });
+  });
 });
