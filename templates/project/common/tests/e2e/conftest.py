@@ -22,6 +22,7 @@ Write your E2E specs against the `live_server` fixture; do not replace this file
 """
 
 import os
+import signal
 import subprocess
 import tempfile
 import time
@@ -33,6 +34,28 @@ import pytest
 _HOST = "127.0.0.1"
 _PORT = int(os.environ.get("E2E_PORT", "8765"))
 _READY_TIMEOUT_S = float(os.environ.get("E2E_READY_TIMEOUT", "30"))
+
+
+def _reap_stale(port: int) -> None:
+    """Best-effort: kill any process already LISTENING on `port` before we start ours.
+    A prior E2E run whose pytest process was killed before teardown can leak its uvicorn,
+    which then (a) holds the bind so our server can't start and (b) can sit `idle in
+    transaction` holding DB locks that wedge a later schema op. Harmless no-op in CI
+    (fresh VM, nothing listening) and when `lsof` is unavailable (we simply skip)."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-ti", f"tcp:{port}", "-sTCP:LISTEN"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return
+    for pid in (p.strip() for p in out.splitlines()):
+        try:
+            os.kill(int(pid), signal.SIGKILL)
+        except (OSError, ValueError):
+            pass
 
 
 def _is_up(url: str) -> bool:
@@ -66,6 +89,8 @@ def live_server():
         except OSError:
             return "(no server output captured)"
 
+    # Reap a leaked server from a prior run before binding (best-effort; see _reap_stale).
+    _reap_stale(_PORT)
     # Inherit os.environ so CI's DATABASE_URL / LAKEBASE_* are used; deliberately
     # NO --env-file (see the module docstring). The app loads .env itself when present.
     proc = subprocess.Popen(

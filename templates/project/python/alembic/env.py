@@ -1,5 +1,6 @@
 """Alembic environment configuration. Reads DATABASE_URL from environment."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -43,7 +44,19 @@ def run_migrations_online():
     # make_engine wires the do_connect token-minting event (the online path
     # actually connects, so it needs a live credential); NullPool keeps each
     # migration invocation short-lived.
-    connectable = make_engine(poolclass=pool.NullPool)
+    #
+    # lock_timeout (migration connections ONLY, not the app runtime engine): a schema
+    # migration's DDL (ALTER TABLE / ADD/DROP COLUMN) needs an ACCESS EXCLUSIVE lock. If
+    # another connection holds a conflicting lock when the DDL fires, the ALTER blocks
+    # indefinitely — during feature-verify that hangs the whole suite to the 15-min SIGTERM
+    # with no clue which statement stalled. Cap the wait: a blocked DDL now fails fast (~30s)
+    # with a labeled `canceling statement due to lock timeout` naming the migration, instead
+    # of a silent hang. Overridable via LAKEBASE_MIGRATION_LOCK_TIMEOUT (e.g. "0" to disable).
+    lock_timeout = os.getenv("LAKEBASE_MIGRATION_LOCK_TIMEOUT", "30s")
+    connectable = make_engine(
+        poolclass=pool.NullPool,
+        connect_args={"options": f"-c lock_timeout={lock_timeout}"},
+    )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

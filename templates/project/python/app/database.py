@@ -33,6 +33,26 @@ DB_NAME = os.getenv("DB_NAME", "databricks_postgres")
 # a fresh token on each new physical connect.
 _POOL_RECYCLE_SECONDS = 30 * 60
 
+# App-runtime safety net: Postgres rolls back a connection left IDLE INSIDE A
+# TRANSACTION for longer than this, releasing any locks it holds. Without it an
+# aborted or orphaned app connection (e.g. a server killed mid-request, or a leaked
+# process) can sit `idle in transaction` holding an AccessExclusiveLock forever, and
+# a later schema operation (ALTER / DROP) blocks on it indefinitely. A web request's
+# transaction is short, so 60s is far above normal and only ever fires on a wedged
+# session. Overridable via LAKEBASE_APP_IDLE_TX_TIMEOUT (e.g. "0" to disable). It is
+# NOT a statement timeout — an actively running migration statement is never cut.
+_IDLE_TX_TIMEOUT = os.getenv("LAKEBASE_APP_IDLE_TX_TIMEOUT", "60s")
+
+
+def _with_idle_timeout(kwargs: dict) -> dict:
+    """Merge the idle-in-transaction timeout into connect_args.options. Skipped when the
+    caller already set connect_args.options (migrations pass their own lock_timeout via
+    alembic/env.py and own their connection-timeout policy) or when disabled with "0"."""
+    ca = kwargs.get("connect_args") or {}
+    if _IDLE_TX_TIMEOUT == "0" or ca.get("options"):
+        return kwargs
+    return {**kwargs, "connect_args": {**ca, "options": f"-c idle_in_transaction_session_timeout={_IDLE_TX_TIMEOUT}"}}
+
 
 def _normalize_url(url: str) -> str:
     """The single door for every connection URL this app builds: force the psycopg
@@ -81,7 +101,7 @@ def make_engine(**kwargs) -> Engine:
     """
     explicit = os.getenv("DATABASE_URL")
     if explicit:
-        return create_engine(_normalize_url(explicit), pool_pre_ping=True, **kwargs)
+        return create_engine(_normalize_url(explicit), pool_pre_ping=True, **_with_idle_timeout(kwargs))
 
     host = os.getenv("LAKEBASE_HOST") or os.getenv("DB_HOST")
     endpoint = lakebase_credentials.endpoint_path_from_env()
@@ -91,7 +111,7 @@ def make_engine(**kwargs) -> Engine:
         # Through _normalize_url so this runtime-mint connection is labeled too.
         url = _normalize_url(f"postgresql+psycopg://{quote_plus(user)}@{host}:5432/{DB_NAME}")
         engine = create_engine(
-            url, pool_pre_ping=True, pool_recycle=_POOL_RECYCLE_SECONDS, **kwargs
+            url, pool_pre_ping=True, pool_recycle=_POOL_RECYCLE_SECONDS, **_with_idle_timeout(kwargs)
         )
 
         @event.listens_for(engine, "do_connect")
@@ -104,7 +124,7 @@ def make_engine(**kwargs) -> Engine:
     return create_engine(
         _normalize_url(f"postgresql+psycopg://{host or 'localhost'}:5432/{DB_NAME}"),
         pool_pre_ping=True,
-        **kwargs,
+        **_with_idle_timeout(kwargs),
     )
 
 

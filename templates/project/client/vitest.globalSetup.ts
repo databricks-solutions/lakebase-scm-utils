@@ -89,7 +89,27 @@ export default async function setup(ctx?: { provide?: (k: string, v: unknown) =>
   const port = await freePort();
   const base = `http://127.0.0.1:${port}`;
   const { shell, health } = backend(port);
-  proc = spawn("bash", ["-c", shell], { cwd: ROOT, stdio: "ignore", env: { ...process.env } });
+  // CAPTURE the backend's stdout+stderr (not stdio:"ignore") so a boot failure — an unauthorized/expired
+  // Lakebase token, a migration error, an app-import crash — is SURFACED in the thrown error instead of
+  // swallowed into an undiagnosable "did not become healthy within 120s". The captured tail also carries
+  // the real cause (e.g. an auth signature) into the vitest output -> the drive's verify summary, so the
+  // orchestrator can classify an auth expiry (re-authenticate) rather than mislabel it a test regression.
+  const BOOT_CAPTURE_MAX = 4000;
+  let bootOutput = "";
+  const capture = (d: Buffer): void => {
+    bootOutput += d.toString();
+    if (bootOutput.length > BOOT_CAPTURE_MAX) bootOutput = bootOutput.slice(-BOOT_CAPTURE_MAX);
+  };
+  proc = spawn("bash", ["-c", shell], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env } });
+  proc.stdout?.on("data", capture);
+  proc.stderr?.on("data", capture);
+  let exitedCode: number | null = null;
+  let exited = false;
+  proc.on("exit", (code) => {
+    exited = true;
+    exitedCode = code;
+  });
+  const tail = (): string => `\n--- backend boot output (tail) ---\n${bootOutput.trim() || "(no output captured)"}`;
 
   const deadline = Date.now() + 120_000;
   for (;;) {
@@ -99,9 +119,14 @@ export default async function setup(ctx?: { provide?: (k: string, v: unknown) =>
     } catch {
       /* backend not up yet */
     }
+    // Fail FAST if the backend process died before becoming healthy (migration/import/crash), with its
+    // output — instead of waiting out the full 120s for a process that will never answer.
+    if (exited) {
+      throw new Error(`vitest: backend exited (code ${exitedCode}) before becoming healthy at ${health}.${tail()}`);
+    }
     if (Date.now() > deadline) {
       if (proc && !proc.killed) proc.kill("SIGTERM");
-      throw new Error(`vitest: backend did not become healthy at ${health} within 120s`);
+      throw new Error(`vitest: backend did not become healthy at ${health} within 120s.${tail()}`);
     }
     await new Promise((r) => setTimeout(r, 500));
   }

@@ -41,6 +41,30 @@ fi
 if [ -n "${VERIFY_DATABASE_URL:-}" ]; then
   echo "Verify DB: running migrations + tests against the ephemeral child branch (isolating migration fixtures)."
   export DATABASE_URL="$VERIFY_DATABASE_URL"
+  # CI-FAITHFUL CLEAN BASELINE. The child is forked off the EXPERIMENT branch, which carries app rows
+  # accumulated by earlier verify passes + the app's own e2e writes. CI instead forks a fresh branch off
+  # the PR base and migrates with NO seed, so its app tables are EMPTY. If the verify runs on the
+  # accumulated rows, a test that asserts rendered content WITHOUT seeding its own row (a test-owns-state
+  # violation) passes here on ambient data and only breaks at CI — past every build gate. Truncate the
+  # child's app tables (schema kept; alembic_version kept) so the verify runs on the SAME empty baseline
+  # as CI: such a bug then FAILS in-cycle, where the Navigator/Driver re-author it through the turns.
+  # Python-first (matches the ephemeral-verify follow-up for Java/.NET). Opt out: LAKEBASE_CONSORT_CLEAN_VERIFY_DB=0.
+  if { [ -f "$REPO_ROOT/pyproject.toml" ] || [ -f "$REPO_ROOT/requirements.txt" ]; } && [ "${LAKEBASE_CONSORT_CLEAN_VERIFY_DB:-1}" != "0" ]; then
+    ( cd "$REPO_ROOT" && uv run --extra dev python - <<'PY'
+import os, sqlalchemy as sa
+url = os.environ["DATABASE_URL"]
+if url.startswith("postgresql://"):
+    url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+e = sa.create_engine(url)
+with e.begin() as c:
+    names = [r[0] for r in c.exec_driver_sql(
+        "select tablename from pg_tables where schemaname='public' and tablename <> 'alembic_version'")]
+    if names:
+        c.exec_driver_sql("TRUNCATE TABLE " + ", ".join('"%s"' % n for n in names) + " RESTART IDENTITY CASCADE")
+        print(f"clean-verify-db: truncated {len(names)} app table(s) to the CI-faithful empty baseline")
+PY
+    ) || echo "clean-verify-db: truncate skipped (non-fatal) — verify continues on the forked child"
+  fi
 fi
 
 # FALSE-GREEN GUARD (fail fast, before any backend/migration work): client TEST
