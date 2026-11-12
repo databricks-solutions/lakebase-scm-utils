@@ -228,6 +228,13 @@ def _consort_capture_tables(test_id, item):
         rel = str(Path(str(item.fspath))).replace(f"{root}/", "")
         out = root / ".consort"
         out.mkdir(parents=True, exist_ok=True)
+        # Stamp feature/story so the dashboard scopes this snapshot per feature (test ids repeat across
+        # features). Resolve the OWNER from the test-list by the test's own id+file — same resolution as
+        # the agent-log test.result (_consort_record_test_result) and the client reporter's resolveOwner
+        # (consort-capture.ts). Backend snapshots were previously UNSTAMPED, so once any client capture
+        # stamped the feature the dashboard's attribution filter dropped them (records missing until the
+        # feature-deploy snapshot). Omit on no resolution — the reader keeps the line by test id (back-compat).
+        owner = _consort_test_owner(out, test_id, rel)
         ts = datetime.now(timezone.utc).isoformat()
         lines = []
         try:
@@ -246,12 +253,10 @@ def _consort_capture_tables(test_id, item):
                         continue
                     rows = [dict(r) for r in conn.execute(text(f'SELECT * FROM "{name}" ORDER BY 1 DESC LIMIT 50')).mappings()]
                     total = conn.execute(text(f'SELECT count(*) FROM "{name}"')).scalar()
-                    lines.append(
-                        json.dumps(
-                            {"ts": ts, "test_id": test_id, "file": rel, "table": name, "rows": rows, "row_count": total, "isolated": isolated},
-                            default=str,
-                        )
-                    )
+                    rec = {"ts": ts, "test_id": test_id, "file": rel, "table": name, "rows": rows, "row_count": total, "isolated": isolated}
+                    if owner:
+                        rec["feature_id"], rec["story_id"] = owner[0], owner[1]
+                    lines.append(json.dumps(rec, default=str))
         except SQLAlchemyError:
             return  # branch unreachable / mid-migration — skip this snapshot, never fail the test
         if lines:

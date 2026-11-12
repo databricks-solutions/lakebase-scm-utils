@@ -128,3 +128,40 @@ describe("emitTableSnapshot: stamps feature/story so the dashboard scopes snapsh
     expect(line.story_id).toBeUndefined();
   });
 });
+
+// The PYTHON backend capturer (tests/conftest.py `_consort_capture_tables`) must stamp the snapshot
+// with the SAME owner resolution as the TS reporter's emitTableSnapshot above. It did NOT: backend
+// (pytest) snapshots were written UNSTAMPED, so once ANY client capture stamped the feature, the
+// dashboard's attribution filter (story-tables route) treated every unstamped line as foreign and
+// DROPPED it — a backend test's table records never surfaced at its per-cycle green, only at the
+// feature-deploy snapshot. This locks the parity: the capturer resolves the owner and stamps it.
+describe("python conftest _consort_capture_tables: stamps feature/story parity with the TS reporter", () => {
+  const conftestSrc = readFileSync(
+    join(__dirname, "..", "..", "templates", "project", "python", "tests", "conftest.py"),
+    "utf8",
+  );
+  // Isolate the function body so the assertions are about THIS capturer, not the file at large.
+  const body = (() => {
+    const start = conftestSrc.indexOf("def _consort_capture_tables(");
+    expect(start, "_consort_capture_tables must exist in the python conftest template").toBeGreaterThanOrEqual(0);
+    const next = conftestSrc.indexOf("\ndef ", start + 1);
+    return conftestSrc.slice(start, next === -1 ? undefined : next);
+  })();
+
+  it("resolves the owner via _consort_test_owner (same resolution as the agent-log test.result + TS reporter)", () => {
+    expect(body).toMatch(/owner\s*=\s*_consort_test_owner\(\s*out,\s*test_id,\s*rel\s*\)/);
+  });
+
+  it("stamps feature_id + story_id onto the snapshot record when the owner resolves", () => {
+    expect(body).toMatch(/if owner:/);
+    expect(body).toMatch(/rec\["feature_id"\],\s*rec\["story_id"\]\s*=\s*owner\[0\],\s*owner\[1\]/);
+  });
+
+  it("omits the stamp when unresolved (record built without feature_id/story_id by default — back-compat)", () => {
+    // The base record literal carries neither key; the stamp is added only under `if owner:`.
+    expect(body).toMatch(/rec\s*=\s*\{[^}]*"test_id":\s*test_id[^}]*\}/);
+    const recLiteral = /rec\s*=\s*\{[^}]*\}/.exec(body)?.[0] ?? "";
+    expect(recLiteral).not.toMatch(/feature_id/);
+    expect(recLiteral).not.toMatch(/story_id/);
+  });
+});

@@ -79288,8 +79288,8 @@ var PKG_NAME = "@databricks-solutions/lakebase-scm-utils";
 var cached;
 function substrateSelfVersion() {
   if (cached !== void 0) return cached;
-  if ("0.3.16".length > 0) {
-    cached = "0.3.16";
+  if ("0.3.17".length > 0) {
+    cached = "0.3.17";
     return cached;
   }
   cached = "unknown";
