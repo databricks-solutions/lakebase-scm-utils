@@ -512,19 +512,36 @@ export interface ApplyVerifyDeps {
  * printing a false "in sync".
  */
 export async function applyAndVerifyTierMigration(
-  args: { instance: string; branch: string; projectDir?: string; language?: SchemaMigrationLanguage },
+  args: {
+    instance: string;
+    branch: string;
+    projectDir?: string;
+    language?: SchemaMigrationLanguage;
+    /** Database to migrate/verify. Default: $PGDATABASE or "databricks_postgres". */
+    database?: string;
+    /** Endpoint identifier on the branch. Default: "primary". */
+    endpointName?: string;
+  },
   deps: ApplyVerifyDeps = {},
 ): Promise<ApplyVerifyResult> {
   const apply = deps.apply ?? applySchemaMigrations;
   const status = deps.status ?? schemaMigrationStatus;
+  const target = {
+    instance: args.instance,
+    branch: args.branch,
+    projectDir: args.projectDir,
+    language: args.language,
+    database: args.database,
+    endpointName: args.endpointName,
+  };
   try {
-    await apply({ instance: args.instance, branch: args.branch, projectDir: args.projectDir, language: args.language, allowTier: true });
+    await apply({ ...target, allowTier: true });
   } catch (e) {
     return { ok: false, detail: e instanceof Error ? e.message : String(e) };
   }
   // Read the TARGET branch's own state back: only pending == 0 proves it is at head.
   try {
-    const st = await status({ instance: args.instance, branch: args.branch, projectDir: args.projectDir, language: args.language });
+    const st = await status(target);
     if (st.pending.length > 0) {
       return {
         ok: false,

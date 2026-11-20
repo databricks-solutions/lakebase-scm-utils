@@ -307,6 +307,53 @@ describe("applyAndVerifyTierMigration (Finding 25)", () => {
     expect(res.detail).toMatch(/alembic exploded/);
   });
 
+  it("threads database + endpointName into BOTH the apply and the verify status call", async () => {
+    // Regression: apply-tier ignored --database/--endpoint and migrated/verified
+    // $PGDATABASE or databricks_postgres while reporting ok:true.
+    const applyArgs: unknown[] = [];
+    const statusArgs: unknown[] = [];
+    const res = await applyAndVerifyTierMigration(
+      { ...target, database: "orders_db", endpointName: "ep-2" },
+      {
+        apply: async (a) => { applyArgs.push(a); return okApply(); },
+        status: async (a) => { statusArgs.push(a); return { current: "rev2", pending: [], tool: "alembic" }; },
+      },
+    );
+    expect(res.ok).toBe(true);
+    expect(applyArgs).toHaveLength(1);
+    expect(statusArgs).toHaveLength(1);
+    expect(applyArgs[0]).toMatchObject({ database: "orders_db", endpointName: "ep-2", allowTier: true });
+    expect(statusArgs[0]).toMatchObject({ database: "orders_db", endpointName: "ep-2" });
+  });
+
+  it("omitting database/endpointName keeps the default (undefined) targeting", async () => {
+    const applyArgs: Array<Record<string, unknown>> = [];
+    const statusArgs: Array<Record<string, unknown>> = [];
+    await applyAndVerifyTierMigration(target, {
+      apply: async (a) => { applyArgs.push({ ...a }); return okApply(); },
+      status: async (a) => { statusArgs.push({ ...a }); return { current: "rev2", pending: [], tool: "alembic" }; },
+    });
+    expect(applyArgs[0].database).toBeUndefined();
+    expect(applyArgs[0].endpointName).toBeUndefined();
+    expect(applyArgs[0].allowTier).toBe(true);
+    expect(statusArgs[0].database).toBeUndefined();
+    expect(statusArgs[0].endpointName).toBeUndefined();
+    expect(statusArgs[0].branch).toBe("staging");
+  });
+
+  it("the apply-tier CLI passes --database/--endpoint through (static)", () => {
+    const src = fs.readFileSync(
+      new URL("../../scripts/lakebase/schema-migrate.cli.ts", import.meta.url),
+      "utf8",
+    );
+    // Scope to the apply-tier case body: from its label up to the next `case "`
+    // label, so the check doesn't depend on switch-case order.
+    const block = /case "apply-tier":[\s\S]*?(?=\n\s*case ")/.exec(src)?.[0] ?? "";
+    expect(block).not.toBe("");
+    expect(block).toMatch(/applyAndVerifyTierMigration\(\{[\s\S]*database: args\.database/);
+    expect(block).toMatch(/applyAndVerifyTierMigration\(\{[\s\S]*endpointName: args\.endpointName/);
+  });
+
   it("scm-merge's local-migrate fallback is wired to the verify (static)", () => {
     const src = fs.readFileSync(
       new URL("../../scripts/lakebase/scm-merge.cli.ts", import.meta.url),
