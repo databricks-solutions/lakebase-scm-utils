@@ -193,7 +193,16 @@ update_env() {
     echo "PGAPPNAME=${PGAPPNAME}"
   } >> .env.tmp
 
-  mv .env.tmp .env
+  # Rename onto the link's TARGET when .env is a symlink (e.g. a workspace-root
+  # .env -> app/.env, the layout the scm extension uses). `mv .env.tmp .env`
+  # would replace the link with a regular file, leaving the app's .env on the
+  # previous branch. Still a rename, so the write stays atomic.
+  local env_target=.env
+  if [ -L .env ]; then
+    env_target="$(readlink .env)"
+    case "$env_target" in /*) ;; *) env_target="./$env_target" ;; esac
+  fi
+  mv .env.tmp "$env_target"
 
   # Write application-local.properties only for Java/Spring projects (pom.xml present).
   # No password: the LakebaseDataSource bean mints a fresh token at runtime.
